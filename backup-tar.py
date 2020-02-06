@@ -22,7 +22,7 @@ import subprocess
 import sys
 import time
 
-NAME_TEMPLATE = '%Y%m%d-%H%M.tar'
+NAME_TEMPLATE = '%Y%m%d-%H%M.tar.gz'
 
 CHMOD = stat.S_IRUSR
 
