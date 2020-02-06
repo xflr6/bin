@@ -45,3 +45,126 @@ optional arguments:
   --quiet               suppress stdout and stderr of mksquashfs subprocess
   --version             show program's version number and exit
 ```
+
+
+### backup-tar.py
+
+```sh
+$ backup-tar.py --help
+usage: backup-tar.py [-h] [--name TEMPLATE] [--exclude-file PATH]
+                     [--no-auto-compress] [--owner OWNER] [--group GROUP]
+                     [--chmod MODE] [--set-path LINE] [--set-umask MASK]
+                     [--keep] [--version]
+                     source dest
+
+Create tar archive from given directory and prompt for its deletion.
+
+positional arguments:
+  source               archive source directory
+  dest                 directory for tar archive
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --name TEMPLATE      archive filename datetime.strftime() format string
+                       (default: %Y%m%d-%H%M.tar)
+  --exclude-file PATH  path to file with one line per blacklist item
+  --no-auto-compress   don't pass --auto-compress to tar
+  --owner OWNER        tar archive owner
+  --group GROUP        tar archive group
+  --chmod MODE         tar archive chmod (default: 400)
+  --set-path LINE      PATH for tar subprocess (default: /usr/bin:/bin)
+  --set-umask MASK     umask for tar subprocess (default: 177)
+  --keep               don't prompt for image file deletion (exit directly)
+  --version            show program's version number and exit
+```
+
+
+### blame-wiki.py
+
+```sh
+$ blame-wiki.py --help
+usage: blame-wiki.py [-h] [--export-url URL] [--version]
+                     page_title search_string
+
+Dump XML of first MediaWiki page revision containing a search string.
+
+positional arguments:
+  page_title        title of the page on MediaWiki
+  search_string     string to match page wikitext
+
+optional arguments:
+  -h, --help        show this help message and exit
+  --export-url URL  MediaWiki instance export url (default:
+                    https://en.wikipedia.org/wiki/Special:Export)
+  --version         show program's version number and exit
+```
+
+
+### dumpall-svn.py
+
+```sh
+$ dumpall-svn.py --help
+usage: dumpall-svn.py [-h] [--comp {gzip,xz}] [--no-deltas] [--suffix SUFFIX]
+                      [--chmod MODE] [--set-path LINE] [--detail] [--verbose]
+                      [--version]
+                      target_dir repo_dir [repo_dir ...]
+
+Svnadmin dump subversion repositories into target directory.
+
+positional arguments:
+  target_dir        output directory for dump files
+  repo_dir          subversion repository directory
+
+optional arguments:
+  -h, --help        show this help message and exit
+  --comp {gzip,xz}  compress dump file(s) (no compression if omitted)
+  --no-deltas       don't pass --deltas to $(svnadmin dump)
+  --suffix SUFFIX   dump file name suffix (default: .svndump)
+  --chmod MODE      dump file chmod (default: 400)
+  --set-path LINE   PATH for subprocess(es) (default: /usr/bin:/bin)
+  --detail          include detail infos for each repository
+  --verbose         don't pass --quiet to $(svnadmin dump)
+  --version         show program's version number and exit
+```
+
+
+### pull-gists.py
+
+```sh
+$ pull-gists.py --help
+usage: pull-gists.py [-h] [--reset] [--detail] [--version]
+                     target_dir gh_username
+
+Git clone --mirror or git remote update all public gists of GitHub user.
+
+positional arguments:
+  target_dir   output directory for bare git clones
+  gh_username  GitHub username
+
+optional arguments:
+  -h, --help   show this help message and exit
+  --reset      delete present git clones first
+  --detail     show detailed info for each clone/update
+  --version    show program's version number and exit
+```
+
+
+### pull-repos.py
+
+```sh
+$ pull-repos.py --help
+usage: pull-repos.py [-h] [--reset] [--detail] [--version]
+                     target_dir repo_url [repo_url ...]
+
+Git clone --mirror or git remote update git repositories.
+
+positional arguments:
+  target_dir  output directory for bare git clones
+  repo_url    git repository url
+
+optional arguments:
+  -h, --help  show this help message and exit
+  --reset     delete present git clones first
+  --detail    show detailed info for each clone/update
+  --version   show program's version number and exit
+```
