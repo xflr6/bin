@@ -12,8 +12,8 @@ import argparse
 import functools
 import gzip
 import sys
-import urllib.request
 import urllib.parse
+import urllib.request
 import xml.etree.ElementTree as etree
 
 EXPORT_URL = 'https://en.wikipedia.org/wiki/Special:Export'
@@ -66,18 +66,18 @@ assert ns.startswith(MEDIAWIKI_EXPORT)
 ns = {'namespaces': {'ns': ns}}
 
 info, = tree.findall('ns:siteinfo', **ns)
-i_keys = 'sitename', 'dbname'
+i_keys = 'sitename', 'dbname', 'base'
 i_values = tuple(info.findtext(f'ns:{k}', **ns) for k in i_keys)
 for k, v in zip(i_keys, i_values):
     log(f'siteinfo/{k}: {v}')
 
 page, = tree.findall('ns:page', **ns)
-p_keys = 'ns', 'title'
+p_keys = 'ns', 'title', 'id'
 p_values = tuple(page.findtext(f'ns:{k}', **ns) for k in p_keys)
 for k, v in zip(p_keys, p_values):
     log(f'page/{k}: {v}')
 
-p_ns, p_title = p_values
+p_ns, p_title, _ = p_values
 assert p_ns == '0'
 assert p_title == args.page_title
 
