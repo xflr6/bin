@@ -22,13 +22,13 @@ usage: backup-squashfs.py [-h] [--name TEMPLATE] [--exclude-file PATH]
                           [--comp {gzip,lzo,xz}] [--owner OWNER]
                           [--group GROUP] [--chmod MODE] [--set-path LINE]
                           [--set-umask MASK] [--keep] [--quiet] [--version]
-                          source dest
+                          source_dir dest_dir
 
 Create SquashFS image from given directory and prompt for its deletion.
 
 positional arguments:
-  source                image source directory
-  dest                  image target directory
+  source_dir            image source directory
+  dest_dir              image target directory
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -55,13 +55,13 @@ usage: backup-tar.py [-h] [--name TEMPLATE] [--exclude-file PATH]
                      [--no-auto-compress] [--owner OWNER] [--group GROUP]
                      [--chmod MODE] [--set-path LINE] [--set-umask MASK]
                      [--keep] [--version]
-                     source dest
+                     source_dir dest_dir
 
 Create tar archive from given directory and prompt for its deletion.
 
 positional arguments:
-  source               archive source directory
-  dest                 directory for tar archive
+  source_dir           archive source directory
+  dest_dir             directory for tar archive
 
 optional arguments:
   -h, --help           show this help message and exit
@@ -104,7 +104,7 @@ optional arguments:
 
 ```sh
 $ dumpall-svn.py --help
-usage: dumpall-svn.py [-h] [--comp {gzip,xz}] [--no-deltas] [--suffix SUFFIX]
+usage: dumpall-svn.py [-h] [--name TEMPLATE] [--comp {gzip,xz}] [--no-deltas]
                       [--chmod MODE] [--set-path LINE] [--detail] [--verbose]
                       [--version]
                       target_dir repo_dir [repo_dir ...]
@@ -117,9 +117,10 @@ positional arguments:
 
 optional arguments:
   -h, --help        show this help message and exit
+  --name TEMPLATE   dump filename datetime.strftime() format string (default:
+                    ${name}.svndump)
   --comp {gzip,xz}  compress dump file(s) (no compression if omitted)
   --no-deltas       don't pass --deltas to $(svnadmin dump)
-  --suffix SUFFIX   dump file name suffix (default: .svndump)
   --chmod MODE      dump file chmod (default: 400)
   --set-path LINE   PATH for subprocess(es) (default: /usr/bin:/bin)
   --detail          include detail infos for each repository
