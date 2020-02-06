@@ -14,11 +14,12 @@ import functools
 import os
 import pathlib
 import stat
+import string
 import subprocess
 import sys
 import time
 
-SUFFIX = '.svndump'
+NAME_TEMPLATE = '${name}.svndump'
 
 COMP = {'gzip': (['gzip', '--stdout'], '.gz'),
         'xz':  (['xz', '--stdout'], '.xz')}
@@ -36,6 +37,13 @@ def directory(s):
     if result is None or not result.is_dir():
         raise argparse.ArgumentTypeError(f'not a present directory: {s}')
     return result
+
+
+def template(s):
+    result = datetime.datetime.now().strftime(s)
+    if not result:
+        raise argparse.ArgumentTypeError('empty string')
+    return string.Template(result)
 
 
 def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
@@ -57,14 +65,16 @@ parser.add_argument('target_dir', type=directory,
 parser.add_argument('repo_dir', nargs='+', type=directory,
                     help='subversion repository directory')
 
+parser.add_argument('--name', metavar='TEMPLATE',
+                    type=template, default=NAME_TEMPLATE,
+                    help=f'dump filename datetime.strftime() format string'
+                         f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
+
 parser.add_argument('--comp', choices=list(COMP),
                     help='compress dump file(s) (no compression if omitted)')
 
 parser.add_argument('--no-deltas', action='store_true',
                     help="don't pass --deltas to $(svnadmin dump)")
-
-parser.add_argument('--suffix', default=SUFFIX,
-                    help=f'dump file name suffix (default: {SUFFIX})')
 
 parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
                     help=f'dump file chmod (default: {CHMOD:03o})')
@@ -99,13 +109,13 @@ if not args.no_deltas:
 if not args.verbose:
     dump.append('--quiet')
 
-suffix = args.suffix
+name_template = args.name
 if args.comp in (None, ''):
     comp = None
 else:
     comp, sfx = COMP[args.comp]
-    suffix += sfx
-log(f'file name suffix: {suffix}')
+    name_template = string.Template(name_template.template + sfx)
+log(f'file name template: {name_template}')
 
 caption = ' | '.join(dump[:1] + (comp[:1] if comp is not None else []))
 
@@ -117,7 +127,7 @@ n_found = n_dumped = n_bytes = 0
 
 for d in args.repo_dir:
     assert d.is_dir()
-    dest_path = args.target_dir / (d.name + suffix)
+    dest_path = args.target_dir / name_template.substitute(name=d.name)
     log('', f'source: {d}/', f'target: {dest_path}')
 
     found_size = dest_path.stat().st_size if dest_path.exists() else None
