@@ -143,9 +143,9 @@ def format_permissions(file_stat):
 
 parser = argparse.ArgumentParser(description=__doc__)
 
-parser.add_argument('source', type=directory, help='archive source directory')
+parser.add_argument('source_dir', type=directory, help='archive source directory')
 
-parser.add_argument('dest', type=directory, help='directory for tar archive')
+parser.add_argument('dest_dir', type=directory, help='directory for tar archive')
 
 parser.add_argument('--name', metavar='TEMPLATE',
                     type=template, default=NAME_TEMPLATE,
@@ -180,13 +180,13 @@ args = parser.parse_args()
 
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
-dest_path = args.dest / args.name
+dest_path = args.dest_dir / args.name
 assert not dest_path.exists()
 
-log(f'tar source: {args.source}', f'tar destination {dest_path}')
+log(f'tar source: {args.source_dir}', f'tar destination {dest_path}')
 
 infos = {}
-files = sorted(iterfiles(args.source, infos=infos))
+files = sorted(iterfiles(args.source_dir, infos=infos))
 log('traversed source: (', end='')
 counts = 'dirs', 'files', 'symlinks', 'other'
 log(*(f"{infos['n_' + c]} {c}" for c in counts), sep=', ', end=')\n')
@@ -201,7 +201,7 @@ if args.exclude_file is not None:
 if not args.no_auto_compress:
     cmd.append('--auto-compress')
 
-kwargs = {'cwd':  args.source,
+kwargs = {'cwd':  args.source_dir,
           'env': {'PATH': args.set_path},
           'encoding': ENCODING}
 

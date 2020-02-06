@@ -104,9 +104,9 @@ def format_permissions(file_stat):
 
 parser = argparse.ArgumentParser(description=__doc__)
 
-parser.add_argument('source', type=directory, help='image source directory')
+parser.add_argument('source_dir', type=directory, help='image source directory')
 
-parser.add_argument('dest', type=directory, help='image target directory')
+parser.add_argument('dest_dir', type=directory, help='image target directory')
 
 parser.add_argument('--name', metavar='TEMPLATE',
                     type=template, default=NAME_TEMPLATE,
@@ -146,16 +146,16 @@ args = parser.parse_args()
 
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
-dest_path = args.dest / args.name
+dest_path = args.dest_dir / args.name
 assert not dest_path.exists()
 
-log(f'mksquashfs source: {args.source}', f'mksquashfs destination: {dest_path}')
+log(f'mksquashfs source: {args.source_dir}', f'mksquashfs destination: {dest_path}')
 if args.exclude_file is not None:
     log(f'mksquashfs exclude file: {args.exclude_file}')
 if args.comp is not None:
     log(f'mksquashfs compression: {args.comp}')
 
-cmd = ['mksquashfs', args.source, dest_path, '-noappend']
+cmd = ['mksquashfs', args.source_dir, dest_path, '-noappend']
 
 if args.exclude_file is not None:
     cmd += ['-ef', args.exclude_file]
