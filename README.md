@@ -66,7 +66,7 @@ positional arguments:
 optional arguments:
   -h, --help           show this help message and exit
   --name TEMPLATE      archive filename datetime.strftime() format string
-                       (default: %Y%m%d-%H%M.tar)
+                       (default: %Y%m%d-%H%M.tar.gz)
   --exclude-file PATH  path to file with one line per blacklist item
   --no-auto-compress   don't pass --auto-compress to tar
   --owner OWNER        tar archive owner
