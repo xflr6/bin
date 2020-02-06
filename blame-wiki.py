@@ -22,6 +22,8 @@ MEDIAWIKI_EXPORT = 'http://www.mediawiki.org/xml/export-'
 
 ENCODING = 'utf-8'
 
+GZIP = 'gzip'
+
 
 parser = argparse.ArgumentParser(description=__doc__)
 
@@ -41,7 +43,7 @@ log = functools.partial(print, file=sys.stderr, sep='\n')
 post = urllib.parse.urlencode({'pages': args.page_title, 'wpDownload': 1})
 req = urllib.request.Request(args.export_url,
                              data=post.encode(ENCODING),
-                             headers={'accept-encoding': 'gzip'})
+                             headers={'accept-encoding': GZIP})
 
 log(f'export url: {args.export_url}', f'post: {post}', '')
 
@@ -55,7 +57,7 @@ with urllib.request.urlopen(req) as f:
 
     assert ct == f'application/xml; charset={ENCODING}'
     assert cd.startswith('attachment;filename=')
-    assert ce == 'gzip'
+    assert ce == GZIP
 
     with gzip.open(f) as z:
         tree = etree.parse(z)
