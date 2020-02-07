@@ -14,15 +14,15 @@ import functools
 import os
 import pathlib
 import stat
-import string
 import subprocess
 import sys
 import time
 
-NAME_TEMPLATE = '${name}.svndump'
+NAME_TEMPLATE = '{name}.svndump.gz'
 
-COMP = {'gzip': (['gzip', '--stdout'], '.gz'),
-        'xz':  (['xz', '--stdout'], '.xz')}
+COMPRESS = {'.bz2': ['bzip2', '--stdout'],
+            '.gz': ['gzip', '--stdout'],
+            '.xz':  ['xz', '--stdout']}
 
 CHMOD = stat.S_IRUSR
 
@@ -43,7 +43,7 @@ def template(s):
     result = datetime.datetime.now().strftime(s)
     if not result:
         raise argparse.ArgumentTypeError('empty string')
-    return string.Template(result)
+    return result
 
 
 def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
@@ -70,8 +70,10 @@ parser.add_argument('--name', metavar='TEMPLATE',
                     help=f'dump filename datetime.strftime() format string'
                          f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
 
-parser.add_argument('--comp', choices=list(COMP),
-                    help='compress dump file(s) (no compression if omitted)')
+parser.add_argument('--no-auto-compress', action='store_true',
+                    help='never compress dump file(s)'
+                         '(default: auto-compress if --name ends with any of:'
+                         f" {', '.join(COMPRESS)})")
 
 parser.add_argument('--no-deltas', action='store_true',
                     help="don't pass --deltas to $(svnadmin dump)")
@@ -101,6 +103,8 @@ else:
 
 print(f'svnadmin dump {len(args.repo_dir)} repo(s) into: {args.target_dir}/')
 
+log(f'file name template: {args.name}')
+
 dump = ['svnadmin', 'dump']
 
 if not args.no_deltas:
@@ -109,13 +113,11 @@ if not args.no_deltas:
 if not args.verbose:
     dump.append('--quiet')
 
-name_template = args.name
-if args.comp in (None, ''):
+if args.no_auto_compress:
     comp = None
 else:
-    comp, sfx = COMP[args.comp]
-    name_template = string.Template(name_template.template + sfx)
-log(f'file name template: {name_template}')
+    suffix = pathlib.Path(args.name).suffix
+    comp = COMPRESS.get(suffix)
 
 caption = ' | '.join(dump[:1] + (comp[:1] if comp is not None else []))
 
@@ -127,7 +129,7 @@ n_found = n_dumped = n_bytes = 0
 
 for d in args.repo_dir:
     assert d.is_dir()
-    dest_path = args.target_dir / name_template.substitute(name=d.name)
+    dest_path = args.target_dir / args.name.format(name=d.name)
     log('', f'source: {d}/', f'target: {dest_path}')
 
     found_size = dest_path.stat().st_size if dest_path.exists() else None
