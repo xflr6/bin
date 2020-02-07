@@ -1,8 +1,8 @@
 #!/ust/bin/env python3
 
 import pathlib
-import subprocess
 import platform
+import subprocess
 
 PATH = pathlib.Path('README.md')
 
