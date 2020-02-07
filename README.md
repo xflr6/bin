@@ -104,28 +104,29 @@ optional arguments:
 
 ```sh
 $ dumpall-svn.py --help
-usage: dumpall-svn.py [-h] [--name TEMPLATE] [--comp {gzip,xz}] [--no-deltas]
-                      [--chmod MODE] [--set-path LINE] [--detail] [--verbose]
-                      [--version]
+usage: dumpall-svn.py [-h] [--name TEMPLATE] [--no-auto-compress]
+                      [--no-deltas] [--chmod MODE] [--set-path LINE]
+                      [--detail] [--verbose] [--version]
                       target_dir repo_dir [repo_dir ...]
 
 Svnadmin dump subversion repositories into target directory.
 
 positional arguments:
-  target_dir        output directory for dump files
-  repo_dir          subversion repository directory
+  target_dir          output directory for dump files
+  repo_dir            subversion repository directory
 
 optional arguments:
-  -h, --help        show this help message and exit
-  --name TEMPLATE   dump filename datetime.strftime() format string (default:
-                    ${name}.svndump)
-  --comp {gzip,xz}  compress dump file(s) (no compression if omitted)
-  --no-deltas       don't pass --deltas to $(svnadmin dump)
-  --chmod MODE      dump file chmod (default: 400)
-  --set-path LINE   PATH for subprocess(es) (default: /usr/bin:/bin)
-  --detail          include detail infos for each repository
-  --verbose         don't pass --quiet to $(svnadmin dump)
-  --version         show program's version number and exit
+  -h, --help          show this help message and exit
+  --name TEMPLATE     dump filename datetime.strftime() format string
+                      (default: {name}.svndump.gz)
+  --no-auto-compress  never compress dump file(s) (default: auto-compress if
+                      --name ends with any of: .bz2, .gz, .xz)
+  --no-deltas         don't pass --deltas to $(svnadmin dump)
+  --chmod MODE        dump file chmod (default: 400)
+  --set-path LINE     PATH for subprocess(es) (default: /usr/bin:/bin)
+  --detail            include detail infos for each repository
+  --verbose           don't pass --quiet to $(svnadmin dump)
+  --version           show program's version number and exit
 ```
 
 

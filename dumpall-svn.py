@@ -72,7 +72,7 @@ parser.add_argument('--name', metavar='TEMPLATE',
 
 parser.add_argument('--no-auto-compress', action='store_true',
                     help='never compress dump file(s)'
-                         '(default: auto-compress if --name ends with any of:'
+                         ' (default: auto-compress if --name ends with any of:'
                          f" {', '.join(COMPRESS)})")
 
 parser.add_argument('--no-deltas', action='store_true',
