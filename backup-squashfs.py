@@ -11,7 +11,6 @@ __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 import argparse
 import datetime
 import functools
-import itertools
 import os
 import pathlib
 import shutil
@@ -90,6 +89,7 @@ def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
 
 
 def format_permissions(file_stat):
+    import pwd, grp, itertools
 
     def iterflags(mode):
         for u, f in itertools.product(('USR', 'GRP', 'OTH'), 'RWX'):
