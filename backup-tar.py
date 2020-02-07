@@ -11,11 +11,9 @@ __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 import argparse
 import datetime
 import functools
-import grp
 import itertools
 import os
 import pathlib
-import pwd
 import shutil
 import stat
 import subprocess
@@ -63,6 +61,8 @@ def present_file(s):
 
 
 def user(s):
+    import pwd
+
     try:
         pwd.getpwnam(s)
     except KeyError:
@@ -71,6 +71,8 @@ def user(s):
 
 
 def group(s):
+    import grp
+
     try:
         grp.getgrnam(s)
     except KeyError:
