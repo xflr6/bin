@@ -50,7 +50,7 @@ log(f'export url: {args.export_url}', f'post: {post}', '')
 log(f'urllib.request.urlopen({req})')
 with urllib.request.urlopen(req) as f:
     c_headers = 'type', 'disposition', 'encoding'
-    c_values = tuple(f.headers.get(f'content-{h}') for h in c_headers)
+    c_values = tuple(f.info().get(f'content-{h}') for h in c_headers)
     for h, v in zip(c_headers, c_values):
         log(f'content-{h}: {v}')
     ct, cd, ce = c_values
