@@ -230,7 +230,7 @@ log(format_permissions(dest_stat))
 log('', f'os.chmod(..., {args.chmod:#05o})')
 dest_path.chmod(args.chmod)
 if args.owner or args.group:
-    log(f'shutil.chown(..., user={args.owner!r}, group={args.group!r})')
+    log(f'shutil.chown(..., user={args.owner}, group={args.group})')
     shutil.chown(dest_path, user=args.owner, group=args.group)
 log(format_permissions(dest_path.stat()))
 
