@@ -107,7 +107,7 @@ def iterfiles(root, infos=None, sep=os.sep):
             path = prefix + d.name
             yield path
 
-            if d.is_file():
+            if d.is_file(follow_symlinks=False):
                 n_files += 1
                 n_bytes += d.stat(follow_symlinks=False).st_size
             elif d.is_dir(follow_symlinks=False):
