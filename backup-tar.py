@@ -109,8 +109,8 @@ def iterfiles(root, infos=None, sep=os.sep):
 
             if d.is_file():
                 n_files += 1
-                n_bytes += d.stat().st_size
-            elif d.is_dir() and not d.is_symlink():
+                n_bytes += d.stat(follow_symlinks=False).st_size
+            elif d.is_dir(follow_symlinks=False):
                 dirs.append((path + sep, d))
             elif d.is_symlink():
                 n_symlinks += 1
