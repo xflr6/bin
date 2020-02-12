@@ -47,16 +47,52 @@ def template(s):
     return result
 
 
-def present_file(s):
+def exclude_file(s, encoding='utf-8'):
     if not s:
         return None
     try:
-        result = pathlib.Path(s)
+        p = pathlib.Path(s)
     except ValueError:
-        result = None
-    if result is None or not result.is_file():
+        p = None
+    if p is None or not p.is_file():
         raise argparse.ArgumentTypeError(f'not a present file: {s}')
-    return result
+
+    def iterpatterns(lines):
+        for l in lines:
+            l = l.strip()
+            if l and not l.startswith('#'):
+                path = pathlib.Path(l)
+                if not path.is_absolute():
+                    raise NotImplementedError
+                yield path.parts
+
+    with p.open(encoding=encoding) as f:
+        patterns = sorted(set(iterpatterns(f)))
+
+    tree = {'/': {}}
+    for parts in patterns:
+        root, *parts = parts
+        root = tree[root]
+        for nonlast, p in enumerate(parts, 1 - len(parts)):
+            if p in root:
+                assert (root[p] is not None) == bool(nonlast)
+            else:
+                root[p] = {} if nonlast else None
+            root = root[p]
+
+    def match(dentry):
+        parts = pathlib.Path(dentry).parts
+        root = tree
+        for p in parts:
+            if p in root:
+                root = root[p]
+                if root is None:
+                    return True
+            else:
+                return False
+        return False
+
+    return argparse.Namespace(path=p, match=match)
 
 
 def user(s):
@@ -90,8 +126,8 @@ def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
     return result
 
 
-def iterfiles(root, infos=None, sep=os.sep):
-    n_dirs = n_files = n_symlinks = n_other = n_bytes = 0
+def iterfiles(root, exclude_match, infos=None, sep=os.sep):
+    n_dirs = n_files = n_symlinks = n_other = n_bytes = n_excluded = 0
 
     stack = [('', root)]
     while stack:
@@ -104,6 +140,10 @@ def iterfiles(root, infos=None, sep=os.sep):
 
         dirs = []
         for d in dentries:
+            if exclude_match(d):
+                n_excluded += 1
+                continue
+
             path = prefix + d.name
 
             if d.is_file(follow_symlinks=False):
@@ -126,7 +166,8 @@ def iterfiles(root, infos=None, sep=os.sep):
         infos.update(n_items=sum([n_dirs, n_files, n_symlinks, n_other]),
                      n_dirs=n_dirs, n_files=n_files, n_symlinks=n_symlinks,
                      n_other=n_other,
-                     n_bytes=n_bytes)
+                     n_bytes=n_bytes,
+                     n_excluded=n_excluded)
 
 
 def format_permissions(file_stat):
@@ -156,7 +197,7 @@ parser.add_argument('--name', metavar='TEMPLATE',
                     help='archive filename datetime.strftime() format string'
                          f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
 
-parser.add_argument('--exclude-file', metavar='PATH', type=present_file,
+parser.add_argument('--exclude-file', metavar='PATH', type=exclude_file,
                     help='path to file with one line per blacklist item')
 
 parser.add_argument('--no-auto-compress', action='store_true',
@@ -189,18 +230,17 @@ assert not dest_path.exists()
 
 log(f'tar source: {args.source_dir}', f'tar destination {dest_path}')
 
+match = args.exclude_file.match if args.exclude_file is not None else lambda x: False
+
 infos = {}
-files = sorted(iterfiles(args.source_dir, infos=infos))
+files = sorted(iterfiles(args.source_dir, match, infos=infos))
 log('traversed source: (', end='')
-counts = 'dirs', 'files', 'symlinks', 'other'
+counts = 'dirs', 'files', 'symlinks', 'other', 'excluded'
 log(*(f"{infos['n_' + c]} {c}" for c in counts), sep=', ', end=')\n')
 log(f"file size sum: {infos['n_bytes']} bytes")
 
 cmd = ['tar', '--create', '--file', dest_path,
        '--files-from', '-', '--null', '--verbatim-files-from']
-
-if args.exclude_file is not None:
-    cmd += ['--exclude-from', args.exclude_file]
 
 if not args.no_auto_compress:
     cmd.append('--auto-compress')
