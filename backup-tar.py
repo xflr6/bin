@@ -105,16 +105,18 @@ def iterfiles(root, infos=None, sep=os.sep):
         dirs = []
         for d in dentries:
             path = prefix + d.name
-            yield path
 
             if d.is_file(follow_symlinks=False):
+                yield path
                 n_files += 1
                 n_bytes += d.stat(follow_symlinks=False).st_size
             elif d.is_dir(follow_symlinks=False):
                 dirs.append((path + sep, d))
             elif d.is_symlink():
+                yield path
                 n_symlinks += 1
             else:
+                yield path
                 n_other += 1
 
         stack.extend(reversed(dirs))
