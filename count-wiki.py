@@ -38,6 +38,16 @@ def present_file(s):
     return result
 
 
+def positive_int(s):
+    try:
+        result = int(s)
+    except ValueError:
+        result = None
+    if result is None or not result > 0:
+        raise argparse.ArgumentTypeError(f'need positive int: {s}')
+    return result
+
+
 def ntags(filename, tag, *, display_path, display_after):
     count = 0
     start = time.monotonic()
@@ -76,7 +86,7 @@ parser.add_argument('--display', metavar='PATH', default=DISPLAY_PATH,
                     help='ElementPath to log in sub-total'
                          f' (default: {DISPLAY_PATH})')
 
-parser.add_argument('--display_after', metavar='N', type=int,
+parser.add_argument('--display-after', metavar='N', type=positive_int,
                     default=DISPLAY_AFTER,
                     help='log sub-total after N tags'
                          f' (default: {DISPLAY_AFTER})')
