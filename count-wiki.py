@@ -91,7 +91,7 @@ def count_tags(filename, tag, *, display_path, display_after):
 parser = argparse.ArgumentParser(description=__doc__)
 
 parser.add_argument('filename', type=present_file,
-                    help='path to MediaWiki XML export (.xml.bz2)')
+                    help='path to MediaWiki XML export (format: .xml.bz2)')
 
 parser.add_argument('--tag', default=PAGE_TAG,
                     help=f'end tag to count (default: {PAGE_TAG})')

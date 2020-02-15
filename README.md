@@ -100,6 +100,28 @@ optional arguments:
 ```
 
 
+### count-wiki.py
+
+```sh
+$ count-wiki.py --help
+usage: count-wiki.py [-h] [--tag TAG] [--display PATH] [--display-after N]
+                     [--version]
+                     filename
+
+Count page tags in MediaWiki XML export.
+
+positional arguments:
+  filename           path to MediaWiki XML export (format: .xml.bz2)
+
+optional arguments:
+  -h, --help         show this help message and exit
+  --tag TAG          end tag to count (default: page)
+  --display PATH     ElementPath to log in sub-total (default: title)
+  --display-after N  log sub-total after N tags (default: 1000)
+  --version          show program's version number and exit
+```
+
+
 ### dumpall-svn.py
 
 ```sh
