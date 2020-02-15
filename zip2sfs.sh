@@ -1,4 +1,5 @@
 #!/bin/sh
+# convert .zip file(s) info .sfs image(s)
 
 set -e
 
