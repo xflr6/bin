@@ -19,7 +19,7 @@ import xml.etree.ElementTree as etree
 
 PAGE_TAG = 'page'
 
-DISPLAY_PATH = 'title'
+DISPLAY_PATH = '{ns}title'
 
 DISPLAY_AFTER = 1000
 
@@ -77,7 +77,7 @@ def count_tags(filename, tag, *, display_path, display_after):
     assert re.fullmatch(MEDIAWIKI_EXPORT, root.tag)
     ns = _extract_ns(root.tag)
 
-    display_path = f'{{{ns}}}{display_path}' if display_path else None
+    display_path = display_path.format(ns=f'{{{ns}}}') if display_path else None
     for count, elem in enumerate(tags, start=1):
         if not count % display_after:
             msg = f'{count:,}'
