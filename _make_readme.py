@@ -1,4 +1,4 @@
-#!/ust/bin/env python3
+#!/usr/bin/env python3
 
 """Insert --help output of *.py as usage into README file."""
 
