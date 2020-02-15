@@ -1,6 +1,6 @@
 # bin
 
-Command-line scripts (\*nix).
+Command-line scripts (mostly \*nix).
 
 
 ## Installation
