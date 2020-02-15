@@ -1,43 +1,42 @@
 #!/ust/bin/env python3
 
+"""Insert --help output of *.py as usafe into README file."""
+
 import pathlib
 import platform
 import subprocess
 
-PATH = pathlib.Path('README.md')
-
-CWD = pathlib.Path()
-
-ENCODING = 'utf-8'
+README_PATH = pathlib.Path('README.md')
 
 REPLACE_AFTER = '\n## Usage\n'
 
+REPLACE_BEFORE = '\n## License\n'
 
-def iterhelp(directory, pattern='*.py'):
+ENCODING = 'utf-8'
+
+
+def iterhelp(directory=pathlib.Path(), pattern='*.py'):
     python = 'python' if platform.system() == 'Windows' else 'python3'
     for p in sorted(directory.glob(pattern)):
         if not p.name.startswith('_'):
             cmd = [python, p, '--help']
             kwargs = {'encoding': ENCODING}
             proc = subprocess.run(cmd, stdout=subprocess.PIPE, **kwargs)
-            stdout = None if proc.returncode else proc.stdout
+            stdout = proc.stdout if not proc.returncode else None 
             yield list(map(str, cmd[1:])), stdout
 
 
-helps = list(iterhelp(CWD))
+usage = '\n\n\n'.join(f"### {cmd[0]}\n\n```sh\n$ {' '.join(cmd)}\n{stdout}```"
+                     for cmd, stdout in iterhelp() if stdout)
 
-with PATH.open(encoding=ENCODING) as f:
-    tmpl = f.read()
+text = README_PATH.read_text(encoding=ENCODING)
 
-page, sep, rest = tmpl.partition(REPLACE_AFTER)
+head, sep_1, rest = text.partition(REPLACE_AFTER)
+assert head and sep_1 and rest
 
-assert sep
-assert page
+_, sep_2, tail = rest.partition(REPLACE_BEFORE)
+assert sep_2 and tail
 
-rest = '\n\n\n'.join(f"### {cmd[0]}\n\n```sh\n$ {' '.join(cmd)}\n{stdout}```"
-                     for cmd, stdout in helps if stdout)
+text = f'{head}{sep_1}\n\n{usage}\n\n{sep_2}{tail}'
 
-doc = f'{page}{sep}\n\n{rest}'
-
-with PATH.open('w', encoding=ENCODING) as f:
-    print(doc, file=f)
+README_PATH.write_text(text, encoding=ENCODING)

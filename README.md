@@ -170,3 +170,11 @@ optional arguments:
   --detail    show detailed info for each clone/update
   --version   show program's version number and exit
 ```
+
+
+## License
+
+These scripts are distributed under the [MIT license][MIT]
+
+
+[MIT]: https://opensource.org/licenses/MIT
