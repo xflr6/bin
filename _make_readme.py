@@ -22,12 +22,12 @@ def iterhelp(directory=pathlib.Path(), pattern='*.py'):
             cmd = [python, p, '--help']
             kwargs = {'encoding': ENCODING}
             proc = subprocess.run(cmd, stdout=subprocess.PIPE, **kwargs)
-            stdout = proc.stdout if not proc.returncode else None 
+            stdout = proc.stdout if not proc.returncode else None
             yield list(map(str, cmd[1:])), stdout
 
 
 usage = '\n\n\n'.join(f"### {cmd[0]}\n\n```sh\n$ {' '.join(cmd)}\n{stdout}```"
-                     for cmd, stdout in iterhelp() if stdout)
+                      for cmd, stdout in iterhelp() if stdout)
 
 text = README_PATH.read_text(encoding=ENCODING)
 
