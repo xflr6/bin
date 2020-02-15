@@ -1,6 +1,6 @@
 #!/ust/bin/env python3
 
-"""Insert --help output of *.py as usafe into README file."""
+"""Insert --help output of *.py as usage into README file."""
 
 import pathlib
 import platform
