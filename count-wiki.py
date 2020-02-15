@@ -23,7 +23,9 @@ DISPLAY_PATH = 'title'
 
 DISPLAY_AFTER = 1000
 
-MEDIAWIKI_EXPORT = r'http://www\.mediawiki\.org/xml/export-\d+(?:\.\d+)*/'
+MEDIAWIKI = re.escape('http://www.mediawiki.org')
+
+MEDIAWIKI_EXPORT = rf'\{{{MEDIAWIKI}/xml/export-\d+(?:\.\d+)*/\}}mediawiki'
 
 
 def present_file(s):
@@ -48,29 +50,41 @@ def positive_int(s):
     return result
 
 
-def ntags(filename, tag, *, display_path, display_after):
-    count = 0
-    start = time.monotonic()
+def _extract_ns(tag):
+    return tag.partition('{')[2].partition('}')[0]
+
+
+def iterparse(filename, tag):
     with bz2.BZ2File(filename) as f:
         pairs = etree.iterparse(f, events=('start', 'end'))
+
         _, root = next(pairs)
-        ns = root.tag.partition('{')[2].partition('}')[0]
-        assert re.fullmatch(MEDIAWIKI_EXPORT, ns)
-        assert root.tag == f'{{{ns}}}mediawiki'
+        ns = _extract_ns(root.tag)
+        assert root.tag.startswith(f'{{{ns}}}')
+        yield root
+        del root
+
         tag = f'{{{ns}}}{tag}'
-        display_path = f'{{{ns}}}{display_path}' if display_path else None
         for event, elem in pairs:
             if elem.tag == tag and event == 'end':
-                count += 1
-                if not (count % display_after):
-                    msg = f'{count:,}'
-                    if display_path is not None:
-                        msg += f'\t{elem.findtext(display_path)}'
-                    log(msg)
-                root.clear()
-    stop = time.monotonic()
-    if verbose:
-        log(f'duration: {stop - start:.2f} seconds')
+                yield elem
+
+
+def count_tags(filename, tag, *, display_path, display_after):
+    tags = iterparse(filename, tag)
+
+    root = next(tags)
+    assert re.fullmatch(MEDIAWIKI_EXPORT, root.tag)
+    ns = _extract_ns(root.tag)
+
+    display_path = f'{{{ns}}}{display_path}' if display_path else None
+    for count, elem in enumerate(tags, start=1):
+        if not count % display_after:
+            msg = f'{count:,}'
+            if display_path is not None:
+                msg += f'\t{elem.findtext(display_path)}'
+            log(msg)
+        root.clear()  # free memory
     return count
 
 
@@ -100,5 +114,8 @@ log = functools.partial(print, file=sys.stderr, sep='\n')
 if __name__ == '__main__':
     args = parser.parse_args()
     kwargs = {'display_path': args.display, 'display_after': args.display_after}
-    count = ntags(args.filename, args.tag, **kwargs)
-    print(count)
+    start = time.monotonic()
+    n = count_tags(args.filename, args.tag, **kwargs)
+    stop = time.monotonic()
+    log(f'duration: {stop - start:.2f} seconds')
+    print(n)
