@@ -1,7 +1,7 @@
 @echo off
 
-REM cd into project subdirectory, activate its _venv,
-REM and optionally start idle with the remaining arguments
+REM cd into project subdirectory and activate its _venv
+REM optionally start idle with the remaining arguments
 
 cd %userprofile%\projects\%1
 shift
