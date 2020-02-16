@@ -69,6 +69,7 @@ def _iterparse(f, tag, events=('start', 'end')):
     del root
 
     tag = f'{{{ns}}}{tag}'
+
     for event, elem in pairs:
         if elem.tag == tag and event == 'end':
             yield elem
@@ -82,6 +83,7 @@ def count_tags(filename, tag, *, display_path, display_after):
     ns = _extract_ns(root.tag)
 
     display_path = display_path.format(ns=f'{{{ns}}}') if display_path else None
+
     for count, elem in enumerate(tags, start=1):
         if not count % display_after:
             msg = f'{count:,}'
