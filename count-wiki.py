@@ -56,18 +56,22 @@ def _extract_ns(tag):
 
 def iterparse(filename, tag):
     with bz2.BZ2File(filename) as f:
-        pairs = etree.iterparse(f, events=('start', 'end'))
+        yield from _iterparse(f, tag)
 
-        _, root = next(pairs)
-        ns = _extract_ns(root.tag)
-        assert root.tag.startswith(f'{{{ns}}}')
-        yield root
-        del root
 
-        tag = f'{{{ns}}}{tag}'
-        for event, elem in pairs:
-            if elem.tag == tag and event == 'end':
-                yield elem
+def _iterparse(f, tag, events=('start', 'end')):
+    pairs = etree.iterparse(f, events=events)
+
+    _, root = next(pairs)
+    ns = _extract_ns(root.tag)
+    assert root.tag.startswith(f'{{{ns}}}')
+    yield root
+    del root
+
+    tag = f'{{{ns}}}{tag}'
+    for event, elem in pairs:
+        if elem.tag == tag and event == 'end':
+            yield elem
 
 
 def count_tags(filename, tag, *, display_path, display_after):
