@@ -9,7 +9,7 @@ if ! tmux has-session -t "$base_session" 2> /dev/null; then
     echo "create base session $base_session"
     tmux new-session -d -s "$base_session"
 
-    startup="$HOME/.tmux.${base_session}.conf"
+    startup="${HOME}/.tmux.conf.${base_session}"
     if [ -f $startup ]; then
         echo "source startup file $startup"
         tmux source-file "$startup"
@@ -18,7 +18,7 @@ fi
 
 session="$base_session-$((
     $(tmux list-sessions -F "#{session_name}" | \
-    sed -rn "s/^$base_session-([0-9]+)/\1/p" | \
+    sed -rn "s/^${base_session}-([0-9]+)/\1/p" | \
     sort -n | tail -1)
     +  1 ))"
 
