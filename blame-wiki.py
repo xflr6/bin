@@ -11,6 +11,7 @@ __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 import argparse
 import functools
 import gzip
+import re
 import sys
 import urllib.parse
 import urllib.request
@@ -18,7 +19,9 @@ import xml.etree.ElementTree as etree
 
 EXPORT_URL = 'https://en.wikipedia.org/wiki/Special:Export'
 
-MEDIAWIKI_EXPORT = 'http://www.mediawiki.org/xml/export-'
+_MEDIAWIKI = re.escape('http://www.mediawiki.org')
+
+MEDIAWIKI_EXPORT = rf'\{{{_MEDIAWIKI}/xml/export-\d+(?:\.\d+)*/\}}mediawiki'
 
 ENCODING = 'utf-8'
 
@@ -62,9 +65,11 @@ with urllib.request.urlopen(req) as f:
     with gzip.open(f) as z:
         tree = etree.parse(z)
 
-ns = tree.getroot().tag.partition('{')[2].partition('}')[0]
+root_tag = tree.getroot().tag
+ns = root_tag.partition('{')[2].partition('}')[0]
 log(f'xml: {ns}')
-assert ns.startswith(MEDIAWIKI_EXPORT)
+assert root_tag.startswith(f'{{{ns}}}')
+assert re.fullmatch(MEDIAWIKI_EXPORT, root_tag)
 ns = {'namespaces': {'ns': ns}}
 
 info, = tree.findall('ns:siteinfo', **ns)

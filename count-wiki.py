@@ -23,9 +23,9 @@ DISPLAY_PATH = '{ns}title'
 
 DISPLAY_AFTER = 1000
 
-MEDIAWIKI = re.escape('http://www.mediawiki.org')
+_MEDIAWIKI = re.escape('http://www.mediawiki.org')
 
-MEDIAWIKI_EXPORT = rf'\{{{MEDIAWIKI}/xml/export-\d+(?:\.\d+)*/\}}mediawiki'
+MEDIAWIKI_EXPORT = rf'\{{{_MEDIAWIKI}/xml/export-\d+(?:\.\d+)*/\}}mediawiki'
 
 
 def present_file(s):
