@@ -8,7 +8,8 @@ base_session=${1:-main}
 if ! tmux has-session -t "$base_session" 2> /dev/null; then
     echo "create base session $base_session"
     tmux new-session -d -s "$base_session"
-    startup="$HOME/bin/$base_session.tmux"
+
+    startup="$HOME/.tmux.${base_session}.conf"
     if [ -f $startup ]; then
         echo "source startup file $startup"
         tmux source-file "$startup"
