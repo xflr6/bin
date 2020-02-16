@@ -51,7 +51,9 @@ def positive_int(s):
 
 
 def _extract_ns(tag):
-    return tag.partition('{')[2].partition('}')[0]
+    ns = tag.partition('{')[2].partition('}')[0]
+    assert tag.startswith(f'{{{ns}}}')
+    return ns
 
 
 def iterparse(filename, tag):
@@ -63,9 +65,8 @@ def _iterparse(f, tag, events=('start', 'end')):
     pairs = etree.iterparse(f, events=events)
 
     _, root = next(pairs)
-    ns = _extract_ns(root.tag)
-    assert root.tag.startswith(f'{{{ns}}}')
     yield root
+    ns = _extract_ns(root.tag)
     del root
 
     tag = f'{{{ns}}}{tag}'
