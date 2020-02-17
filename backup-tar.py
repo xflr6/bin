@@ -13,6 +13,7 @@ import datetime
 import functools
 import os
 import pathlib
+import re
 import shutil
 import stat
 import subprocess
@@ -80,17 +81,22 @@ def exclude_file(s, encoding='utf-8'):
                 root[p] = {} if nonlast else None
             root = root[p]
 
-    def match(dentry):
-        parts = pathlib.Path(dentry).parts
-        root = tree
-        for p in parts:
-            if p in root:
-                root = root[p]
-                if root is None:
-                    return True
-            else:
-                return False
-        return False
+    def make_regex(tree, indent=' ' * 4):
+        for name, root in tree.items():
+            rest = ''
+            if root is not None:
+                root = '|\n'.join(make_regex(root, indent=indent + (' ' * 4)))
+                assert root
+                rest = f'(?:{os.sep}(?:\n{root}\n{indent}))'
+            yield f'{indent}{re.escape(name)}{rest}'
+
+    pattern = '|\n'.join(make_regex(tree['/']))
+    pattern = f'/(?:\n{pattern}\n)(?:{os.sep}.*)?'
+    pattern = re.compile(pattern, flags=re.VERBOSE)
+    print(pattern.pattern)
+
+    def match(dentry, _match=pattern.match):
+        return _match(dentry.path) is not None
 
     return argparse.Namespace(path=p, match=match)
 
