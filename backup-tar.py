@@ -95,10 +95,10 @@ def exclude_file(s, encoding='utf-8'):
     pattern = re.compile(pattern, flags=re.VERBOSE)
     print(pattern.pattern)
 
-    def match(dentry, _match=pattern.match):
-        return _match(dentry.path) is not None
+    def match(dentry, _fullmatch=pattern.fullmatch):
+        return _fullmatch(dentry.path) is not None
 
-    return argparse.Namespace(path=p, match=match)
+    return match
 
 
 def user(s):
@@ -236,7 +236,7 @@ assert not dest_path.exists()
 
 log(f'tar source: {args.source_dir}', f'tar destination {dest_path}')
 
-match = args.exclude_file.match if args.exclude_file is not None else lambda x: False
+match = args.exclude_file if args.exclude_file is not None else lambda x: False
 
 infos = {}
 files = sorted(iterfiles(args.source_dir, match, infos=infos))
