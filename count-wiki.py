@@ -118,11 +118,18 @@ parser.add_argument('--version', action='version', version=__version__)
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-if __name__ == '__main__':
-    args = parser.parse_args()
+def main(args=None):
+    args = parser.parse_args(args)
     kwargs = {'display_path': args.display, 'display_after': args.display_after}
+
     start = time.monotonic()
     n = count_tags(args.filename, args.tag, **kwargs)
     stop = time.monotonic()
     log(f'duration: {stop - start:.2f} seconds')
+
     print(n)
+    return None
+
+
+if __name__ == '__main__':
+    sys.exit(main())
