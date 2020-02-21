@@ -25,6 +25,7 @@ def directory(s):
         result = pathlib.Path(s)
     except ValueError:
         result = None
+
     if result is None or not result.is_dir():
         raise argparse.ArgumentTypeError(f'not a present directory: {s}')
     return result

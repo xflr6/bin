@@ -35,6 +35,7 @@ def present_file(s):
         result = pathlib.Path(s)
     except ValueError:
         result = None
+
     if result is None or not result.is_file():
         raise argparse.ArgumentTypeError(f'not a present file: {s}')
     return result
@@ -45,12 +46,13 @@ def positive_int(s):
         result = int(s)
     except ValueError:
         result = None
+
     if result is None or not result > 0:
         raise argparse.ArgumentTypeError(f'need positive int: {s}')
     return result
 
 
-def _extract_ns(tag):
+def extract_ns(tag):
     ns = tag.partition('{')[2].partition('}')[0]
     assert tag.startswith(f'{{{ns}}}')
     return ns
@@ -66,7 +68,7 @@ def _iterparse(f, tag, events=('start', 'end')):
 
     _, root = next(pairs)
     yield root
-    ns = _extract_ns(root.tag)
+    ns = extract_ns(root.tag)
     del root
 
     tag = f'{{{ns}}}{tag}'
@@ -81,7 +83,7 @@ def count_tags(filename, tag, *, display_path, display_after):
 
     root = next(tags)
     assert re.fullmatch(MEDIAWIKI_EXPORT, root.tag)
-    ns = _extract_ns(root.tag)
+    ns = extract_ns(root.tag)
 
     display_path = display_path.format(ns=f'{{{ns}}}') if display_path else None
 

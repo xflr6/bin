@@ -36,15 +36,20 @@ def directory(s):
         result = pathlib.Path(s)
     except ValueError:
         result = None
+
     if result is None or not result.is_dir():
         raise argparse.ArgumentTypeError(f'not a present directory: {s}')
     return result
 
 
 def template(s):
-    result = datetime.datetime.now().strftime(s)
+    try:
+        result = datetime.datetime.now().strftime(s)
+    except ValueError:
+        result = None
+
     if not result:
-        raise argparse.ArgumentTypeError('empty string')
+        raise argparse.ArgumentTypeError(f'invalid template: {s}')
     return result
 
 
@@ -52,10 +57,11 @@ def exclude_file(s, encoding='utf-8'):
     if not s:
         return None
     try:
-        p = pathlib.Path(s)
+        path = pathlib.Path(s)
     except ValueError:
-        p = None
-    if p is None or not p.is_file():
+        path = None
+
+    if path is None or not pathp.is_file():
         raise argparse.ArgumentTypeError(f'not a present file: {s}')
 
     def iterpatterns(lines):
@@ -126,6 +132,7 @@ def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
         result = int(s, 8)
     except ValueError:
         result = None
+
     if result is None or not 0 <= result <= _mode_mask:
         raise argparse.ArgumentTypeError(f'need octal int between {0:03o}'
                                          f' and {_mode_mask:03o}: {s}')
@@ -177,7 +184,7 @@ def iterfiles(root, exclude_match, infos=None, sep=os.sep):
 
 
 def format_permissions(file_stat):
-    import pwd, grp, itertools
+    import itertools, pwd, grp
 
     def iterflags(mode):
         for u, f in itertools.product(('USR', 'GRP', 'OTH'), 'RWX'):
