@@ -64,6 +64,22 @@ def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
     return result
 
 
+def run_pipe(cmd, file, cmd_filter=None, **kwargs):
+    stdout = subprocess.PIPE if cmd_filter is not None else file
+    log(f'subprocess.Popen({cmd}, **{kwargs})', end='')
+    with subprocess.Popen(cmd, stdout=stdout, **kwargs) as m:
+        if cmd_filter is None:
+            log(f' > {file}')
+            m.communicate()
+            return
+
+        log(f' | subprocess.Popen({cmd_filter}, **{kwargs}) > {file}')
+        with subprocess.Popen(cmd_filter, stdin=m.stdout, stdout=file, **kwargs) as c:
+            m.communicate()
+            m.stdout.close()  # Allow m to receive a SIGPIPE if c exits.
+            c.communicate()
+
+
 parser = argparse.ArgumentParser(description=__doc__)
 
 parser.add_argument('target_dir', type=directory,
@@ -149,18 +165,7 @@ for d in args.repo_dir:
 
     dump_start = time.monotonic()
     with open(dest_path, 'xb', **open_kwargs) as f:
-        log(f'subprocess.Popen({cmd}, **{kwargs})', end='')
-        if comp is None:
-            log(f' > {f}')
-            with subprocess.Popen(cmd, stdout=f, **kwargs) as m:
-                m.communicate()
-        else:
-            with subprocess.Popen(cmd, stdout=subprocess.PIPE, **kwargs) as m:
-                log(f' | subprocess.Popen({comp}, **{kwargs}) > {f}')
-                with subprocess.Popen(comp, stdin=m.stdout, stdout=f, **kwargs) as c:
-                    m.communicate()
-                    m.stdout.close()  # Allow m to receive a SIGPIPE if c exits.
-                    c.communicate()
+        run_pipe(cmd, f, cmd_filter=comp, **kwargs)
     dump_stop = time.monotonic()
     log(f'returncode(s): {cmd[0]}={m.returncode}', end='')
     assert not m.returncode
