@@ -16,6 +16,9 @@ import subprocess
 import sys
 
 
+log = functools.partial(print, file=sys.stderr, sep='\n')
+
+
 def directory(s):
     try:
         result = pathlib.Path(s)
@@ -25,6 +28,27 @@ def directory(s):
     if result is None or not result.is_dir():
         raise argparse.ArgumentTypeError(f'not a present directory: {s}')
     return result
+
+
+def make_url(s):
+    if s.startswith('github.com:'):
+        s = f'git@{s}'
+    if not s.endswith('.git'):
+        s = f'{s}.git'
+    return s
+
+
+def prompt_for_deletion(path):
+    line = None
+    while line is None or (line != '' and line not in ('y', 'yes')):
+        line = input(f'delete {path}/? [(y)es=delete/ENTER=keep]: ')
+    if line in ('y', 'yes'):
+        log(f'shutil.rmtree({path})')
+        shutil.rmtree(g_dir)
+        return True
+    else:
+        log(f'kept: {path}/ (inode={path.stat().st_ino})')
+        return False
 
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -44,9 +68,7 @@ parser.add_argument('--version', action='version', version=__version__)
 
 args = parser.parse_args()
 
-if args.detail:
-    log = functools.partial(print, file=sys.stderr, sep='\n')
-else:
+if not args.detail:
     log = lambda *args, **kwargs: None
 
 print(f'pull {len(args.repo_url)} repo(s) into: {args.target_dir}/')
@@ -57,12 +79,7 @@ for url in sorted(args.repo_url):
     print()
     log(f'source: {url}')
 
-    if url.startswith('github.com:'):
-        url = 'git@' + url
-
-    if not url.endswith('.git'):
-        url = url + '.git'
-
+    url = make_url(url)
     rest, sep, g_dir = url.rpartition('/')
     assert rest and sep
     g_dir = args.target_dir / g_dir
@@ -73,16 +90,9 @@ for url in sorted(args.repo_url):
         assert g_dir.is_dir()
         if args.reset:
             log()
-            line = None
-            while line is None or (line != '' and line not in ('y', 'yes')):
-                line = input(f'delete {g_dir}/? [(y)es=delete/ENTER=keep]: ')
-            if line in ('y', 'yes'):
-                log(f'shutil.rmtree({g_dir})')
-                shutil.rmtree(g_dir)
+            if prompt_for_deletion(g_dir):
                 n_reset += 1
                 clone = True
-            else:
-                log(f'kept: {g_dir}/ (inode={g_dir.stat().st_ino})')
         else:
             log(f' (inode={g_dir.stat().st_ino})')
     else:

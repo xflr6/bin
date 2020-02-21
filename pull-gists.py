@@ -20,6 +20,9 @@ import urllib.request
 GISTS = 'https://api.github.com/users/{username}/gists'
 
 
+log = functools.partial(print, file=sys.stderr, sep='\n')
+
+
 def directory(s):
     try:
         result = pathlib.Path(s)
@@ -29,6 +32,19 @@ def directory(s):
     if result is None or not result.is_dir():
         raise argparse.ArgumentTypeError(f'not a present directory: {s}')
     return result
+
+
+def prompt_for_deletion(path):
+    line = None
+    while line is None or (line != '' and line not in ('y', 'yes')):
+        line = input(f'delete {path}/? [(y)es=delete/ENTER=keep]: ')
+    if line in ('y', 'yes'):
+        log(f'shutil.rmtree({path})')
+        shutil.rmtree(g_dir)
+        return True
+    else:
+        log(f'kept: {path}/ (inode={path.stat().st_ino})')
+        return False
 
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -48,9 +64,7 @@ parser.add_argument('--version', action='version', version=__version__)
 
 args = parser.parse_args()
 
-if args.detail:
-    log = functools.partial(print, file=sys.stderr, sep='\n')
-else:
+if not args.detail:
     log = lambda *args, **kwargs: None
 
 print(f'pull all public gist repos of {args.gh_username} into: {args.target_dir}/')
@@ -85,16 +99,9 @@ for g in gists:
         assert g_dir.is_dir()
         if args.reset:
             log()
-            line = None
-            while line is None or (line != '' and line not in ('y', 'yes')):
-                line = input(f'delete {g_dir}/? [(y)es=delete/ENTER=keep]: ')
-            if line in ('y', 'yes'):
-                log(f'shutil.rmtree({g_dir})')
-                shutil.rmtree(g_dir)
+            if prompt_for_deletion(g_dir):
                 n_reset += 1
                 clone = True
-            else:
-                log(f'kept: {g_dir}/ (inode={g_dir.stat().st_ino})')
         else:
             log(f' (inode={g_dir.stat().st_ino})')
     else:
