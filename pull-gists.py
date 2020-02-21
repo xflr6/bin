@@ -48,7 +48,7 @@ def prompt_for_deletion(path):
         return False
 
 
-def removed_clone(path, reset=False)
+def removed_clone(path, reset=False):
     removed = False
     clone = False
     if path.exists():
