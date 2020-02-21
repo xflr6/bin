@@ -58,6 +58,7 @@ def removed_clone(path, reset=False):
             clone = True
     else:
         clone = True
+    return removed, clone
 
 
 parser = argparse.ArgumentParser(description=__doc__)
