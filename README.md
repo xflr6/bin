@@ -115,8 +115,9 @@ positional arguments:
 
 optional arguments:
   -h, --help         show this help message and exit
-  --tag TAG          end tag to count (default: page)
-  --display PATH     ElementPath to log in sub-total (default: {ns}title)
+  --tag TAG          end tag to count (default: mediawiki:page)
+  --display PATH     ElementPath to log in sub-total (default:
+                     mediawiki:title)
   --display-after N  log sub-total after N tags (default: 1000)
   --version          show program's version number and exit
 ```
