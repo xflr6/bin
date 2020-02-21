@@ -71,6 +71,8 @@ def run_pipe(cmd, file, cmd_filter=None, **kwargs):
         if cmd_filter is None:
             log(f' > {file}')
             m.communicate()
+            log(f'returncode(s): {cmd[0]}={m.returncode}')
+            assert not m.returncode
             return
 
         log(f' | subprocess.Popen({cmd_filter}, **{kwargs}) > {file}')
@@ -78,6 +80,10 @@ def run_pipe(cmd, file, cmd_filter=None, **kwargs):
             m.communicate()
             m.stdout.close()  # Allow m to receive a SIGPIPE if c exits.
             c.communicate()
+            log(f'returncode(s): {cmd[0]}={m.returncode}', end='')
+            assert not m.returncode
+            log(f', {cmd_filter[0]}={c.returncode}')
+            assert not c.returncode
 
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -167,10 +173,6 @@ for d in args.repo_dir:
     with open(dest_path, 'xb', **open_kwargs) as f:
         run_pipe(cmd, f, cmd_filter=comp, **kwargs)
     dump_stop = time.monotonic()
-    log(f'returncode(s): {cmd[0]}={m.returncode}', end='')
-    assert not m.returncode
-    log('' if comp is None else f', {comp[0]}={c.returncode}')
-    assert comp is None or not c.returncode
     log(f'time elapsed: {datetime.timedelta(seconds=dump_stop - dump_start)}')
     n_dumped += 1
 
