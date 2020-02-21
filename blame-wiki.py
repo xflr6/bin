@@ -21,7 +21,7 @@ EXPORT_URL = 'https://en.wikipedia.org/wiki/Special:Export'
 
 _MEDIAWIKI = re.escape('http://www.mediawiki.org')
 
-MEDIAWIKI_EXPORT = rf'\{{{_MEDIAWIKI}/xml/export-\d+(?:\.\d+)*/\}}mediawiki'
+MEDIAWIKI_EXPORT = r'\{%s/xml/export-\d+(?:\.\d+)*/\}mediawiki' % _MEDIAWIKI
 
 ENCODING = 'utf-8'
 
@@ -56,7 +56,7 @@ def parse_response(resp, encoding=ENCODING):
 
 def extract_ns(tag):
     ns = tag.partition('{')[2].partition('}')[0]
-    assert tag.startswith(f'{{{ns}}}')
+    assert tag.startswith('{%s}' % ns)
     return ns
 
 
