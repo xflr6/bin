@@ -64,17 +64,18 @@ def extract_ns(tag):
 
 
 def make_epath(s, namespace_map):
-    start, sep, rest = s.strip().partition(':')
-    assert start
-    if sep:
-        assert rest
+    s = s.strip()
+    assert s
+
+    def repl(ma):
+        ns = ma.group('ns')
         try:
-            ns = namespace_map[start]
+            ns = namespace_map[ns]
         except KeyError:
-            raise ValueError(f'unknown namespace: {start}')
-        return '{%s}%s' % (ns, rest)
-    else:
-        return start
+            raise ValueError(f'unknown namespace in {s!r}: {ns}')
+        return ma.expand(r'\g<boundary>{%s}' % ns)
+
+    return re.sub(r'(?P<boundary>^|/)(?P<ns>\w+):', repl, s)
 
 
 def iterelements(pairs, tag):
