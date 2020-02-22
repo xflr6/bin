@@ -33,19 +33,6 @@ MEDIAWIKI_EXPORT = r'\{%s/xml/export-\d+(?:\.\d+)*/\}mediawiki' % _MEDIAWIKI
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def present_file(s):
-    if not s:
-        return None
-    try:
-        result = pathlib.Path(s)
-    except ValueError:
-        result = None
-
-    if result is None or not result.is_file():
-        raise argparse.ArgumentTypeError(f'not a present file: {s}')
-    return result
-
-
 def positive_int(s):
     try:
         result = int(s)
