@@ -67,19 +67,27 @@ def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
     return result
 
 
+def map_popen(commands, *, stdin=None, stdout=None, **kwargs):
+    for has_next, cmd in enumerate(commands, 1 - len(commands)):
+        log(f'subprocess.Popen({cmd}, **{kwargs})', end='')
+        proc = subprocess.Popen(cmd,
+                                stdin=stdin,
+                                stdout=subprocess.PIPE if has_next else stdout,
+                                **kwargs)
+        yield proc
+        stdin = proc.stdout
+        if has_next:
+            log(f' | ', end='')
+        else:
+            log(f' > {stdout}')
+
+
 def pipe_into(file, cmd, *filter_cmds, check=True, **kwargs):
     assert all(kw not in kwargs for kw in ('stdin', 'stdout'))
     with contextlib.ExitStack() as s:
-        log(f'subprocess.Popen({cmd}, **{kwargs})', end='')
-        stdout = subprocess.PIPE if filter_cmds else file
-        procs = [s.enter_context(subprocess.Popen(cmd, stdout=stdout, **kwargs))]
-        for has_next, f_cmd in enumerate(filter_cmds, 1 - len(filter_cmds)):
-            log(f' | subprocess.Popen({f_cmd}, **{kwargs})', end='')
-            stdin = procs[-1].stdout
-            stdout = subprocess.PIPE if has_next else file
-            procs.append(s.enter_context(
-                subprocess.Popen(f_cmd, stdin=stdin, stdout=stdout, **kwargs)))
-        log(f' > {file}', f'returncode(s): ', end='')
+        procs = map_popen([cmd] + list(filter_cmds), stdout=file, **kwargs)
+        procs = [s.enter_context(p) for p in procs]
+        log(f'returncode(s): ', end='')
         for has_next, p in enumerate(procs, 1 - len(procs)):
             out, err = p.communicate()
             if has_next:  # Allow p to receive a SIGPIPE if next proc exits.
