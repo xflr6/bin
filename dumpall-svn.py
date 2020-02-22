@@ -84,8 +84,8 @@ def map_popen(commands, *, stdin=None, stdout=None, **kwargs):
 
 def pipe_into(file, cmd, *filter_cmds, check=True, **kwargs):
     assert all(kw not in kwargs for kw in ('stdin', 'stdout'))
+    procs = map_popen([cmd] + list(filter_cmds), stdout=file, **kwargs)
     with contextlib.ExitStack() as s:
-        procs = map_popen([cmd] + list(filter_cmds), stdout=file, **kwargs)
         procs = [s.enter_context(p) for p in procs]
         log(f'returncode(s): ', end='')
         for has_next, p in enumerate(procs, 1 - len(procs)):
