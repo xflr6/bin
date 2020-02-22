@@ -45,7 +45,7 @@ def prompt_for_deletion(path):
 
     if line in ('y', 'yes'):
         log(f'shutil.rmtree({path})')
-        shutil.rmtree(g_dir)
+        shutil.rmtree(path)
         return True
     else:
         log(f'kept: {path}/ (inode={path.stat().st_ino})')
@@ -55,7 +55,7 @@ def prompt_for_deletion(path):
 def removed_clone(path, reset=False):
     removed = clone = False
     if path.exists():
-        assert g_dir.is_dir()
+        assert path.is_dir()
         if reset and prompt_for_deletion(path):
             removed = clone = True
     else:

@@ -94,8 +94,8 @@ def pipe_into(file, cmd, *filter_cmds, check=True, **kwargs):
                 p.stdout.close()
             log(f'{p.args[0]}={p.returncode}', end=', ' if has_next else '\n')
             if check and p.returncode:
-                 raise subprocess.CalledProcessError(p.returncode, p.args,
-                                                     output=out, stderr=err)
+                raise subprocess.CalledProcessError(p.returncode, p.args,
+                                                    output=out, stderr=err)
 
 
 parser = argparse.ArgumentParser(description=__doc__)
