@@ -304,4 +304,4 @@ if args.owner or args.group:
 log(format_permissions(dest_path.stat()))
 
 if not args.keep:
-    primpt_for_deletion(dest_path)
+    prompt_for_deletion(dest_path)
