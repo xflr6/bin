@@ -178,11 +178,9 @@ for d in args.repo_dir:
         dest_path.unlink()
         n_found += 1
 
-    cmd = dump + [d]
-
     dump_start = time.monotonic()
     with open(dest_path, 'xb', **open_kwargs) as f:
-        pipe_into(f, cmd, *filter_cmds, **kwargs)
+        pipe_into(f, dump + [d], *filter_cmds, **kwargs)
     dump_stop = time.monotonic()
     log(f'time elapsed: {datetime.timedelta(seconds=dump_stop - dump_start)}')
     n_dumped += 1
