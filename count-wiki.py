@@ -97,7 +97,7 @@ def count_elements(root, elements, *, display_path, display_after):
 
 parser = argparse.ArgumentParser(description=__doc__)
 
-parser.add_argument('filename', type=present_file,
+parser.add_argument('filename', type=argparse.FileType('rb'),
                     help='path to MediaWiki XML export (format: .xml.bz2)')
 
 parser.add_argument('--tag', default=PAGE_TAG,
@@ -119,8 +119,8 @@ def main(args=None):
     args = parser.parse_args(args)
 
     start = time.monotonic()
-    with bz2.BZ2File(args.filename) as f:
-        pairs = etree.iterparse(f, events=('start', 'end'))
+    with args.filename as f, bz2.open(f) as z:
+        pairs = etree.iterparse(z, events=('start', 'end'))
 
         _, root = next(pairs)
         assert re.fullmatch(MEDIAWIKI_EXPORT, root.tag)
