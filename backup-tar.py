@@ -199,6 +199,20 @@ def format_permissions(file_stat):
     return f'file permissions: {mode} (owner={owner}, group={group})'
 
 
+def prompt_for_deletion(path):
+    line = None
+    while line is None or (line != '' and line.strip().lower() not in ('q', 'quit')):
+        if line is not None:
+            print('  (enter q(uit) or use CTRL-C to exit and keep the file)')
+        line = input(f'to delete {path}, press enter [ENTER=delete]: ')
+
+    if line:
+        log(f'kept {path}.')
+    else:
+        dest_path.unlink()
+        log(f'{path} deleted.')
+
+
 parser = argparse.ArgumentParser(description=__doc__)
 
 parser.add_argument('source_dir', type=directory, help='archive source directory')
@@ -289,14 +303,5 @@ if args.owner or args.group:
     shutil.chown(dest_path, user=args.owner, group=args.group)
 log(format_permissions(dest_path.stat()))
 
-line = 'quit' if args.keep else None
-while line is None or (line != '' and line.strip().lower() not in ('q', 'quit')):
-    if line is not None:
-        print('  (enter q(uit) or use CTRL-C to exit and keep the file)')
-    line = input(f'to delete {dest_path}, press enter [ENTER=delete]: ')
-
-if line:
-    log(f'kept {dest_path}.')
-else:
-    dest_path.unlink()
-    log(f'{dest_path} deleted.')
+if not args.keep:
+    primpt_for_deletion(dest_path)
