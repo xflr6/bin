@@ -36,7 +36,7 @@ def parse_url(s):
         s = f'git@{s}'
     if not s.endswith('.git'):
         s = f'{s}.git'
-    return re.search(r'(?P<url>.*/(?P<dir>[^/]+))$').groupdict()
+    return re.search(r'(?P<url>.*/(?P<dir>[^/]+))$', s).groupdict()
 
 
 def prompt_for_deletion(path):

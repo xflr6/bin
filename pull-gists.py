@@ -48,7 +48,7 @@ def itergists(username):
 
 
 def parse_url(s):
-    return re.search(r'(?P<url>.*/(?P<dir>[^/]+))$').groupdict()
+    return re.search(r'(?P<url>.*/(?P<dir>[^/]+))$', s).groupdict()
 
 
 def prompt_for_deletion(path):
