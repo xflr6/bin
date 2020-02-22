@@ -11,6 +11,7 @@ __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 import argparse
 import functools
 import pathlib
+import re
 import shutil
 import subprocess
 import sys

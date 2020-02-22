@@ -12,6 +12,7 @@ import argparse
 import functools
 import json
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
