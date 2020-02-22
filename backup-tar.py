@@ -74,10 +74,10 @@ def exclude_file(s, encoding='utf-8'):
                 yield path.parts
 
     with path.open(encoding=encoding) as f:
-        patterns = sorted(set(iterpatterns(f)))
+        patterns = set(iterpatterns(f))
 
     tree = {'/': {}}
-    for parts in patterns:
+    for parts in sorted(patterns):
         root, *parts = parts
         root = tree[root]
         for nonlast, p in enumerate(parts, 1 - len(parts)):
