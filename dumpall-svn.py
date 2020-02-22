@@ -30,6 +30,9 @@ CHMOD = stat.S_IRUSR
 SUBPROCESS_PATH = '/usr/bin:/bin'
 
 
+log = functools.partial(print, file=sys.stderr, sep='\n')
+
+
 def directory(s):
     try:
         result = pathlib.Path(s)
@@ -64,7 +67,7 @@ def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
     return result
 
 
-def pipe_into(file, cmd, *filter_cmds, **kwargs):
+def pipe_into(file, cmd, *filter_cmds, check=True, **kwargs):
     assert all(kw not in kwargs for kw in ('stdin', 'stdout'))
     with contextlib.ExitStack() as s:
         log(f'subprocess.Popen({cmd}, **{kwargs})', end='')
@@ -76,14 +79,15 @@ def pipe_into(file, cmd, *filter_cmds, **kwargs):
             stdout = subprocess.PIPE if has_next else file
             procs.append(s.enter_context(
                 subprocess.Popen(f_cmd, stdin=stdin, stdout=stdout, **kwargs)))
-        log(f' > {file}')
-        log(f'returncode(s): ', end='')
+        log(f' > {file}', f'returncode(s): ', end='')
         for has_next, p in enumerate(procs, 1 - len(procs)):
-            p.communicate()
+            out, err = p.communicate()
             if has_next:  # Allow p to receive a SIGPIPE if next proc exits.
                 p.stdout.close()
             log(f'{p.args[0]}={p.returncode}', end=', ' if has_next else '\n')
-            assert not p.returncode
+            if check and p.returncode:
+                 raise subprocess.CalledProcessError(p.returncode, p.args,
+                                                     output=out, stderr=err)
 
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -125,9 +129,7 @@ args = parser.parse_args()
 
 start = time.monotonic()
 
-if args.detail:
-    log = functools.partial(print, file=sys.stderr, sep='\n')
-else:
+if not args.detail:
     log = lambda *args, **kwargs: None
 
 print(f'svnadmin dump {len(args.repo_dir)} repo(s) into: {args.target_dir}/')
