@@ -49,13 +49,11 @@ def prompt_for_deletion(path):
 
 
 def removed_clone(path, reset=False):
-    removed = False
-    clone = False
+    removed = clone = False
     if path.exists():
         assert g_dir.is_dir()
         if reset and prompt_for_deletion(path):
-            removed = True
-            clone = True
+            removed = clone = True
     else:
         clone = True
     return removed, clone

@@ -42,6 +42,7 @@ def prompt_for_deletion(path):
     line = None
     while line is None or (line != '' and line not in ('y', 'yes')):
         line = input(f'delete {path}/? [(y)es=delete/ENTER=keep]: ')
+
     if line in ('y', 'yes'):
         log(f'shutil.rmtree({path})')
         shutil.rmtree(g_dir)
@@ -49,6 +50,17 @@ def prompt_for_deletion(path):
     else:
         log(f'kept: {path}/ (inode={path.stat().st_ino})')
         return False
+
+
+def removed_clone(path, reset=False):
+    removed = clone = False
+    if path.exists():
+        assert g_dir.is_dir()
+        if reset and prompt_for_deletion(path):
+            removed = clone = True
+    else:
+        clone = True
+    return removed, clone
 
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -85,19 +97,10 @@ for url in sorted(args.repo_url):
     g_dir = args.target_dir / g_dir
     log(f'target: {g_dir}/', end='')
 
-    if g_dir.exists():
-        clone = False
-        assert g_dir.is_dir()
-        if args.reset:
-            log()
-            if prompt_for_deletion(g_dir):
-                n_reset += 1
-                clone = True
-        else:
-            log(f' (inode={g_dir.stat().st_ino})')
-    else:
-        clone = True
-        log()
+    removed, clone = removed_clone(g_dir, reset=args.reset)
+    if removed:
+        n_reset += 1
+    log(f' (inode={g_dir.stat().st_ino})' if clone else '')
 
     if clone:
         cmd = ['git', 'clone', '--mirror', url]
