@@ -34,6 +34,17 @@ def directory(s):
     return result
 
 
+def itergists(username):
+    url = GISTS.format(username=username)
+    while url is not None:
+        log(f'urllib.request.urlopen({url})')
+        with urllib.request.urlopen(url) as u:
+            yield json.load(u)
+        links = [l.partition('; ') for l in u.info().get('Link', '').split(', ')]
+        links = {r: u.partition('<')[2].partition('>')[0] for u, _, r in links}
+        url = links.get('rel="next"')
+
+
 def prompt_for_deletion(path):
     line = None
     while line is None or (line != '' and line not in ('y', 'yes')):
@@ -81,16 +92,7 @@ if not args.detail:
 
 print(f'pull all public gist repos of {args.gh_username} into: {args.target_dir}/')
 
-url = GISTS.format(username=args.gh_username)
-
-gists = []
-while url is not None:
-    log(f'urllib.request.urlopen({url})')
-    with urllib.request.urlopen(url) as u:
-        gists.extend(json.load(u))
-    links = [l.partition('; ') for l in u.info().get('Link', '').split(', ')]
-    links = {r: u.partition('<')[2].partition('>')[0] for u, _, r in links}
-    url = links.get('rel="next"')
+gists = list(itergists(username=args.gh_username))
 
 log(f'pull {len(gists)} repo(s) into: {args.target_dir}/')
 
