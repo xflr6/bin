@@ -42,7 +42,6 @@ def directory(s):
 
 def template(s):
     try:
-        
         result = datetime.datetime.now().strftime(s)
     except ValueError:
         result = None

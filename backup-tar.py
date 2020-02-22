@@ -61,7 +61,7 @@ def exclude_file(s, encoding='utf-8'):
     except ValueError:
         path = None
 
-    if path is None or not pathp.is_file():
+    if path is None or not path.is_file():
         raise argparse.ArgumentTypeError(f'not a present file: {s}')
 
     def iterpatterns(lines):
@@ -73,7 +73,7 @@ def exclude_file(s, encoding='utf-8'):
                     raise NotImplementedError
                 yield path.parts
 
-    with p.open(encoding=encoding) as f:
+    with path.open(encoding=encoding) as f:
         patterns = sorted(set(iterpatterns(f)))
 
     tree = {'/': {}}
