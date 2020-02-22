@@ -99,13 +99,14 @@ for url in sorted(args.repo_url):
     removed, clone = removed_clone(g_dir, reset=args.reset)
     if removed:
         n_reset += 1
-    log(f' (inode={g_dir.stat().st_ino})' if clone else '')
 
     if clone:
+        log()
         cmd = ['git', 'clone', '--mirror', url['url']]
         cwd = args.target_dir
         n_cloned += 1
     else:
+        log(f' (inode={g_dir.stat().st_ino})')
         cmd = ['git', 'remote', 'update']
         cwd = g_dir
         n_updated += 1
