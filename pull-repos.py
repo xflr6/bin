@@ -30,12 +30,12 @@ def directory(s):
     return result
 
 
-def make_url(s):
+def parse_url(s):
     if s.startswith('github.com:'):
         s = f'git@{s}'
     if not s.endswith('.git'):
         s = f'{s}.git'
-    return s
+    return re.search(r'(?P<url>.*/(?P<dir>[^/]+))$').groupdict()
 
 
 def prompt_for_deletion(path):
@@ -91,10 +91,8 @@ for url in sorted(args.repo_url):
     print()
     log(f'source: {url}')
 
-    url = make_url(url)
-    rest, sep, g_dir = url.rpartition('/')
-    assert rest and sep
-    g_dir = args.target_dir / g_dir
+    url = parse_url(url)
+    g_dir = args.target_dir / url['dir']
     log(f'target: {g_dir}/', end='')
 
     removed, clone = removed_clone(g_dir, reset=args.reset)
@@ -103,7 +101,7 @@ for url in sorted(args.repo_url):
     log(f' (inode={g_dir.stat().st_ino})' if clone else '')
 
     if clone:
-        cmd = ['git', 'clone', '--mirror', url]
+        cmd = ['git', 'clone', '--mirror', url['url']]
         cwd = args.target_dir
         n_cloned += 1
     else:
