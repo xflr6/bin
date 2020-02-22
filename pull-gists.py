@@ -39,7 +39,7 @@ def itergists(username):
     while url is not None:
         log(f'urllib.request.urlopen({url})')
         with urllib.request.urlopen(url) as u:
-            yield json.load(u)
+            yield from json.load(u)
         links = [l.partition('; ') for l in u.info().get('Link', '').split(', ')]
         links = {r: u.partition('<')[2].partition('>')[0] for u, _, r in links}
         url = links.get('rel="next"')
