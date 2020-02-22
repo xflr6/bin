@@ -46,6 +46,10 @@ def itergists(username):
         url = links.get('rel="next"')
 
 
+def parse_url(s):
+    return re.search(r'(?P<url>.*/(?P<dir>[^/]+))$').groupdict()
+
+
 def prompt_for_deletion(path):
     line = None
     while line is None or (line != '' and line not in ('y', 'yes')):
@@ -101,12 +105,11 @@ n_reset = n_cloned = n_updated = 0
 
 for g in gists:
     print()
-    g_url = g['git_push_url']
-    log(f'source: {g_url}')
+    url = g['git_push_url']
+    log(f'source: {url}')
 
-    rest, sep, g_dir = g_url.rpartition('/')
-    assert rest and sep
-    g_dir = args.target_dir / g_dir
+    url = parse_url(url)
+    g_dir = args.target_dir / url['dir']
     log(f'target: {g_dir}/', end='')
 
     removed, clone = removed_clone(g_dir, reset=args.reset)
@@ -115,7 +118,7 @@ for g in gists:
     log(f' (inode={g_dir.stat().st_ino})' if clone else '')
 
     if clone:
-        cmd = ['git', 'clone', '--mirror', g_url]
+        cmd = ['git', 'clone', '--mirror', url['url']]
         cwd = args.target_dir
         n_cloned += 1
     else:
