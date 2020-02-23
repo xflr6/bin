@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Create tar archive from given directory and prompt for its deletion."""
+"""Create tar archive from given directory, optionally ask for its deletion."""
 
 __title__ = 'backup-tar.py'
 __version__ = '0.1.dev0'
@@ -243,8 +243,8 @@ parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
 parser.add_argument('--set-umask', metavar='MASK', type=mode, default=SET_UMASK,
                     help=f'umask for tar subprocess (default: {SET_UMASK:03o})')
 
-parser.add_argument('--keep', action='store_true',
-                    help="don't prompt for image file deletion (exit directly)")
+parser.add_argument('--ask-for-deletion', action='store_true',
+                    help='prompt for tar archive deletion before exit')
 
 parser.add_argument('--version', action='version', version=__version__)
 
@@ -303,5 +303,5 @@ if args.owner or args.group:
     shutil.chown(dest_path, user=args.owner, group=args.group)
 log(format_permissions(dest_path.stat()))
 
-if not args.keep:
+if args.ask_for_deletion:
     prompt_for_deletion(dest_path)

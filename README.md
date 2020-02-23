@@ -21,10 +21,11 @@ $ backup-squashfs.py --help
 usage: backup-squashfs.py [-h] [--name TEMPLATE] [--exclude-file PATH]
                           [--comp {gzip,lzo,xz}] [--owner OWNER]
                           [--group GROUP] [--chmod MODE] [--set-path LINE]
-                          [--set-umask MASK] [--keep] [--quiet] [--version]
+                          [--set-umask MASK] [--quiet] [--ask-for-deletion]
+                          [--version]
                           source_dir dest_dir
 
-Create SquashFS image from given directory and prompt for its deletion.
+Create SquashFS image from given directory, optioally ask for its deletion.
 
 positional arguments:
   source_dir            image source directory
@@ -41,8 +42,8 @@ optional arguments:
   --chmod MODE          image file chmod (default: 400)
   --set-path LINE       PATH for mksquashfs subprocess (default: /usr/bin)
   --set-umask MASK      umask for mksquashfs subprocess (default: 177)
-  --keep                don't prompt for image file deletion (exit directly)
   --quiet               suppress stdout and stderr of mksquashfs subprocess
+  --ask-for-deletion    prompt for image file deletion before exit
   --version             show program's version number and exit
 ```
 
@@ -54,10 +55,10 @@ $ backup-tar.py --help
 usage: backup-tar.py [-h] [--name TEMPLATE] [--exclude-file PATH]
                      [--no-auto-compress] [--owner OWNER] [--group GROUP]
                      [--chmod MODE] [--set-path LINE] [--set-umask MASK]
-                     [--keep] [--version]
+                     [--ask-for-deletion] [--version]
                      source_dir dest_dir
 
-Create tar archive from given directory and prompt for its deletion.
+Create tar archive from given directory, optionally ask for its deletion.
 
 positional arguments:
   source_dir           archive source directory
@@ -74,7 +75,7 @@ optional arguments:
   --chmod MODE         tar archive chmod (default: 400)
   --set-path LINE      PATH for tar subprocess (default: /usr/bin:/bin)
   --set-umask MASK     umask for tar subprocess (default: 177)
-  --keep               don't prompt for image file deletion (exit directly)
+  --ask-for-deletion   prompt for tar archive deletion before exit
   --version            show program's version number and exit
 ```
 
