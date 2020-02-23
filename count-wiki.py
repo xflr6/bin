@@ -21,6 +21,8 @@ PREFIX = 'mediawiki'
 
 PAGE_TAG = f'{PREFIX}:page'
 
+REDIRECT = f'{PREFIX}:redirect'
+
 DISPLAY_PATH = f'{PREFIX}:title'
 
 DISPLAY_AFTER = 1000
@@ -65,9 +67,9 @@ def make_epath(s, namespace_map):
     return re.sub(r'(?P<boundary>^|/)(?P<ns>\w+):', repl, s)
 
 
-def iterelements(pairs, tag):
+def iterelements(pairs, tag, exclude_with):
     for event, elem in pairs:
-        if elem.tag == tag and event == 'end':
+        if elem.tag == tag and event == 'end' and elem.find(exclude_with) is None:
             yield elem
 
 
@@ -112,10 +114,13 @@ def main(args=None):
         _, root = next(pairs)
         assert re.fullmatch(MEDIAWIKI_EXPORT, root.tag)
         ns_map = {PREFIX: extract_ns(root.tag)}
-        tag = make_epath(args.tag, ns_map)
+
+        page_tag = make_epath(args.tag, ns_map)
+        redirect = make_epath(REDIRECT, ns_map)
         display_path = make_epath(args.display, ns_map) if args.display else None
 
-        elements = iterelements(pairs, tag=tag)
+        elements = iterelements(pairs, tag=page_tag, exclude_with=redirect)
+
         n = count_elements(root, elements,
                            display_path=display_path,
                            display_after=args.display_after)
