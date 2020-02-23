@@ -55,8 +55,10 @@ def extract_ns(tag):
     return ns
 
 
-def make_epath(s, namespace_map):
+def make_epath(s, namespace_map, optional=False):
     s = s.strip()
+    if optional and not s:
+        return None
     assert s
 
     def repl(ma):
@@ -133,11 +135,9 @@ def main(args=None):
                                 tag=make_epath(args.tag, ns_map),
                                 exclude_with=make_epath(REDIRECT, ns_map))
 
-        display_path = make_epath(args.display, ns_map) if args.display else None
-
         n = count_elements(root, elements,
                            display_after=args.display_after,
-                           display_path=display_path,
+                           display_path=make_epath(args.display, ns_map, optional=True),
                            stop_after=args.stop_after)
 
     stop = time.monotonic()
