@@ -36,6 +36,9 @@ log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
 def positive_int(s):
+    if s is None or not s.strip():
+        return None
+
     try:
         result = int(s)
     except ValueError:
@@ -73,7 +76,12 @@ def iterelements(pairs, tag, exclude_with):
             yield elem
 
 
-def count_elements(root, elements, *, display_path, display_after):
+def count_elements(root, elements, *, display_after, display_path, stop_after):
+    if display_after in (None, 0):
+        if stop_after is not None:
+            raise NotImplementedError
+        return sum(root.clear() is None for _ in elements)
+
     for count, elem in enumerate(elements, start=1):
         if not count % display_after:
             msg = f'{count:,}'
@@ -81,6 +89,8 @@ def count_elements(root, elements, *, display_path, display_after):
                 msg += f'\t{elem.findtext(display_path)}'
             log(msg)
         root.clear()  # free memory
+        if count == stop_after:
+            break
     return count
 
 
@@ -101,6 +111,9 @@ parser.add_argument('--display-after', metavar='N', type=positive_int,
                     help='log sub-total after N tags'
                          f' (default: {DISPLAY_AFTER})')
 
+parser.add_argument('--stop-after', metavar='N', type=positive_int,
+                    help='stop after N tags')
+
 parser.add_argument('--version', action='version', version=__version__)
 
 
@@ -108,22 +121,25 @@ def main(args=None):
     args = parser.parse_args(args)
 
     start = time.monotonic()
-    with args.filename as f, bz2.open(f) as z:
-        pairs = etree.iterparse(z, events=('start', 'end'))
+
+    with args.filename as z, bz2.open(z) as f:
+        pairs = etree.iterparse(f, events=('start', 'end'))
 
         _, root = next(pairs)
         assert re.fullmatch(MEDIAWIKI_EXPORT, root.tag)
         ns_map = {PREFIX: extract_ns(root.tag)}
 
-        page_tag = make_epath(args.tag, ns_map)
-        redirect = make_epath(REDIRECT, ns_map)
+        elements = iterelements(pairs,
+                                tag=make_epath(args.tag, ns_map),
+                                exclude_with=make_epath(REDIRECT, ns_map))
+
         display_path = make_epath(args.display, ns_map) if args.display else None
 
-        elements = iterelements(pairs, tag=page_tag, exclude_with=redirect)
-
         n = count_elements(root, elements,
+                           display_after=args.display_after,
                            display_path=display_path,
-                           display_after=args.display_after)
+                           stop_after=args.stop_after)
+
     stop = time.monotonic()
     log(f'duration: {stop - start:.2f} seconds')
 
