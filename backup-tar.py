@@ -31,6 +31,9 @@ SET_UMASK = stat.S_IXUSR | stat.S_IRWXG | stat.S_IRWXO
 ENCODING = 'utf-8'
 
 
+log = functools.partial(print, file=sys.stderr, sep='\n')
+
+
 def directory(s):
     try:
         result = pathlib.Path(s)
@@ -184,7 +187,9 @@ def iterfiles(root, exclude_match, infos=None, sep=os.sep):
 
 
 def format_permissions(file_stat):
-    import itertools, pwd, grp
+    import grp
+    import itertools
+    import pwd
 
     def iterflags(mode):
         for u, f in itertools.product(('USR', 'GRP', 'OTH'), 'RWX'):
@@ -209,7 +214,7 @@ def prompt_for_deletion(path):
     if line:
         log(f'kept {path}.')
     else:
-        dest_path.unlink()
+        path.unlink()
         log(f'{path} deleted.')
 
 
@@ -249,8 +254,6 @@ parser.add_argument('--ask-for-deletion', action='store_true',
 parser.add_argument('--version', action='version', version=__version__)
 
 args = parser.parse_args()
-
-log = functools.partial(print, file=sys.stderr, sep='\n')
 
 dest_path = args.dest_dir / args.name
 assert not dest_path.exists()
