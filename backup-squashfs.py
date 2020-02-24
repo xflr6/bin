@@ -99,7 +99,9 @@ def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
 
 
 def run_args_kwargs(source_dir, dest_path, *, exclude_file, comp, set_path, quiet):
-    cmd = ['mksquashfs', source_dir, dest_path, '-noappend']
+    cmd = ['mksquashfs',
+           source_dir, dest_path,
+           '-noappend']
 
     if exclude_file is not None:
         log(f'mksquashfs exclude file: {exclude_file}')
@@ -215,8 +217,8 @@ def main(args=None):
     stop = time.monotonic()
     if not args.quiet:
         log(f'{"[ end subprocess ]":-^80}')
-    log(f'returncode: {proc.returncode}')
-    log(f'time elapsed: {datetime.timedelta(seconds=stop - start)}')
+    log(f'returncode: {proc.returncode}',
+        f'time elapsed: {datetime.timedelta(seconds=stop - start)}')
 
     assert dest_path.exists()
     dest_stat = dest_path.stat()

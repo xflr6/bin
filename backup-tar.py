@@ -270,13 +270,14 @@ parser.add_argument('--ask-for-deletion', action='store_true',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def main(args):
+def main(args=None):
     args = parser.parse_args(args)
 
     dest_path = args.dest_dir / args.name
     assert not dest_path.exists()
 
-    log(f'tar source: {args.source_dir}', f'tar destination {dest_path}')
+    log(f'tar source: {args.source_dir}',
+        f'tar destination: {dest_path}')
 
     match = args.exclude_file if args.exclude_file is not None else lambda x: False
 
@@ -302,9 +303,8 @@ def main(args):
             print(f, file=proc.stdin, end='\0')
         proc.communicate()
     stop = time.monotonic()
-    log(f'returncode: {proc.returncode}')
-    assert not proc.returncode
-    log(f'time elapsed: {datetime.timedelta(seconds=stop - start)}')
+    log(f'returncode: {proc.returncode}',
+        f'time elapsed: {datetime.timedelta(seconds=stop - start)}')
 
     assert dest_path.exists()
     dest_stat = dest_path.stat()
