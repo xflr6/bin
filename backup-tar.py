@@ -290,7 +290,6 @@ def main(args=None):
 
     cmd, kwargs = run_args_kwargs(args.source_dir, dest_path,
                                   auto_compress=not args.no_auto_compress,
-                                  source_dir=args.source_dir,
                                   set_path=args.set_path)
 
     log('', f'os.umask({args.set_umask:#05o})')
