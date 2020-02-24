@@ -186,6 +186,22 @@ def iterfiles(root, exclude_match, infos=None, sep=os.sep):
                      n_excluded=n_excluded)
 
 
+def run_args_kwargs(source_dir, dest_path, *, auto_compress, set_path, encoding=ENCODING):
+    cmd = ['tar',
+           '--create',
+           '--file', dest_path,
+           '--files-from', '-', '--null', '--verbatim-files-from']
+
+    if auto_compress:
+        cmd.append('--auto-compress')
+
+    kwargs = {'cwd':  source_dir,
+              'env': {'PATH': set_path},
+              'encoding': encoding}
+
+    return cmd, kwargs
+
+
 def format_permissions(file_stat):
     import grp
     import itertools
@@ -253,58 +269,61 @@ parser.add_argument('--ask-for-deletion', action='store_true',
 
 parser.add_argument('--version', action='version', version=__version__)
 
-args = parser.parse_args()
 
-dest_path = args.dest_dir / args.name
-assert not dest_path.exists()
+def main(args):
+    args = parser.parse_args(args)
 
-log(f'tar source: {args.source_dir}', f'tar destination {dest_path}')
+    dest_path = args.dest_dir / args.name
+    assert not dest_path.exists()
 
-match = args.exclude_file if args.exclude_file is not None else lambda x: False
+    log(f'tar source: {args.source_dir}', f'tar destination {dest_path}')
 
-infos = {}
-files = sorted(iterfiles(args.source_dir, match, infos=infos))
-log('traversed source: (', end='')
-counts = 'dirs', 'files', 'symlinks', 'other', 'excluded'
-log(*(f"{infos['n_' + c]} {c}" for c in counts), sep=', ', end=')\n')
-log(f"file size sum: {infos['n_bytes']} bytes")
+    match = args.exclude_file if args.exclude_file is not None else lambda x: False
 
-cmd = ['tar', '--create', '--file', dest_path,
-       '--files-from', '-', '--null', '--verbatim-files-from']
+    infos = {}
+    files = sorted(iterfiles(args.source_dir, match, infos=infos))
+    log('traversed source: (', end='')
+    counts = 'dirs', 'files', 'symlinks', 'other', 'excluded'
+    log(*(f"{infos['n_' + c]} {c}" for c in counts), sep=', ', end=')\n')
+    log(f"file size sum: {infos['n_bytes']} bytes")
 
-if not args.no_auto_compress:
-    cmd.append('--auto-compress')
+    cmd, kwargs = run_args_kwargs(args.source_dir, dest_path,
+                                  auto_compress=not args.no_auto_compress,
+                                  source_dir=args.source_dir,
+                                  set_path=args.set_path)
 
-kwargs = {'cwd':  args.source_dir,
-          'env': {'PATH': args.set_path},
-          'encoding': ENCODING}
+    log('', f'os.umask({args.set_umask:#05o})')
+    os.umask(args.set_umask)
 
-log('', f'os.umask({args.set_umask:#05o})')
-os.umask(args.set_umask)
+    log(f'subprocess.Popen({cmd}, **{kwargs})')
+    start = time.monotonic()
+    with subprocess.Popen(cmd, stdin=subprocess.PIPE, **kwargs) as proc:
+        for f in files:
+            print(f, file=proc.stdin, end='\0')
+        proc.communicate()
+    stop = time.monotonic()
+    log(f'returncode: {proc.returncode}')
+    assert not proc.returncode
+    log(f'time elapsed: {datetime.timedelta(seconds=stop - start)}')
 
-log(f'subprocess.Popen({cmd}, **{kwargs})')
-start = time.monotonic()
-with subprocess.Popen(cmd, stdin=subprocess.PIPE, **kwargs) as proc:
-    for f in files:
-        print(f, file=proc.stdin, end='\0')
-    proc.communicate()
-stop = time.monotonic()
-log(f'returncode: {proc.returncode}')
-assert not proc.returncode
-log(f'time elapsed: {datetime.timedelta(seconds=stop - start)}')
+    assert dest_path.exists()
+    dest_stat = dest_path.stat()
+    log(f'tar result: {dest_path} ({dest_stat.st_size} bytes)')
+    assert dest_stat.st_size
+    log(format_permissions(dest_stat))
 
-assert dest_path.exists()
-dest_stat = dest_path.stat()
-log(f'tar result: {dest_path} ({dest_stat.st_size} bytes)')
-assert dest_stat.st_size
-log(format_permissions(dest_stat))
+    log('', f'os.chmod(..., {args.chmod:#05o})')
+    dest_path.chmod(args.chmod)
+    if args.owner or args.group:
+        log(f'shutil.chown(..., user={args.owner}, group={args.group})')
+        shutil.chown(dest_path, user=args.owner, group=args.group)
+    log(format_permissions(dest_path.stat()))
 
-log('', f'os.chmod(..., {args.chmod:#05o})')
-dest_path.chmod(args.chmod)
-if args.owner or args.group:
-    log(f'shutil.chown(..., user={args.owner}, group={args.group})')
-    shutil.chown(dest_path, user=args.owner, group=args.group)
-log(format_permissions(dest_path.stat()))
+    if args.ask_for_deletion:
+        prompt_for_deletion(dest_path)
 
-if args.ask_for_deletion:
-    prompt_for_deletion(dest_path)
+    return None
+
+
+if __name__ == '__main__':
+    sys.exit(main())

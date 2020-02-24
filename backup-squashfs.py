@@ -98,6 +98,24 @@ def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
     return result
 
 
+def run_args_kwargs(source_dir, dest_path, *, exclude_file, comp, set_path, quiet):
+    cmd = ['mksquashfs', source_dir, dest_path, '-noappend']
+
+    if exclude_file is not None:
+        log(f'mksquashfs exclude file: {exclude_file}')
+        cmd += ['-ef', exclude_file]
+
+    if comp is not None:
+        log(f'mksquashfs compression: {comp}')
+        cmd += ['-comp', comp]
+
+    kwargs = {'env': {'PATH': set_path}}
+    if quiet:
+        kwargs['stdout'] = kwargs['stderr'] = subprocess.DEVNULL
+
+    return cmd, kwargs
+
+
 def format_permissions(file_stat):
     import grp
     import itertools
@@ -170,54 +188,54 @@ parser.add_argument('--ask-for-deletion', action='store_true',
 
 parser.add_argument('--version', action='version', version=__version__)
 
-args = parser.parse_args()
 
-dest_path = args.dest_dir / args.name
-assert not dest_path.exists()
+def main(args=None):
+    args = parser.parse_args(args)
 
-log(f'mksquashfs source: {args.source_dir}', f'mksquashfs destination: {dest_path}')
+    dest_path = args.dest_dir / args.name
+    assert not dest_path.exists()
 
-cmd = ['mksquashfs', args.source_dir, dest_path, '-noappend']
+    log(f'mksquashfs source: {args.source_dir}',
+        f'mksquashfs destination: {dest_path}')
 
-if args.exclude_file is not None:
-    log(f'mksquashfs exclude file: {args.exclude_file}')
-    cmd += ['-ef', args.exclude_file]
+    cmd, kwargs = run_args_kwargs(args.source_dir, dest_path,
+                                  exclude_file=args.exclude_file,
+                                  comp=args.comp,
+                                  set_path=args.set_path,
+                                  quiet=args.quiet)
 
-if args.comp is not None:
-    log(f'mksquashfs compression: {args.comp}')
-    cmd += ['-comp', args.comp]
+    log('', f'os.umask({args.set_umask:#05o})')
+    os.umask(args.set_umask)
 
-kwargs = {'env': {'PATH': args.set_path}}
-if args.quiet:
-    kwargs['stdout'] = kwargs['stderr'] = subprocess.DEVNULL
+    log(f'subprocess.run({cmd}, **{kwargs})')
+    if not args.quiet:
+        log(f'{"[ start subprocess ]":-^80}')
+    start = time.monotonic()
+    proc = subprocess.run(cmd, check=True, **kwargs)
+    stop = time.monotonic()
+    if not args.quiet:
+        log(f'{"[ end subprocess ]":-^80}')
+    log(f'returncode: {proc.returncode}')
+    log(f'time elapsed: {datetime.timedelta(seconds=stop - start)}')
 
-log('', f'os.umask({args.set_umask:#05o})')
-os.umask(args.set_umask)
+    assert dest_path.exists()
+    dest_stat = dest_path.stat()
+    log(f'mksquashfs result: {dest_path} ({dest_stat.st_size} bytes)')
+    assert dest_stat.st_size
+    log(format_permissions(dest_stat))
 
-log(f'subprocess.run({cmd}, **{kwargs})')
-if not args.quiet:
-    log(f'{"[ start subprocess ]":-^80}')
-start = time.monotonic()
-proc = subprocess.run(cmd, check=True, **kwargs)
-stop = time.monotonic()
-if not args.quiet:
-    log(f'{"[ end subprocess ]":-^80}')
-log(f'returncode: {proc.returncode}')
-assert not proc.returncode
-log(f'time elapsed: {datetime.timedelta(seconds=stop - start)}')
+    log('', f'os.chmod(..., {args.chmod:#05o})')
+    dest_path.chmod(args.chmod)
+    if args.owner or args.group:
+        log(f'shutil.chown(..., user={args.owner}, group={args.group})')
+        shutil.chown(dest_path, user=args.owner, group=args.group)
+    log(format_permissions(dest_path.stat()))
 
-assert dest_path.exists()
-dest_stat = dest_path.stat()
-log(f'mksquashfs result: {dest_path} ({dest_stat.st_size} bytes)')
-assert dest_stat.st_size
-log(format_permissions(dest_stat))
+    if args.ask_for_deletion:
+        prompt_for_deletion(dest_path)
 
-log('', f'os.chmod(..., {args.chmod:#05o})')
-dest_path.chmod(args.chmod)
-if args.owner or args.group:
-    log(f'shutil.chown(..., user={args.owner}, group={args.group})')
-    shutil.chown(dest_path, user=args.owner, group=args.group)
-log(format_permissions(dest_path.stat()))
+    return None
 
-if args.ask_for_deletion:
-    prompt_for_deletion(dest_path)
+
+if __name__ == '__main__':
+    sys.exit(main())
