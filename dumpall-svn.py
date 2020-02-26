@@ -67,22 +67,23 @@ def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
     return result
 
 
-def map_popen(commands, *, stdin=None, stdout=None, **kwargs):
-    for has_next, cmd in enumerate(commands, 1 - len(commands)):
-        log(f'subprocess.Popen({cmd}, **{kwargs})', end='')
-        proc = subprocess.Popen(cmd,
-                                stdin=stdin,
-                                stdout=subprocess.PIPE if has_next else stdout,
-                                **kwargs)
-        yield proc
-        stdin = proc.stdout
-        if has_next:
-            log(f' | ', end='')
-        else:
-            log(f' > {stdout}')
+def pipe_args_kwargs(name, *, deltas, auto_compress, quiet, set_path):
+    cmd = ['svnadmin', 'dump']
+    if deltas:
+        cmd.append('--deltas')
+    if quiet:
+        cmd.append('--quiet')
+
+    filter_cmds = []
+    if auto_compress:
+        suffix = pathlib.Path(name).suffix
+        if suffix in COMPRESS:
+            filter_cmds.append(COMPRESS[suffix])
+
+    return cmd, filter_cmds, {'env': {'PATH': set_path}}
 
 
-def pipe_into(file, cmd, *filter_cmds, check=True, **kwargs):
+def pipe_into(file, cmd, *filter_cmds, check=False, **kwargs):
     assert all(kw not in kwargs for kw in ('stdin', 'stdout'))
     procs = map_popen([cmd] + list(filter_cmds), stdout=file, **kwargs)
     with contextlib.ExitStack() as s:
@@ -96,6 +97,21 @@ def pipe_into(file, cmd, *filter_cmds, check=True, **kwargs):
             if check and p.returncode:
                 raise subprocess.CalledProcessError(p.returncode, p.args,
                                                     output=out, stderr=err)
+
+
+def map_popen(commands, *, stdin=None, stdout=None, **kwargs):
+    for has_next, cmd in enumerate(commands, 1 - len(commands)):
+        log(f'subprocess.Popen({cmd}, **{kwargs})', end='')
+        proc = subprocess.Popen(cmd,
+                                stdin=stdin,
+                                stdout=subprocess.PIPE if has_next else stdout,
+                                **kwargs)
+        yield proc
+        stdin = proc.stdout
+        if has_next:
+            log(f' | ', end='')
+        else:
+            log(f' > {stdout}')
 
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -133,70 +149,65 @@ parser.add_argument('--verbose', action='store_true',
 
 parser.add_argument('--version', action='version', version=__version__)
 
-args = parser.parse_args()
 
-start = time.monotonic()
+def main(args=None):
+    args = parser.parse_args(args)
 
-if not args.detail:
-    log = lambda *args, **kwargs: None
+    if not args.detail:
+        global log
+        log = lambda *args, **kwargs: None
 
-print(f'svnadmin dump {len(args.repo_dir)} repo(s) into: {args.target_dir}/')
+    start = time.monotonic()
+    print(f'svnadmin dump {len(args.repo_dir)} repo(s) into: {args.target_dir}/')
+    log(f'file name template: {args.name}')
 
-log(f'file name template: {args.name}')
+    cmd, filter_cmds, kwargs = pipe_args_kwargs(args.name,
+                                                deltas=not args.no_deltas,
+                                                auto_compress=not args.no_auto_compress,
+                                                quiet=not args.verbose,
+                                                set_path=args.set_path)
 
-dump = ['svnadmin', 'dump']
+    caption = ' | '.join(c for c, *_ in ([cmd] + filter_cmds))
 
-if not args.no_deltas:
-    dump.append('--deltas')
+    open_kwargs = {'opener': functools.partial(os.open, mode=args.chmod)}
 
-if not args.verbose:
-    dump.append('--quiet')
+    n_found = n_dumped = n_bytes = 0
 
-filter_cmds = []
+    for d in args.repo_dir:
+        assert d.is_dir()
+        dest_path = args.target_dir / args.name.format(name=d.name)
+        log('', f'source: {d}/', f'target: {dest_path}')
 
-if not args.no_auto_compress:
-    suffix = pathlib.Path(args.name).suffix
-    if suffix in COMPRESS:
-        filter_cmds.append(COMPRESS[suffix])
+        found_size = dest_path.stat().st_size if dest_path.exists() else None
+        if found_size is not None:
+            log(f'delete present {dest_path} ({found_size} bytes)')
+            dest_path.unlink()
+            n_found += 1
 
-caption = ' | '.join(dump[:1] + [f for f, *_ in filter_cmds])
+        dump_start = time.monotonic()
+        with open(dest_path, 'xb', **open_kwargs) as f:
+            pipe_into(f, cmd + [d], *filter_cmds, check=True, **kwargs)
+        dump_stop = time.monotonic()
+        log(f'time elapsed: {datetime.timedelta(seconds=dump_stop - dump_start)}')
+        n_dumped += 1
 
-open_kwargs = {'opener': functools.partial(os.open, mode=args.chmod)}
+        assert dest_path.exists()
+        dest_size = dest_path.stat().st_size
+        print(f'{caption} result: {dest_path} ({dest_size} bytes)')
+        assert dest_size
+        n_bytes += dest_size
 
-kwargs = {'env': {'PATH': args.set_path}}
+        if found_size is not None:
+            diff = dest_size - found_size
+            log(f'size difference: {diff}' if diff else 'no size difference')
 
-n_found = n_dumped = n_bytes = 0
+    stop = time.monotonic()
 
-for d in args.repo_dir:
-    assert d.is_dir()
-    dest_path = args.target_dir / args.name.format(name=d.name)
-    log('', f'source: {d}/', f'target: {dest_path}')
+    print('', f'total time: {datetime.timedelta(seconds=stop - start)}',
+          f'done (removed={n_found}, dumped={n_dumped}) (total {n_bytes} bytes).',
+          sep='\n')
+    return None
 
-    found_size = dest_path.stat().st_size if dest_path.exists() else None
-    if found_size is not None:
-        log(f'delete present {dest_path} ({found_size} bytes)')
-        dest_path.unlink()
-        n_found += 1
 
-    dump_start = time.monotonic()
-    with open(dest_path, 'xb', **open_kwargs) as f:
-        pipe_into(f, dump + [d], *filter_cmds, **kwargs)
-    dump_stop = time.monotonic()
-    log(f'time elapsed: {datetime.timedelta(seconds=dump_stop - dump_start)}')
-    n_dumped += 1
-
-    assert dest_path.exists()
-    dest_size = dest_path.stat().st_size
-    print(f'{caption} result: {dest_path} ({dest_size} bytes)')
-    assert dest_size
-    n_bytes += dest_size
-
-    if found_size is not None:
-        diff = dest_size - found_size
-        log(f'size difference: {diff}' if diff else 'no size difference')
-
-stop = time.monotonic()
-
-print('', f'total time: {datetime.timedelta(seconds=stop - start)}',
-      f'done (removed={n_found}, dumped={n_dumped}) (total {n_bytes} bytes).',
-      sep='\n')
+if __name__ == '__main__':
+    sys.exit(main())
