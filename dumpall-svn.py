@@ -88,6 +88,7 @@ def pipe_into(file, cmd, *filter_cmds, check=False, **kwargs):
     procs = map_popen([cmd] + list(filter_cmds), stdout=file, **kwargs)
     with contextlib.ExitStack() as s:
         procs = [s.enter_context(p) for p in procs]
+
         log(f'returncode(s): ', end='')
         for has_next, p in enumerate(procs, 1 - len(procs)):
             out, err = p.communicate()
@@ -102,16 +103,13 @@ def pipe_into(file, cmd, *filter_cmds, check=False, **kwargs):
 def map_popen(commands, *, stdin=None, stdout=None, **kwargs):
     for has_next, cmd in enumerate(commands, 1 - len(commands)):
         log(f'subprocess.Popen({cmd}, **{kwargs})', end='')
+        log(' | ' if has_next else f' > {stdout}', end='' if has_next else '\n')
         proc = subprocess.Popen(cmd,
                                 stdin=stdin,
                                 stdout=subprocess.PIPE if has_next else stdout,
                                 **kwargs)
         yield proc
         stdin = proc.stdout
-        if has_next:
-            log(f' | ', end='')
-        else:
-            log(f' > {stdout}')
 
 
 parser = argparse.ArgumentParser(description=__doc__)

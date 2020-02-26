@@ -41,10 +41,11 @@ def itergists(username):
         log(f'urllib.request.urlopen({url})')
         with urllib.request.urlopen(url) as u:
             gists = json.load(u)
-        yield from gists
         links = [l.partition('; ') for l in u.info().get('Link', '').split(', ')]
         links = {r: u.partition('<')[2].partition('>')[0] for u, _, r in links}
         url = links.get('rel="next"')
+
+        yield from gists
 
 
 def parse_url(s):
