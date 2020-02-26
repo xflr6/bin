@@ -79,7 +79,8 @@ parser.add_argument('--version', action='version', version=__version__)
 
 def main(args=None):
     args = parser.parse_args(args)
-    log(f'export url: {args.export_url}', f'title: {args.page_title}', '')
+    log(f'export url: {args.export_url}',
+        f'title: {args.page_title}', '')
 
     req = make_request(args.export_url, args.page_title)
     log(f'urllib.request.urlopen({req})')
