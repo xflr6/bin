@@ -172,7 +172,6 @@ def main(args=None):
     open_kwargs = {'opener': functools.partial(os.open, mode=args.chmod)}
 
     n_found = n_dumped = n_bytes = 0
-
     for d in args.repo_dir:
         assert d.is_dir()
         dest_path = args.target_dir / args.name.format(name=d.name)
@@ -202,7 +201,6 @@ def main(args=None):
             log(f'size difference: {diff}' if diff else 'no size difference')
 
     stop = time.monotonic()
-
     print('', f'total time: {datetime.timedelta(seconds=stop - start)}',
           f'done (removed={n_found}, dumped={n_dumped}) (total {n_bytes} bytes).',
           sep='\n')

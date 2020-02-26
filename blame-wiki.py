@@ -86,10 +86,10 @@ def main(args=None):
     with urllib.request.urlopen(req) as f:
         tree = parse_response(f)
 
-    root_tag = tree.getroot().tag
-    ns = extract_ns(root_tag)
+    root = tree.getroot()
+    ns = extract_ns(root.tag)
     log(f'xml: {ns}')
-    assert re.fullmatch(MEDIAWIKI_EXPORT, root_tag)
+    assert re.fullmatch(MEDIAWIKI_EXPORT, root.tag)
     ns = {'namespaces': {'ns': ns}}
 
     info, = tree.findall('ns:siteinfo', **ns)
