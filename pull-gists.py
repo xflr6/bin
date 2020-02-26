@@ -53,7 +53,7 @@ def parse_url(s):
 
 def prompt_for_deletion(path):
     line = None
-    while line is None or (line != '' and line not in ('y', 'yes')):
+    while line is None or (line and line not in ('y', 'yes')):
         line = input(f'delete {path}/? [(y)es=delete/ENTER=keep]: ')
 
     if line in ('y', 'yes'):
