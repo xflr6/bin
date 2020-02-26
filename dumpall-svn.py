@@ -102,8 +102,8 @@ def pipe_into(file, cmd, *filter_cmds, check=False, **kwargs):
 
 def map_popen(commands, *, stdin=None, stdout=None, **kwargs):
     for has_next, cmd in enumerate(commands, 1 - len(commands)):
-        log(f'subprocess.Popen({cmd}, **{kwargs})', end='')
-        log(' | ' if has_next else f' > {stdout}', end='' if has_next else '\n')
+        log(f'subprocess.Popen({cmd}, **{kwargs})', end=' ')
+        log('|' if has_next else f'> {stdout}', end=' ' if has_next else '\n')
         proc = subprocess.Popen(cmd,
                                 stdin=stdin,
                                 stdout=subprocess.PIPE if has_next else stdout,
