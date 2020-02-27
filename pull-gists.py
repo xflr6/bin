@@ -92,47 +92,53 @@ parser.add_argument('--detail', action='store_true',
 
 parser.add_argument('--version', action='version', version=__version__)
 
-args = parser.parse_args()
 
-if not args.detail:
-    log = lambda *args, **kwargs: None
+def main(args=None):
+    args = parser.parse_args(args)
 
-print(f'pull all public gist repos of {args.gh_username} into: {args.target_dir}/')
+    if not args.detail:
+        global log
+        log = lambda *args, **kwargs: None
 
-gists = list(itergists(username=args.gh_username))
+    print(f'pull all public gist repos of {args.gh_username} into: {args.target_dir}/')
 
-log(f'pull {len(gists)} repo(s) into: {args.target_dir}/')
+    gists = list(itergists(username=args.gh_username))
+    log(f'pull {len(gists)} repo(s) into: {args.target_dir}/')
 
-n_reset = n_cloned = n_updated = 0
+    n_reset = n_cloned = n_updated = 0
+    for g in gists:
+        print()
+        url = g['git_push_url']
+        log(f'source: {url}')
 
-for g in gists:
-    print()
-    url = g['git_push_url']
-    log(f'source: {url}')
+        url = parse_url(url)
+        g_dir = args.target_dir / url['dir']
+        log(f'target: {g_dir}/', end='')
 
-    url = parse_url(url)
-    g_dir = args.target_dir / url['dir']
-    log(f'target: {g_dir}/', end='')
+        removed, clone = removed_clone(g_dir, reset=args.reset)
+        if removed:
+            n_reset += 1
 
-    removed, clone = removed_clone(g_dir, reset=args.reset)
-    if removed:
-        n_reset += 1
+        if clone:
+            log()
+            cmd = ['git', 'clone', '--mirror', url['url']]
+            cwd = args.target_dir
+            n_cloned += 1
+        else:
+            log(f' (inode={g_dir.stat().st_ino})')
+            cmd = ['git', 'remote', 'update']
+            cwd = g_dir
+            n_updated += 1
 
-    if clone:
-        log()
-        cmd = ['git', 'clone', '--mirror', url['url']]
-        cwd = args.target_dir
-        n_cloned += 1
-    else:
-        log(f' (inode={g_dir.stat().st_ino})')
-        cmd = ['git', 'remote', 'update']
-        cwd = g_dir
-        n_updated += 1
+        print(f'subprocess.run({cmd}, cwd={cwd})')
+        log(f'{"[ start git ]":-^80}')
+        proc = subprocess.run(cmd, cwd=cwd, check=True)
+        log(f'{"[ end git ]":-^80}')
+        log(f'returncode: {proc.returncode}')
 
-    print(f'subprocess.run({cmd}, cwd={cwd})')
-    log(f'{"[ start git ]":-^80}')
-    proc = subprocess.run(cmd, cwd=cwd, check=True)
-    log(f'{"[ end git ]":-^80}')
-    log(f'returncode: {proc.returncode}')
+    print(f'\ndone (reset={n_reset}, cloned={n_cloned}, updated={n_updated}).')
+    return None
 
-print(f'\ndone (reset={n_reset}, cloned={n_cloned}, updated={n_updated}).')
+
+if __name__ == '__main__':
+    sys.exit(main())
