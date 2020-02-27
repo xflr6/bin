@@ -83,9 +83,8 @@ def pipe_args_kwargs(name, *, deltas, auto_compress, quiet, set_path):
     return cmd, filter_cmds, {'env': {'PATH': set_path}}
 
 
-def pipe_into(file, cmd, *filter_cmds, check=False, **kwargs):
-    assert all(kw not in kwargs for kw in ('stdin', 'stdout'))
-    procs = map_popen([cmd] + list(filter_cmds), stdout=file, **kwargs)
+def run_pipe(cmd, *filter_cmds, check=False, **kwargs):
+    procs = map_popen([cmd] + list(filter_cmds), **kwargs)
     with contextlib.ExitStack() as s:
         procs = [s.enter_context(p) for p in procs]
 
@@ -183,7 +182,7 @@ def main(args=None):
 
         dump_start = time.monotonic()
         with open(dest_path, 'xb', **open_kwargs) as f:
-            pipe_into(f, cmd + [d], *filter_cmds, check=True, **kwargs)
+            run_pipe(cmd + [d], *filter_cmds, stdout=f, check=True, **kwargs)
         dump_stop = time.monotonic()
         log(f'time elapsed: {datetime.timedelta(seconds=dump_stop - dump_start)}')
         n_dumped += 1
