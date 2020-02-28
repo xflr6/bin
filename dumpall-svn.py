@@ -51,7 +51,7 @@ def template(s):
         result = None
 
     if not result:
-        raise argparse.ArgumentTypeError('empty string')
+        raise argparse.ArgumentTypeError('invalid or empty template')
     return result
 
 

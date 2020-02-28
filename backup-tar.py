@@ -83,11 +83,11 @@ def exclude_file(s, encoding='utf-8'):
     for parts in sorted(patterns):
         root, *parts = parts
         root = tree[root]
-        for nonlast, p in enumerate(parts, 1 - len(parts)):
+        for has_next, p in enumerate(parts, 1 - len(parts)):
             if p in root:
-                assert (root[p] is not None) == bool(nonlast)
+                assert (root[p] is not None) == bool(has_next)
             else:
-                root[p] = {} if nonlast else None
+                root[p] = {} if has_next else None
             root = root[p]
 
     def make_regex(tree, indent=' ' * 4):
@@ -102,7 +102,6 @@ def exclude_file(s, encoding='utf-8'):
     pattern = '|\n'.join(make_regex(tree['/']))
     pattern = f'/(?:\n{pattern}\n)(?:{os.sep}.*)?'
     pattern = re.compile(pattern, flags=re.VERBOSE)
-    print(pattern.pattern)
 
     def match(dentry, _fullmatch=pattern.fullmatch):
         return _fullmatch(dentry.path) is not None
