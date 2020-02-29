@@ -52,7 +52,7 @@ def template(s):
         result = None
 
     if not result:
-        raise argparse.ArgumentTypeError(f'invalid template: {s}')
+        raise argparse.ArgumentTypeError(f'invalid or empty template: {s}')
     return result
 
 
