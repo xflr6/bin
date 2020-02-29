@@ -176,8 +176,8 @@ def main(args=None):
                 print(line, end='')
 
     name = pathlib.Path(sys.argv[0]).name
-
     logging.info(f'{name} listening on %r port %d udp', args.host, args.port)
+
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((args.host, args.port))
@@ -196,6 +196,7 @@ def main(args=None):
         os.setuid(args.setuid.pw_uid)
 
     logging.debug('serve_forever(%r)', s)
+
     try:
         serve_forever(s, encoding=args.encoding)
     except socket.error:
@@ -206,6 +207,7 @@ def main(args=None):
     finally:
         logging.debug('socket.close()')
         s.close()
+
     return None
 
 
