@@ -23,15 +23,15 @@ HOST = '127.0.0.1'
 
 PORT = 'discard'
 
+FORMAT = '%(asctime)s %(message)s'
+
+DATEFMT = '%b %d %H:%M:%S'
+
 CHROOT = '/tmp'
 
 SETUID = 'nobody'
 
 ENCODING = 'utf-8'
-
-FORMAT = '%(asctime)s %(message)s'
-
-DATEFMT = '%b %d %H:%M:%S'
 
 TIMEZONE = pathlib.Path('/', 'etc', 'timezone')
 
@@ -73,9 +73,9 @@ def user(s):
         raise argparse.ArgumentTypeError(f'unknown user: {s}')
 
 
-def configure_logging(filename=None, *, format_, datefmt):
+def configure_logging(filename=None, *, level, format_, datefmt):
     cfg = {'version': 1,
-           'root': {'handlers': ['stdout'], 'level': 'INFO'},
+           'root': {'handlers': ['stdout'], 'level': level},
            'handlers': {'stdout': {'formatter': 'plain',
                                    'stream': 'ext://sys.stdout',
                                    'class': 'logging.StreamHandler'}},
@@ -140,33 +140,41 @@ parser.add_argument('--setuid', metavar='USER', type=user, default=SETUID,
 parser.add_argument('--encoding', metavar='NAME', default=ENCODING,
                     help=f'encoding of UDP messages (default: {ENCODING})')
 
+parser.add_argument('--verbose', action='store_true',
+                    help='increase logging level to DEBUG')
+
 parser.add_argument('--version', action='version', version=__version__)
 
 
 def main(args=None):
     args = parser.parse_args(args)
 
-    configure_logging(args.file, format_=args.format, datefmt=args.datefmt)
+    configure_logging(args.file,
+                      level='DEBUG' if args.verbose else 'INFO',
+                      format_=args.format, datefmt=args.datefmt)
 
     if args.file is not None:
+        logging.debug('replay tail of lof file: %s', args.file)
         with args.file.open(encoding=ENCODING) as f:
             for line in itertail(f, n=40):
                 print(line, end='')
 
     name = pathlib.Path(sys.argv[0]).name
 
-    logging.info(f'{name} listening on {args.host} port {args.port} udp')
+    logging.info(f'{name} listening on %s port %d udp', args.host, args.port)
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((args.host, args.port))
 
     if args.chroot is not None:
+        loging.debug('os.chroot(%s)', args.chroot)
         with TIMEZONE.open(encoding=ENCODING) as f:
             os.environ['TZ'] = f.readline().strip()
         time.tzset()
         os.chroot(args.chroot)
 
     if args.setuid is not None:
+        logging.debug('os.setuid(%s)', args.setuid.pw_name)
         os.setgid(args.setuid.pw_gid)
         os.setgroups([])
         os.setuid(args.setuid.pw_uid)
@@ -175,8 +183,9 @@ def main(args=None):
 
     try:
         serve_forever(s, encoding=args.encoding)
-    except socket.error as e:
-        return e
+    except socket.error:
+        logging.exception('socket.error')
+        return 'socket error'
     except (KeyboardInterrupt, SystemExit):
         logging.info(f'{name} exiting.')
     finally:

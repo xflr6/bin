@@ -161,7 +161,7 @@ optional arguments:
 $ log-udp.py --help
 usage: log-udp.py [-h] [--host IP] [--port SERVICE] [--file LOGFILE]
                   [--format TMPL] [--datefmt TMPL] [--chroot DIR]
-                  [--setuid USER] [--encoding NAME] [--version]
+                  [--setuid USER] [--encoding NAME] [--verbose] [--version]
 
 Log incoming UDP messages to stdout and optionally into file.
 
@@ -175,6 +175,7 @@ optional arguments:
   --chroot DIR     directory to chroot into after binding (default: /tmp)
   --setuid USER    user to setuid to after binding (default: nobody)
   --encoding NAME  encoding of UDP messages (default: utf-8)
+  --verbose        increase logging level to DEBUG
   --version        show program's version number and exit
 ```
 
