@@ -11,7 +11,6 @@ __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 import argparse
 import collections
 import logging
-import logging.config
 import os
 import pathlib
 import signal
@@ -84,7 +83,9 @@ def register_signal_handler(*signums):
     return decorator
 
 
-def configure_logging(filename=None, *, level, format_, datefmt):
+def configure_logging(filename=None, *, level, file_level, format_, datefmt):
+    import logging.config
+
     cfg = {'version': 1,
            'root': {'handlers': ['stdout'], 'level': level},
            'handlers': {'stdout': {'formatter': 'plain',
@@ -96,7 +97,7 @@ def configure_logging(filename=None, *, level, format_, datefmt):
     if filename is not None:
         cfg['root']['handlers'].append('file')
         cfg['handlers']['file'] = {'formatter': 'plain',
-                                   'level': 'INFO',
+                                   'level': file_level,
                                    'filename': filename,
                                    'class': 'logging.FileHandler'}
 
@@ -113,11 +114,13 @@ def itertail(iterable, *, n):
 def serve_forever(s, *, encoding, bufsize=2**10):
     while True:
         raw, (host, port) = s.recvfrom(bufsize)
+
         try:
             msg = raw.decode(encoding).strip()
         except UnicodeDecodeError as e:
-            logging.debug(e)
             msg = ascii(raw)
+            logging.debug(e)
+
         logging.info('%s:%s %s', host, port, msg)
 
 
@@ -167,6 +170,7 @@ def main(args=None):
 
     configure_logging(args.file,
                       level='DEBUG' if args.verbose else 'INFO',
+                      file_level='INFO',
                       format_=args.format, datefmt=args.datefmt)
 
     if args.file is not None and args.file.stat().st_size:
@@ -175,8 +179,8 @@ def main(args=None):
             for line in itertail(f, n=40):
                 print(line, end='')
 
-    name = pathlib.Path(sys.argv[0]).name
-    logging.info(f'{name} listening on %r port %d udp', args.host, args.port)
+    cmd = pathlib.Path(sys.argv[0]).name
+    logging.info(f'{cmd} listening on %r port %d udp', args.host, args.port)
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -203,7 +207,7 @@ def main(args=None):
         logging.exception('socket.error')
         return 'socket error'
     except SystemExit as e:
-        logging.info(f'{name} %r exiting', e)
+        logging.info(f'{cmd} %r exiting', e)
     finally:
         logging.debug('socket.close()')
         s.close()
