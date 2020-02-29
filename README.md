@@ -33,7 +33,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --name TEMPLATE       image filename datetime.strftime() format string
+  --name TEMPLATE       image filename time.strftime() format string template
                         (default: %Y%m%d-%H%M.sfs)
   --exclude-file PATH   path to file with one line per blacklist item
   --comp {gzip,lzo,xz}  compression (use mksquashfs default if omitted)
@@ -66,7 +66,7 @@ positional arguments:
 
 optional arguments:
   -h, --help           show this help message and exit
-  --name TEMPLATE      archive filename datetime.strftime() format string
+  --name TEMPLATE      archive filename time.strftime() format string template
                        (default: %Y%m%d-%H%M.tar.gz)
   --exclude-file PATH  path to file with one line per blacklist item
   --no-auto-compress   don't pass --auto-compress to tar
@@ -142,7 +142,7 @@ positional arguments:
 
 optional arguments:
   -h, --help          show this help message and exit
-  --name TEMPLATE     dump filename datetime.strftime() format string
+  --name TEMPLATE     dump filename time.strftime() format string template
                       (default: {name}.svndump.gz)
   --no-auto-compress  never compress dump file(s) (default: auto-compress if
                       --name ends with any of: .bz2, .gz, .xz)

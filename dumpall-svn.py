@@ -46,7 +46,7 @@ def directory(s):
 
 def template(s):
     try:
-        result = datetime.datetime.now().strftime(s)
+        result = time.strftime(s)
     except ValueError:
         result = None
 
@@ -121,7 +121,7 @@ parser.add_argument('repo_dir', nargs='+', type=directory,
 
 parser.add_argument('--name', metavar='TEMPLATE',
                     type=template, default=NAME_TEMPLATE,
-                    help=f'dump filename datetime.strftime() format string'
+                    help=f'dump filename time.strftime() format string template'
                          f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
 
 parser.add_argument('--no-auto-compress', action='store_true',

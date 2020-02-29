@@ -44,7 +44,7 @@ def directory(s):
 
 def template(s):
     try:
-        result = datetime.datetime.now().strftime(s)
+        result = time.strftime(s)
     except ValueError:
         result = None
 
@@ -158,7 +158,7 @@ parser.add_argument('dest_dir', type=directory, help='image target directory')
 
 parser.add_argument('--name', metavar='TEMPLATE',
                     type=template, default=NAME_TEMPLATE,
-                    help='image filename datetime.strftime() format string'
+                    help='image filename time.strftime() format string template'
                          f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
 
 parser.add_argument('--exclude-file', metavar='PATH', type=present_file,
