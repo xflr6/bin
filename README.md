@@ -175,7 +175,7 @@ optional arguments:
   --chroot DIR     directory to chroot into after binding (default: /tmp)
   --setuid USER    user to setuid to after binding (default: nobody)
   --encoding NAME  encoding of UDP messages (default: utf-8)
-  --verbose        increase logging level to DEBUG
+  --verbose        increase stdout logging level to DEBUG
   --version        show program's version number and exit
 ```
 

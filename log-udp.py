@@ -85,6 +85,7 @@ def configure_logging(filename=None, *, level, format_, datefmt):
     if filename is not None:
         cfg['root']['handlers'].append('file')
         cfg['handlers']['file'] = {'formatter': 'plain',
+                                   'level': 'INFO',
                                    'filename': filename,
                                    'class': 'logging.FileHandler'}
 
@@ -141,7 +142,7 @@ parser.add_argument('--encoding', metavar='NAME', default=ENCODING,
                     help=f'encoding of UDP messages (default: {ENCODING})')
 
 parser.add_argument('--verbose', action='store_true',
-                    help='increase logging level to DEBUG')
+                    help='increase stdout logging level to DEBUG')
 
 parser.add_argument('--version', action='version', version=__version__)
 
@@ -149,11 +150,16 @@ parser.add_argument('--version', action='version', version=__version__)
 def main(args=None):
     args = parser.parse_args(args)
 
+    def handle_terminate(signum, _):
+        sys.exit(f'received signal {signum}')
+
+    signal.signal(signal.SIGTERM, handle_terminate)
+
     configure_logging(args.file,
                       level='DEBUG' if args.verbose else 'INFO',
                       format_=args.format, datefmt=args.datefmt)
 
-    if args.file is not None:
+    if args.file is not None and args.file.stat().st_size:
         logging.debug('replay tail of lof file: %r', args.file)
         with args.file.open(encoding=ENCODING) as f:
             for line in itertail(f, n=40):
@@ -178,11 +184,6 @@ def main(args=None):
         os.setgid(args.setuid.pw_gid)
         os.setgroups([])
         os.setuid(args.setuid.pw_uid)
-
-    def handle_terminate(signum, _):
-        sys.exit(f'received signal {signum}')
-
-    signal.signal(signal.SIGTERM, handle_terminate)
 
     logging.debug('serve_forever(%r)', s)
     try:
