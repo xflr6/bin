@@ -2,7 +2,7 @@
 
 SSH_ENV="${HOME}/.ssh/environment"
 
-function start_agent {
+start_agent() {
     echo "Starting new ssh-agent..."
     /usr/bin/ssh-agent -s -a "${HOME}/.ssh/auth.sock" | head -2 > $SSH_ENV
     chmod 600 $SSH_ENV
