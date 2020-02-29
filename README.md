@@ -170,7 +170,7 @@ optional arguments:
   --port SERVICE   UDP port number or name to listen on (default: discard)
   --file LOGFILE   file to write log to (log only to stdout by default)
   --chroot DIR     directory to chroot into after binding (default: /tmp)
-  --setuid USER    user to setuid after binding (default: nobody)
+  --setuid USER    user to setuid to after binding (default: nobody)
   --encoding NAME  encoding of UDP messages (default: utf-8)
   --version        show program's version number and exit
 ```

@@ -111,7 +111,7 @@ parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
                         f' (default: {CHROOT})')
 
 parser.add_argument('--setuid', metavar='USER', type=user, default=SETUID,
-                    help='user to setuid after binding'
+                    help='user to setuid to after binding'
                         f' (default: {SETUID})')
 
 parser.add_argument('--encoding', metavar='NAME', default=ENCODING,
