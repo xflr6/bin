@@ -60,8 +60,9 @@ def extract_ns(tag):
     return ns
 
 
-def elem_findtext(elem, *tags, **kwargs):
-    values = (elem.findtext(f'ns:{t}', **kwargs) for t in tags)
+def elem_findtext(elem, *tags, prefix=None, **kwargs):
+    prefix = prefix + ':' if prefix is not None else ''
+    values = (elem.findtext(prefix + t, **kwargs) for t in tags)
     return dict(zip(tags, values))
 
 
@@ -91,23 +92,23 @@ def main(args=None):
     ns = extract_ns(root.tag)
     log(f'xml: {ns}')
     assert re.fullmatch(MEDIAWIKI_EXPORT, root.tag)
-    ns = {'namespaces': {'ns': ns}}
+    ns = {'namespaces': {'mw': ns}}
 
-    info, = tree.findall('ns:siteinfo', **ns)
-    for k, v in elem_findtext(info, 'sitename', 'dbname', 'base', **ns).items():
+    site, = tree.findall('mw:siteinfo', **ns)
+    for k, v in elem_findtext(site, 'sitename', 'dbname', 'base', prefix='mw', **ns).items():
         log(f'siteinfo/{k}: {v}')
 
-    page, = tree.findall('ns:page', **ns)
-    infos = elem_findtext(page, 'ns', 'title', 'id', **ns)
-    for k, v in infos.items():
+    page, = tree.findall('mw:page', **ns)
+    page_infos = elem_findtext(page, 'ns', 'title', 'id', prefix='mw', **ns)
+    for k, v in page_infos.items():
         log(f'page/{k}: {v}')
 
-    assert infos['ns'] == '0'
-    assert infos['title'] == args.page_title
+    assert page_infos['ns'] == '0'
+    assert page_infos['title'] == args.page_title
 
     log(f'search string: {args.search_string}')
-    for r in page.iterfind('ns:revision', **ns):
-        if args.search_string in r.findtext('ns:text', '', **ns):
+    for r in page.iterfind('mw:revision', **ns):
+        if args.search_string in r.findtext('mw:text', '', **ns):
             log()
             etree.dump(r)
             return None
