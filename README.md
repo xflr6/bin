@@ -155,6 +155,27 @@ optional arguments:
 ```
 
 
+### log-udp.py
+
+```sh
+$ log-udp.py --help
+usage: log-udp.py [-h] [--host IP] [--port SERVICE] [--file LOGFILE]
+                  [--chroot DIR] [--setuid USER] [--encoding NAME] [--version]
+
+Log incoming UDP messages to stdout and optionally into file.
+
+optional arguments:
+  -h, --help       show this help message and exit
+  --host IP        address to listen on (default: 127.0.0.1)
+  --port SERVICE   UDP port number or name to listen on (default: discard)
+  --file LOGFILE   file to write log to (log only to stdout by default)
+  --chroot DIR     directory to chroot into after binding (default: /tmp)
+  --setuid USER    user to setuid after binding (default: nobody)
+  --encoding NAME  encoding of UDP messages (default: utf-8)
+  --version        show program's version number and exit
+```
+
+
 ### pull-gists.py
 
 ```sh
