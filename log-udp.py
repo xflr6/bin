@@ -98,7 +98,7 @@ def itertail(iterable, *, n):
     return iterable
 
 
-def serve_forever(s, encoding, bufsize=2**10):
+def serve_forever(s, *, encoding, bufsize=2**10):
     while True:
         raw, (host, port) = s.recvfrom(bufsize)
         try:
@@ -179,16 +179,18 @@ def main(args=None):
         os.setgroups([])
         os.setuid(args.setuid.pw_uid)
 
-    signal.signal(signal.SIGTERM, lambda signum, frame: sys.exit())
+    signal.signal(signal.SIGTERM, lambda signum, frame: sys.exit('received SIGTERM'))
 
+    logging.debug('serve_forever(%s)', s)
     try:
         serve_forever(s, encoding=args.encoding)
     except socket.error:
         logging.exception('socket.error')
         return 'socket error'
     except (KeyboardInterrupt, SystemExit):
-        logging.info(f'{name} exiting.')
+        logging.info(f'{name} exiting')
     finally:
+        logging.debug('socket.close()')
         s.close()
     return None
 
