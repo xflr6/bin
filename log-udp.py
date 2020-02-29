@@ -73,6 +73,17 @@ def user(s):
         raise argparse.ArgumentTypeError(f'unknown user: {s}')
 
 
+def register_signal_handler(*signums):
+    assert signums
+
+    def decorator(func):
+        for s in signums:
+            signal.signal(s, func)
+        return func
+
+    return decorator
+
+
 def configure_logging(filename=None, *, level, format_, datefmt):
     cfg = {'version': 1,
            'root': {'handlers': ['stdout'], 'level': level},
@@ -150,10 +161,9 @@ parser.add_argument('--version', action='version', version=__version__)
 def main(args=None):
     args = parser.parse_args(args)
 
-    def handle_terminate(signum, _):
-        sys.exit(f'received signal {signum}')
-
-    signal.signal(signal.SIGTERM, handle_terminate)
+    @register_signal_handler(signal.SIGINT, signal.SIGTERM)
+    def handle_with_exit(signum, _):
+        sys.exit(f'received signal.{signal.Signals(signum).name}')
 
     configure_logging(args.file,
                       level='DEBUG' if args.verbose else 'INFO',
@@ -191,8 +201,8 @@ def main(args=None):
     except socket.error:
         logging.exception('socket.error')
         return 'socket error'
-    except (KeyboardInterrupt, SystemExit) as e:
-        logging.info(f'{name} raised %r exiting', e)
+    except SystemExit as e:
+        logging.info(f'{name} %r exiting', e)
     finally:
         logging.debug('socket.close()')
         s.close()
