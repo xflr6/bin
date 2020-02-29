@@ -44,6 +44,15 @@ def port(s):
     return port
 
 
+def datefmt(s):
+    try:
+        time.strftime(s)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f'invalid datefmt: {s}')
+    else:
+        return s
+
+
 def directory(s):
     try:
         result = pathlib.Path(s)
@@ -116,7 +125,7 @@ parser.add_argument('--format', metavar='TMPL', default=FORMAT,
                     help='log format string'
                          f' (default: {FORMAT.replace("%", "%%")})')
 
-parser.add_argument('--datefmt', metavar='TMPL', default=DATEFMT,
+parser.add_argument('--datefmt', metavar='TMPL', type=datefmt, default=DATEFMT,
                     help='log time.strftime() format string'
                          f' (default: {DATEFMT.replace("%", "%%")})')
 
