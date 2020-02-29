@@ -29,6 +29,12 @@ SETUID = 'nobody'
 
 ENCODING = 'utf-8'
 
+FORMAT = '%(asctime)s %(message)s'
+
+DATEFMT = '%b %d %H:%M:%S'
+
+TIMEZONE = pathlib.Path('/', 'etc', 'timezone')
+
 
 def port(s):
     port = int(s) if s.isdigit() else socket.getservbyname(s)
@@ -58,14 +64,14 @@ def user(s):
         raise argparse.ArgumentTypeError(f'unknown user: {s}')
 
 
-def configure_logging(filename=None):
+def configure_logging(filename=None, *, format_, datefmt):
     cfg = {'version': 1,
            'root': {'handlers': ['stdout'], 'level': 'INFO'},
            'handlers': {'stdout': {'formatter': 'plain',
                                    'stream': 'ext://sys.stdout',
                                    'class': 'logging.StreamHandler'}},
-           'formatters': {'plain': {'format': '%(asctime)s %(message)s',
-                                    'datefmt': '%b %d %H:%M:%S'}}}
+           'formatters': {'plain': {'format': format_,
+                                    'datefmt': datefmt}}}
 
     if filename is not None:
         cfg['root']['handlers'].append('file')
@@ -106,6 +112,14 @@ parser.add_argument('--port', metavar='SERVICE', type=port, default=PORT,
 parser.add_argument('--file', metavar='LOGFILE', type=pathlib.Path,
                     help='file to write log to (log only to stdout by default)')
 
+parser.add_argument('--format', metavar='TMPL', default=FORMAT,
+                    help='log format string'
+                         f' (default: {FORMAT.replace("%", "%%")})')
+
+parser.add_argument('--datefmt', metavar='TMPL', default=DATEFMT,
+                    help='log time.strftime() format string'
+                         f' (default: {DATEFMT.replace("%", "%%")})')
+
 parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
                     help='directory to chroot into after binding'
                         f' (default: {CHROOT})')
@@ -123,7 +137,7 @@ parser.add_argument('--version', action='version', version=__version__)
 def main(args=None):
     args = parser.parse_args(args)
 
-    configure_logging(filename=args.file)
+    configure_logging(args.file, format_=args.format, datefmt=args.datefmt)
 
     if args.file is not None:
         with args.file.open(encoding=ENCODING) as f:
@@ -138,7 +152,8 @@ def main(args=None):
     s.bind((args.host, args.port))
 
     if args.chroot is not None:
-        os.environ['TZ'] = open('/etc/timezone').readline().strip()
+        with TIMEZONE.open(encoding=ENCODING) as f:
+            os.environ['TZ'] = f.readline().strip()
         time.tzset()
         os.chroot(args.chroot)
 

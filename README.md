@@ -160,7 +160,8 @@ optional arguments:
 ```sh
 $ log-udp.py --help
 usage: log-udp.py [-h] [--host IP] [--port SERVICE] [--file LOGFILE]
-                  [--chroot DIR] [--setuid USER] [--encoding NAME] [--version]
+                  [--format TMPL] [--datefmt TMPL] [--chroot DIR]
+                  [--setuid USER] [--encoding NAME] [--version]
 
 Log incoming UDP messages to stdout and optionally into file.
 
@@ -169,6 +170,8 @@ optional arguments:
   --host IP        address to listen on (default: 127.0.0.1)
   --port SERVICE   UDP port number or name to listen on (default: discard)
   --file LOGFILE   file to write log to (log only to stdout by default)
+  --format TMPL    log format string (default: %(asctime)s %(message)s)
+  --datefmt TMPL   log time.strftime() format string (default: %b %d %H:%M:%S)
   --chroot DIR     directory to chroot into after binding (default: /tmp)
   --setuid USER    user to setuid to after binding (default: nobody)
   --encoding NAME  encoding of UDP messages (default: utf-8)
