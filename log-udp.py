@@ -131,11 +131,11 @@ parser.add_argument('--datefmt', metavar='TMPL', type=datefmt, default=DATEFMT,
 
 parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
                     help='directory to chroot into after binding'
-                        f' (default: {CHROOT})')
+                         f' (default: {CHROOT})')
 
 parser.add_argument('--setuid', metavar='USER', type=user, default=SETUID,
                     help='user to setuid to after binding'
-                        f' (default: {SETUID})')
+                         f' (default: {SETUID})')
 
 parser.add_argument('--encoding', metavar='NAME', default=ENCODING,
                     help=f'encoding of UDP messages (default: {ENCODING})')
@@ -154,41 +154,44 @@ def main(args=None):
                       format_=args.format, datefmt=args.datefmt)
 
     if args.file is not None:
-        logging.debug('replay tail of lof file: %s', args.file)
+        logging.debug('replay tail of lof file: %r', args.file)
         with args.file.open(encoding=ENCODING) as f:
             for line in itertail(f, n=40):
                 print(line, end='')
 
     name = pathlib.Path(sys.argv[0]).name
 
-    logging.info(f'{name} listening on %s port %d udp', args.host, args.port)
+    logging.info(f'{name} listening on %r port %d udp', args.host, args.port)
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((args.host, args.port))
 
     if args.chroot is not None:
-        logging.debug('os.chroot(%s)', args.chroot)
+        logging.debug('os.chroot(%r)', args.chroot)
         with TIMEZONE.open(encoding=ENCODING) as f:
             os.environ['TZ'] = f.readline().strip()
         time.tzset()
         os.chroot(args.chroot)
 
     if args.setuid is not None:
-        logging.debug('os.setuid(%s)', args.setuid.pw_name)
+        logging.debug('os.setuid(%r)', args.setuid.pw_name)
         os.setgid(args.setuid.pw_gid)
         os.setgroups([])
         os.setuid(args.setuid.pw_uid)
 
-    signal.signal(signal.SIGTERM, lambda signum, frame: sys.exit('received SIGTERM'))
+    def handle_terminate(signum, _):
+        sys.exit(f'received signal {signum}')
 
-    logging.debug('serve_forever(%s)', s)
+    signal.signal(signal.SIGTERM, handle_terminate)
+
+    logging.debug('serve_forever(%r)', s)
     try:
         serve_forever(s, encoding=args.encoding)
     except socket.error:
         logging.exception('socket.error')
         return 'socket error'
-    except (KeyboardInterrupt, SystemExit):
-        logging.info(f'{name} exiting')
+    except (KeyboardInterrupt, SystemExit) as e:
+        logging.info(f'{name} raised %r exiting', e)
     finally:
         logging.debug('socket.close()')
         s.close()
