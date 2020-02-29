@@ -118,7 +118,7 @@ def run_args_kwargs(source_dir, dest_path, *, exclude_file, comp, set_path, quie
     return cmd, kwargs
 
 
-def format_permissions(file_stat):
+def format_permissions(stat_result):
     import grp
     import itertools
     import pwd
@@ -130,9 +130,9 @@ def format_permissions(file_stat):
             else:
                 yield '-'
 
-    mode = ''.join(iterflags(file_stat.st_mode))
-    owner = pwd.getpwuid(file_stat.st_uid).pw_name
-    group = grp.getgrgid(file_stat.st_gid).gr_name
+    mode = ''.join(iterflags(stat_result.st_mode))
+    owner = pwd.getpwuid(stat_result.st_uid).pw_name
+    group = grp.getgrgid(stat_result.st_gid).gr_name
     return f'file permissions: {mode} (owner={owner}, group={group})'
 
 
