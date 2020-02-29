@@ -167,7 +167,7 @@ def main(args=None):
     s.bind((args.host, args.port))
 
     if args.chroot is not None:
-        loging.debug('os.chroot(%s)', args.chroot)
+        logging.debug('os.chroot(%s)', args.chroot)
         with TIMEZONE.open(encoding=ENCODING) as f:
             os.environ['TZ'] = f.readline().strip()
         time.tzset()
