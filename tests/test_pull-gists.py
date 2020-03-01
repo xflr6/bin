@@ -15,11 +15,14 @@ def test_pull_repos(tmp_path, mocker):
     gists = json.dumps([{'git_push_url': f'git@example.com:spam/{present.name}'},
                         {'git_push_url': absent_url}])
 
-    resp = mocker.NonCallableMock(**{'read.return_value': gists,
-                                     'info.return_value': {}})
+    resp = mocker.MagicMock(**{'read.return_value': gists,
+                               'info.return_value': {}})
+    resp.__enter__.return_value = resp
 
-    urlopen = mocker.patch('urllib.request.urlopen', autospec=True,
-                           **{'return_value.__enter__.return_value': resp})
+    urlopen = mocker.patch('urllib.request.urlopen',
+                           return_value=resp,
+                           autospec=True)
+
     run = mocker.patch('subprocess.run', autospec=True)
 
     assert pull_gists.main([str(tmp_path), 'spam']) is None
