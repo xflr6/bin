@@ -38,7 +38,9 @@ def test_backup_tar(tmp_path, mocker):
                                  '--files-from', '-',
                                  '--null', '--verbatim-files-from',
                                  '--auto-compress'],
-                                stdin=mocker.ANY, cwd=s_dir,
-                                env={'PATH': '/bin'}, encoding='utf-8')
+                                stdin=mocker.ANY,
+                                cwd=s_dir,
+                                encoding='utf-8',
+                                env={'PATH': '/bin'})
 
     chown.assert_called_once_with(d_path, user='nonuser', group='nongroup')

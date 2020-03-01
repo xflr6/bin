@@ -36,8 +36,10 @@ def test_backup_squashfs(tmp_path, mocker):
 
     umask.assert_called_once_with(0o066)
 
-    run.assert_called_once_with(['mksquashfs', s_dir, d_path,
-                                 '-noappend', '-ef', e_path, '-comp', 'gzip'],
-                                check=True, env={'PATH': '/bin'})
+    run.assert_called_once_with(['mksquashfs', s_dir, d_path, '-noappend',
+                                 '-ef', e_path,
+                                 '-comp', 'gzip'],
+                                check=True,
+                                env={'PATH': '/bin'})
 
     chown.assert_called_once_with(d_path, user='nonuser', group='nongroup')
