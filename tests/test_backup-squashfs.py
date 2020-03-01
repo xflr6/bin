@@ -6,7 +6,7 @@ import pytest
 backup_squashfs = importlib.import_module('backup-squashfs')
 
 
-@pytest.mark.usefixtures('mock_strftime', 'mock_pwd_grp')
+@pytest.mark.usefixtures('mock_pwd_grp', 'mock_strftime')
 def test_backup_squashfs(tmp_path, mocker):
     s_dir = tmp_path / 'source'
     s_dir.mkdir()
