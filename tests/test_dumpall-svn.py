@@ -26,12 +26,14 @@ def test_dumpall_svn(tmp_path, mocker):
 
     assert dumpall_svn.main([str(tmp_path), str(present)]) is None
 
+    assert result.exists() and result.read_bytes() == b'\xde\xad\xbe\xef'
+
     env = {'PATH': '/usr/bin:/bin'}
 
     dump = mocker.call(['svnadmin', 'dump', '--deltas', '--quiet', present],
                        stdin=None, stdout=subprocess.PIPE, env=env)
 
     compress = mocker.call(['gzip', '--stdout'],
-                           stdin=mocker.ANY, stdout=mocker.ANY, env=env)
+                           stdin=proc.stdout, stdout=mocker.ANY, env=env)
 
     assert Popen.call_args_list == [dump, compress]
