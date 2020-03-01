@@ -98,6 +98,47 @@ def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
     return result
 
 
+parser = argparse.ArgumentParser(description=__doc__)
+
+parser.add_argument('source_dir', type=directory, help='image source directory')
+
+parser.add_argument('dest_dir', type=directory, help='image target directory')
+
+parser.add_argument('--name', metavar='TEMPLATE',
+                    type=template, default=NAME_TEMPLATE,
+                    help='image filename time.strftime() format string template'
+                         f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
+
+parser.add_argument('--exclude-file', metavar='PATH', type=present_file,
+                    help='path to file with one line per blacklist item')
+
+parser.add_argument('--comp', choices=('gzip', 'lzo', 'xz'),
+                    help='compression (use mksquashfs default if omitted)')
+
+parser.add_argument('--owner', type=user, help='image file owner')
+
+parser.add_argument('--group', type=group, help='image file group')
+
+parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
+                    help=f'image file chmod (default: {CHMOD:03o})')
+
+parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
+                    help='PATH for mksquashfs subprocess'
+                         f' (default: {SUBPROCESS_PATH})')
+
+parser.add_argument('--set-umask', metavar='MASK', type=mode, default=SET_UMASK,
+                    help='umask for mksquashfs subprocess'
+                         f' (default: {SET_UMASK:03o})')
+
+parser.add_argument('--quiet', action='store_true',
+                    help='suppress stdout and stderr of mksquashfs subprocess')
+
+parser.add_argument('--ask-for-deletion', action='store_true',
+                    help='prompt for image file deletion before exit')
+
+parser.add_argument('--version', action='version', version=__version__)
+
+
 def run_args_kwargs(source_dir, dest_path, *, exclude_file, comp, set_path, quiet):
     cmd = ['mksquashfs',
            source_dir, dest_path,
@@ -148,47 +189,6 @@ def prompt_for_deletion(path):
     else:
         path.unlink()
         log(f'{path} deleted.')
-
-
-parser = argparse.ArgumentParser(description=__doc__)
-
-parser.add_argument('source_dir', type=directory, help='image source directory')
-
-parser.add_argument('dest_dir', type=directory, help='image target directory')
-
-parser.add_argument('--name', metavar='TEMPLATE',
-                    type=template, default=NAME_TEMPLATE,
-                    help='image filename time.strftime() format string template'
-                         f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
-
-parser.add_argument('--exclude-file', metavar='PATH', type=present_file,
-                    help='path to file with one line per blacklist item')
-
-parser.add_argument('--comp', choices=('gzip', 'lzo', 'xz'),
-                    help='compression (use mksquashfs default if omitted)')
-
-parser.add_argument('--owner', type=user, help='image file owner')
-
-parser.add_argument('--group', type=group, help='image file group')
-
-parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
-                    help=f'image file chmod (default: {CHMOD:03o})')
-
-parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
-                    help='PATH for mksquashfs subprocess'
-                         f' (default: {SUBPROCESS_PATH})')
-
-parser.add_argument('--set-umask', metavar='MASK', type=mode, default=SET_UMASK,
-                    help='umask for mksquashfs subprocess'
-                         f' (default: {SET_UMASK:03o})')
-
-parser.add_argument('--quiet', action='store_true',
-                    help='suppress stdout and stderr of mksquashfs subprocess')
-
-parser.add_argument('--ask-for-deletion', action='store_true',
-                    help='prompt for image file deletion before exit')
-
-parser.add_argument('--version', action='version', version=__version__)
 
 
 def main(args=None):

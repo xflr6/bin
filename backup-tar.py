@@ -56,7 +56,7 @@ def template(s):
     return result
 
 
-def exclude_file(s, encoding='utf-8'):
+def exclude_file(s):
     if not s:
         return None
     try:
@@ -66,6 +66,80 @@ def exclude_file(s, encoding='utf-8'):
 
     if path is None or not path.is_file():
         raise argparse.ArgumentTypeError(f'not a present file: {s}')
+    return path
+
+
+def user(s):
+    import pwd
+
+    try:
+        pwd.getpwnam(s)
+    except KeyError:
+        raise argparse.ArgumentTypeError(f'unknown user: {s}')
+    return s
+
+
+def group(s):
+    import grp
+
+    try:
+        grp.getgrnam(s)
+    except KeyError:
+        raise argparse.ArgumentTypeError(f'unknown group: {s}')
+    return s
+
+
+def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
+    try:
+        result = int(s, 8)
+    except ValueError:
+        result = None
+
+    if result is None or not 0 <= result <= _mode_mask:
+        raise argparse.ArgumentTypeError(f'need octal int between {0:03o}'
+                                         f' and {_mode_mask:03o}: {s}')
+    return result
+
+
+parser = argparse.ArgumentParser(description=__doc__)
+
+parser.add_argument('source_dir', type=directory, help='archive source directory')
+
+parser.add_argument('dest_dir', type=directory, help='directory for tar archive')
+
+parser.add_argument('--name', metavar='TEMPLATE',
+                    type=template, default=NAME_TEMPLATE,
+                    help='archive filename time.strftime() format string template'
+                         f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
+
+parser.add_argument('--exclude-file', metavar='PATH', type=exclude_file,
+                    help='path to file with one line per blacklist item')
+
+parser.add_argument('--no-auto-compress', action='store_true',
+                    help="don't pass --auto-compress to tar")
+
+parser.add_argument('--owner', type=user, help='tar archive owner')
+
+parser.add_argument('--group', type=group, help='tar archive group')
+
+parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
+                    help=f'tar archive chmod (default: {CHMOD:03o})')
+
+parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
+                    help=f'PATH for tar subprocess (default: {SUBPROCESS_PATH})')
+
+parser.add_argument('--set-umask', metavar='MASK', type=mode, default=SET_UMASK,
+                    help=f'umask for tar subprocess (default: {SET_UMASK:03o})')
+
+parser.add_argument('--ask-for-deletion', action='store_true',
+                    help='prompt for tar archive deletion before exit')
+
+parser.add_argument('--version', action='version', version=__version__)
+
+
+def make_exclude_match(path, encoding='utf-8'):
+    if path is None:
+        return lambda x: False
 
     def iterpatterns(lines):
         for l in lines:
@@ -107,38 +181,6 @@ def exclude_file(s, encoding='utf-8'):
         return _fullmatch(dentry.path) is not None
 
     return match
-
-
-def user(s):
-    import pwd
-
-    try:
-        pwd.getpwnam(s)
-    except KeyError:
-        raise argparse.ArgumentTypeError(f'unknown user: {s}')
-    return s
-
-
-def group(s):
-    import grp
-
-    try:
-        grp.getgrnam(s)
-    except KeyError:
-        raise argparse.ArgumentTypeError(f'unknown group: {s}')
-    return s
-
-
-def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
-    try:
-        result = int(s, 8)
-    except ValueError:
-        result = None
-
-    if result is None or not 0 <= result <= _mode_mask:
-        raise argparse.ArgumentTypeError(f'need octal int between {0:03o}'
-                                         f' and {_mode_mask:03o}: {s}')
-    return result
 
 
 def iterfiles(root, exclude_match, infos=None, sep=os.sep):
@@ -233,42 +275,6 @@ def prompt_for_deletion(path):
         log(f'{path} deleted.')
 
 
-parser = argparse.ArgumentParser(description=__doc__)
-
-parser.add_argument('source_dir', type=directory, help='archive source directory')
-
-parser.add_argument('dest_dir', type=directory, help='directory for tar archive')
-
-parser.add_argument('--name', metavar='TEMPLATE',
-                    type=template, default=NAME_TEMPLATE,
-                    help='archive filename time.strftime() format string template'
-                         f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
-
-parser.add_argument('--exclude-file', metavar='PATH', type=exclude_file,
-                    help='path to file with one line per blacklist item')
-
-parser.add_argument('--no-auto-compress', action='store_true',
-                    help="don't pass --auto-compress to tar")
-
-parser.add_argument('--owner', type=user, help='tar archive owner')
-
-parser.add_argument('--group', type=group, help='tar archive group')
-
-parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
-                    help=f'tar archive chmod (default: {CHMOD:03o})')
-
-parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
-                    help=f'PATH for tar subprocess (default: {SUBPROCESS_PATH})')
-
-parser.add_argument('--set-umask', metavar='MASK', type=mode, default=SET_UMASK,
-                    help=f'umask for tar subprocess (default: {SET_UMASK:03o})')
-
-parser.add_argument('--ask-for-deletion', action='store_true',
-                    help='prompt for tar archive deletion before exit')
-
-parser.add_argument('--version', action='version', version=__version__)
-
-
 def main(args=None):
     args = parser.parse_args(args)
 
@@ -278,7 +284,7 @@ def main(args=None):
     log(f'tar source: {args.source_dir}',
         f'tar destination: {dest_path}')
 
-    match = args.exclude_file if args.exclude_file is not None else lambda x: False
+    match = make_exclude_match(args.exclude_file)
 
     infos = {}
     files = sorted(iterfiles(args.source_dir, match, infos=infos))

@@ -31,6 +31,22 @@ def directory(s):
     return result
 
 
+parser = argparse.ArgumentParser(description=__doc__)
+
+parser.add_argument('target_dir', type=directory,
+                    help='output directory for bare git clones')
+
+parser.add_argument('repo_url', nargs='+', help='git repository url')
+
+parser.add_argument('--reset', action='store_true',
+                    help='delete present git clones first')
+
+parser.add_argument('--detail', action='store_true',
+                    help='show detailed info for each clone/update')
+
+parser.add_argument('--version', action='version', version=__version__)
+
+
 def parse_url(s):
     if s.startswith('github.com:'):
         s = f'git@{s}'
@@ -62,22 +78,6 @@ def removed_clone(path, reset=False):
     else:
         clone = True
     return removed, clone
-
-
-parser = argparse.ArgumentParser(description=__doc__)
-
-parser.add_argument('target_dir', type=directory,
-                    help='output directory for bare git clones')
-
-parser.add_argument('repo_url', nargs='+', help='git repository url')
-
-parser.add_argument('--reset', action='store_true',
-                    help='delete present git clones first')
-
-parser.add_argument('--detail', action='store_true',
-                    help='show detailed info for each clone/update')
-
-parser.add_argument('--version', action='version', version=__version__)
 
 
 def main(args=None):

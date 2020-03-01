@@ -48,6 +48,29 @@ def positive_int(s):
     return result
 
 
+parser = argparse.ArgumentParser(description=__doc__)
+
+parser.add_argument('filename', type=argparse.FileType('rb'),
+                    help='path to MediaWiki XML export (format: .xml.bz2)')
+
+parser.add_argument('--tag', default=PAGE_TAG,
+                    help=f'end tag to count (default: {PAGE_TAG})')
+
+parser.add_argument('--display', metavar='PATH', default=DISPLAY_PATH,
+                    help='ElementPath to log in sub-total'
+                         f' (default: {DISPLAY_PATH})')
+
+parser.add_argument('--display-after', metavar='N', type=positive_int,
+                    default=DISPLAY_AFTER,
+                    help='log sub-total after N tags'
+                         f' (default: {DISPLAY_AFTER})')
+
+parser.add_argument('--stop-after', metavar='N', type=positive_int,
+                    help='stop after N tags')
+
+parser.add_argument('--version', action='version', version=__version__)
+
+
 def extract_ns(tag):
     ns = tag.partition('{')[2].partition('}')[0]
     assert tag.startswith('{%s}' % ns)
@@ -93,29 +116,6 @@ def count_elements(root, elements, *, display_after, display_path, stop_after):
         if count == stop_after:
             break
     return count
-
-
-parser = argparse.ArgumentParser(description=__doc__)
-
-parser.add_argument('filename', type=argparse.FileType('rb'),
-                    help='path to MediaWiki XML export (format: .xml.bz2)')
-
-parser.add_argument('--tag', default=PAGE_TAG,
-                    help=f'end tag to count (default: {PAGE_TAG})')
-
-parser.add_argument('--display', metavar='PATH', default=DISPLAY_PATH,
-                    help='ElementPath to log in sub-total'
-                         f' (default: {DISPLAY_PATH})')
-
-parser.add_argument('--display-after', metavar='N', type=positive_int,
-                    default=DISPLAY_AFTER,
-                    help='log sub-total after N tags'
-                         f' (default: {DISPLAY_AFTER})')
-
-parser.add_argument('--stop-after', metavar='N', type=positive_int,
-                    help='stop after N tags')
-
-parser.add_argument('--version', action='version', version=__version__)
 
 
 def main(args=None):

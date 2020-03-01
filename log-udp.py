@@ -72,6 +72,43 @@ def user(s):
         raise argparse.ArgumentTypeError(f'unknown user: {s}')
 
 
+parser = argparse.ArgumentParser(description=__doc__)
+
+parser.add_argument('--host', metavar='IP', default=HOST,
+                    help=f'address to listen on (default: {HOST})')
+
+parser.add_argument('--port', metavar='SERVICE', type=port, default=PORT,
+                    help='UDP port number or name to listen on'
+                         f' (default: {PORT})')
+
+parser.add_argument('--file', metavar='LOGFILE', type=pathlib.Path,
+                    help='file to write log to (log only to stdout by default)')
+
+parser.add_argument('--format', metavar='TMPL', default=FORMAT,
+                    help='log format string'
+                         f' (default: {FORMAT.replace("%", "%%")})')
+
+parser.add_argument('--datefmt', metavar='TMPL', type=datefmt, default=DATEFMT,
+                    help='log time.strftime() format string'
+                         f' (default: {DATEFMT.replace("%", "%%")})')
+
+parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
+                    help='directory to chroot into after binding'
+                         f' (default: {CHROOT})')
+
+parser.add_argument('--setuid', metavar='USER', type=user, default=SETUID,
+                    help='user to setuid to after binding'
+                         f' (default: {SETUID})')
+
+parser.add_argument('--encoding', metavar='NAME', default=ENCODING,
+                    help=f'encoding of UDP messages (default: {ENCODING})')
+
+parser.add_argument('--verbose', action='store_true',
+                    help='increase stdout logging level to DEBUG')
+
+parser.add_argument('--version', action='version', version=__version__)
+
+
 def register_signal_handler(*signums):
     assert signums
 
@@ -121,43 +158,6 @@ def serve_forever(s, *, encoding, bufsize=2**10):
             logging.debug('%s: %s', e.__class__.__name__, e)
 
         logging.info('%s:%s %s', host, port, msg)
-
-
-parser = argparse.ArgumentParser(description=__doc__)
-
-parser.add_argument('--host', metavar='IP', default=HOST,
-                    help=f'address to listen on (default: {HOST})')
-
-parser.add_argument('--port', metavar='SERVICE', type=port, default=PORT,
-                    help='UDP port number or name to listen on'
-                         f' (default: {PORT})')
-
-parser.add_argument('--file', metavar='LOGFILE', type=pathlib.Path,
-                    help='file to write log to (log only to stdout by default)')
-
-parser.add_argument('--format', metavar='TMPL', default=FORMAT,
-                    help='log format string'
-                         f' (default: {FORMAT.replace("%", "%%")})')
-
-parser.add_argument('--datefmt', metavar='TMPL', type=datefmt, default=DATEFMT,
-                    help='log time.strftime() format string'
-                         f' (default: {DATEFMT.replace("%", "%%")})')
-
-parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
-                    help='directory to chroot into after binding'
-                         f' (default: {CHROOT})')
-
-parser.add_argument('--setuid', metavar='USER', type=user, default=SETUID,
-                    help='user to setuid to after binding'
-                         f' (default: {SETUID})')
-
-parser.add_argument('--encoding', metavar='NAME', default=ENCODING,
-                    help=f'encoding of UDP messages (default: {ENCODING})')
-
-parser.add_argument('--verbose', action='store_true',
-                    help='increase stdout logging level to DEBUG')
-
-parser.add_argument('--version', action='version', version=__version__)
 
 
 def main(args=None):

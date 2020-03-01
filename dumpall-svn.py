@@ -67,6 +67,42 @@ def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
     return result
 
 
+parser = argparse.ArgumentParser(description=__doc__)
+
+parser.add_argument('target_dir', type=directory,
+                    help='output directory for dump files')
+
+parser.add_argument('repo_dir', nargs='+', type=directory,
+                    help='subversion repository directory')
+
+parser.add_argument('--name', metavar='TEMPLATE',
+                    type=template, default=NAME_TEMPLATE,
+                    help=f'dump filename time.strftime() format string template'
+                         f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
+
+parser.add_argument('--no-auto-compress', action='store_true',
+                    help='never compress dump file(s)'
+                         ' (default: auto-compress if --name ends with any of:'
+                         f" {', '.join(COMPRESS)})")
+
+parser.add_argument('--no-deltas', action='store_true',
+                    help="don't pass --deltas to $(svnadmin dump)")
+
+parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
+                    help=f'dump file chmod (default: {CHMOD:03o})')
+
+parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
+                    help=f'PATH for subprocess(es) (default: {SUBPROCESS_PATH})')
+
+parser.add_argument('--detail', action='store_true',
+                    help='include detail infos for each repository')
+
+parser.add_argument('--verbose', action='store_true',
+                    help="don't pass --quiet to $(svnadmin dump)")
+
+parser.add_argument('--version', action='version', version=__version__)
+
+
 def pipe_args_kwargs(name, *, deltas, auto_compress, quiet, set_path):
     cmd = ['svnadmin', 'dump']
     if deltas:
@@ -109,42 +145,6 @@ def map_popen(commands, *, stdin=None, stdout=None, **kwargs):
                                 **kwargs)
         yield proc
         stdin = proc.stdout
-
-
-parser = argparse.ArgumentParser(description=__doc__)
-
-parser.add_argument('target_dir', type=directory,
-                    help='output directory for dump files')
-
-parser.add_argument('repo_dir', nargs='+', type=directory,
-                    help='subversion repository directory')
-
-parser.add_argument('--name', metavar='TEMPLATE',
-                    type=template, default=NAME_TEMPLATE,
-                    help=f'dump filename time.strftime() format string template'
-                         f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
-
-parser.add_argument('--no-auto-compress', action='store_true',
-                    help='never compress dump file(s)'
-                         ' (default: auto-compress if --name ends with any of:'
-                         f" {', '.join(COMPRESS)})")
-
-parser.add_argument('--no-deltas', action='store_true',
-                    help="don't pass --deltas to $(svnadmin dump)")
-
-parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
-                    help=f'dump file chmod (default: {CHMOD:03o})')
-
-parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
-                    help=f'PATH for subprocess(es) (default: {SUBPROCESS_PATH})')
-
-parser.add_argument('--detail', action='store_true',
-                    help='include detail infos for each repository')
-
-parser.add_argument('--verbose', action='store_true',
-                    help="don't pass --quiet to $(svnadmin dump)")
-
-parser.add_argument('--version', action='version', version=__version__)
 
 
 def main(args=None):
