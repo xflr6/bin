@@ -101,8 +101,7 @@ def configure_logging(filename=None, *, level, file_level, format_, datefmt):
                                    'filename': filename,
                                    'class': 'logging.FileHandler'}
 
-    logging.config.dictConfig(cfg)
-    return None
+    return logging.config.dictConfig(cfg)
 
 
 def itertail(iterable, *, n):
