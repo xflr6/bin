@@ -19,7 +19,6 @@ def test_parse_url(s, expected):
     assert pull_repos.parse_url(s) == expected
 
 
-@pytest.mark.usefixtures('mock_pwd_grp', 'mock_strftime')
 def test_pull_repos(tmp_path, mocker):
     present = tmp_path / 'present.git'
     present.mkdir()
