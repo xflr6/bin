@@ -118,7 +118,7 @@ def serve_forever(s, *, encoding, bufsize=2**10):
             msg = raw.decode(encoding).strip()
         except UnicodeDecodeError as e:
             msg = ascii(raw)
-            logging.debug(e)
+            logging.debug('%s: %s', e.__class__.__name__, e)
 
         logging.info('%s:%s %s', host, port, msg)
 
