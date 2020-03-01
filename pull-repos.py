@@ -23,7 +23,7 @@ log = functools.partial(print, file=sys.stderr, sep='\n')
 def directory(s):
     try:
         result = pathlib.Path(s)
-    except ValueError:
+    except (TypeError, ValueError):
         result = None
 
     if result is None or not result.is_dir():
