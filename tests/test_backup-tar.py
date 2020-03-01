@@ -20,7 +20,7 @@ def test_backup_tar(tmp_path, mocker):
         return mocker.DEFAULT
 
     umask = mocker.patch('os.umask', autospec=True)
-    run = mocker.patch('subprocess.Popen', side_effect=Popen, autospec=True)
+    Popen = mocker.patch('subprocess.Popen', side_effect=Popen, autospec=True)
     chown = mocker.patch('shutil.chown', autospec=True)
 
     assert backup_tar.main([str(s_dir), str(d_path.parent),
@@ -34,13 +34,13 @@ def test_backup_tar(tmp_path, mocker):
 
     umask.assert_called_once_with(0o066)
 
-    run.assert_called_once_with(['tar', '--create', '--file', d_path,
-                                 '--files-from', '-',
-                                 '--null', '--verbatim-files-from',
-                                 '--auto-compress'],
-                                stdin=mocker.ANY,
-                                cwd=s_dir,
-                                encoding='utf-8',
-                                env={'PATH': '/bin'})
+    Popen.assert_called_once_with(['tar', '--create', '--file', d_path,
+                                   '--files-from', '-',
+                                   '--null', '--verbatim-files-from',
+                                   '--auto-compress'],
+                                  stdin=mocker.ANY,
+                                  cwd=s_dir,
+                                  encoding='utf-8',
+                                  env={'PATH': '/bin'})
 
     chown.assert_called_once_with(d_path, user='nonuser', group='nongroup')
