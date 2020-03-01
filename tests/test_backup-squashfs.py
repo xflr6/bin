@@ -24,15 +24,15 @@ def test_backup_squashfs(tmp_path, mocker):
     run = mocker.patch('subprocess.run', side_effect=run, autospec=True)
     chown = mocker.patch('shutil.chown', autospec=True)
 
-    backup_squashfs.main([str(s_dir), str(d_path.parent),
-                          '--name', 'archive-%Y%m%d-%H%M.sfs',
-                          '--exclude-file', str(e_path),
-                          '--comp', 'gzip',
-                          '--owner', 'nonuser',
-                          '--group', 'nongroup',
-                          '--chmod', '440',
-                          '--set-path', '/bin',
-                          '--set-umask', '066'])
+    assert backup_squashfs.main([str(s_dir), str(d_path.parent),
+                                 '--name', 'archive-%Y%m%d-%H%M.sfs',
+                                 '--exclude-file', str(e_path),
+                                 '--comp', 'gzip',
+                                 '--owner', 'nonuser',
+                                 '--group', 'nongroup',
+                                 '--chmod', '440',
+                                 '--set-path', '/bin',
+                                 '--set-umask', '066']) is None
 
     umask.assert_called_once_with(0o066)
 

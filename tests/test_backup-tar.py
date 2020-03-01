@@ -23,14 +23,14 @@ def test_backup_tar(tmp_path, mocker):
     run = mocker.patch('subprocess.Popen', side_effect=Popen, autospec=True)
     chown = mocker.patch('shutil.chown', autospec=True)
 
-    backup_tar.main([str(s_dir), str(d_path.parent),
-                     '--name', 'archive-%Y%m%d-%H%M.tar.gz',
-                     '--exclude-file', str(e_path),
-                     '--owner', 'nonuser',
-                     '--group', 'nongroup',
-                     '--chmod', '440',
-                     '--set-path', '/bin',
-                     '--set-umask', '066'])
+    assert backup_tar.main([str(s_dir), str(d_path.parent),
+                            '--name', 'archive-%Y%m%d-%H%M.tar.gz',
+                            '--exclude-file', str(e_path),
+                            '--owner', 'nonuser',
+                            '--group', 'nongroup',
+                            '--chmod', '440',
+                            '--set-path', '/bin',
+                            '--set-umask', '066']) is None
 
     umask.assert_called_once_with(0o066)
 
