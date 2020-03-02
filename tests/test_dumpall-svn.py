@@ -1,4 +1,6 @@
+import functools
 import importlib
+import os
 import subprocess
 
 import pytest
@@ -6,11 +8,12 @@ import pytest
 dumpall_svn = importlib.import_module('dumpall-svn')
 
 
+@pytest.mark.usefixtures('mock_strftime')
 def test_dumpall_svn(tmp_path, mocker):
     present = tmp_path / 'present'
     present.mkdir()
 
-    result = tmp_path / 'present.svndump.gz'
+    result = tmp_path / 'present-19700101-0000.svndump.gz'
     assert not result.exists()
 
     proc = mocker.MagicMock(args=['nonarg'], returncode=0,
@@ -28,12 +31,24 @@ def test_dumpall_svn(tmp_path, mocker):
 
     Popen = mocker.patch('subprocess.Popen', side_effect=Popen, autospec=True)
 
-    assert dumpall_svn.main([str(tmp_path), str(present)]) is None
+    open_spy = mocker.patch('builtins.open', wraps=open, autospec=True)
+
+    path = '/bin'
+
+    assert dumpall_svn.main([str(tmp_path), str(present),
+                             '--name', '{name}-%Y%m%d-%H%M.svndump.gz',
+                             '--chmod', '600',
+                             '--set-path', path]) is None
+
+    open_spy.assert_called_once_with(result, 'xb', opener=mocker.ANY)
+    opener = open_spy.call_args.kwargs['opener']
+    assert isinstance(opener, functools.partial) and opener.func is os.open
+    assert (opener.args,  opener.keywords) == ((), {'mode': 0o600})
 
     assert outfd.name == str(result)
     assert result.exists() and result.read_bytes() == b'\xde\xad\xbe\xef'
 
-    env = {'PATH': '/usr/bin:/bin'}
+    env = {'PATH': path}
 
     dump = mocker.call(['svnadmin', 'dump', '--deltas', '--quiet', present],
                        stdin=None, stdout=subprocess.PIPE, env=env)
