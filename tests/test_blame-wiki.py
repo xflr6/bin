@@ -54,6 +54,7 @@ def test_blame_wiki(capsys, mocker):
     urlopen.assert_called_once_with(mocker.ANY)
     req,  = urlopen.call_args.args
     assert req.full_url == export_url
+    assert req.data == f'pages={page_title}&wpDownload=1'.encode(ENCODING)
     assert req.headers == {'Accept-encoding': 'gzip'}
 
     out, _ = capsys.readouterr()
