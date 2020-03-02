@@ -5,7 +5,7 @@ import importlib
 blame_wiki = importlib.import_module('blame-wiki')
 
 EXPORT = '''\
-<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mediawiki.org/xml/export-0.10/ http://www.mediawiki.org/xml/export-0.10.xsd" version="0.10" xml:lang="en">
+<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/">
   <siteinfo>
     <sitename>Wikispam</sitename>
     <dbname>spamwiki</dbname>
