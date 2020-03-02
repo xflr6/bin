@@ -17,8 +17,12 @@ def test_dumpall_svn(tmp_path, mocker):
                             **{'communicate.return_value': ('', '')})
     proc.__enter__.return_value = proc
 
+    outfd = None
+
     def Popen(*args, stdout=None, **kwargs):
         if stdout not in (None, subprocess.PIPE):
+            nonlocal outfd
+            outfd = stdout
             stdout.write(b'\xde\xad\xbe\xef')
         return proc
 
@@ -26,6 +30,7 @@ def test_dumpall_svn(tmp_path, mocker):
 
     assert dumpall_svn.main([str(tmp_path), str(present)]) is None
 
+    assert outfd.name == str(result)
     assert result.exists() and result.read_bytes() == b'\xde\xad\xbe\xef'
 
     env = {'PATH': '/usr/bin:/bin'}
@@ -34,6 +39,6 @@ def test_dumpall_svn(tmp_path, mocker):
                        stdin=None, stdout=subprocess.PIPE, env=env)
 
     compress = mocker.call(['gzip', '--stdout'],
-                           stdin=proc.stdout, stdout=mocker.ANY, env=env)
+                           stdin=proc.stdout, stdout=outfd, env=env)
 
     assert Popen.call_args_list == [dump, compress]
