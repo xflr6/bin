@@ -27,7 +27,11 @@ def test_blame_wiki(capsys, tmp_path):
     with export.open('wb') as z, bz2.open(z, 'wt', encoding=ENCODING) as f:
         f.write(EXPORT)
 
-    assert count_wiki.main([str(export), '--tag', 'mediawiki:page']) is None
+    assert count_wiki.main([str(export),
+                            '--tag', 'mediawiki:page',
+                            '--display', 'mediawiki:title',
+                            '--display-after', '100',
+                            '--stop-after', '1000']) is None
 
     captured = capsys.readouterr()
     assert captured.out == '2\n'
