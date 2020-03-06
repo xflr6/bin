@@ -106,6 +106,8 @@ def count_elements(root, elements, *, display_after, display_path, stop_after):
             raise NotImplementedError
         return sum(root.clear() is None for _ in elements)
 
+    count = 0
+
     for count, elem in enumerate(elements, start=1):
         if not count % display_after:
             msg = f'{count:,}'
@@ -115,6 +117,7 @@ def count_elements(root, elements, *, display_after, display_path, stop_after):
         root.clear()  # free memory
         if count == stop_after:
             break
+
     return count
 
 
