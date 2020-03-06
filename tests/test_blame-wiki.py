@@ -31,8 +31,8 @@ def test_blame_wiki(capsys, mocker):
             'content-encoding': 'gzip'}
 
     stream = io.BytesIO()
-    with gzip.open(stream, 'wb') as f:
-        f.write(EXPORT.encode(ENCODING))
+    with gzip.open(stream, 'wt', encoding=ENCODING) as f:
+        f.write(EXPORT)
     stream.seek(0)
 
     resp = mocker.Mock(wraps=stream)
@@ -57,5 +57,5 @@ def test_blame_wiki(capsys, mocker):
     assert req.data == f'pages={page_title}&wpDownload=1'.encode(ENCODING)
     assert req.headers == {'Accept-encoding': 'gzip'}
 
-    out, _ = capsys.readouterr()
-    assert 'spam lovely spam' in out
+    captured = capsys.readouterr()
+    assert 'spam lovely spam' in captured.out
