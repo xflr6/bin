@@ -155,6 +155,30 @@ optional arguments:
 ```
 
 
+### log-pings.py
+
+```sh
+$ log-pings.py --help
+usage: log-pings.py [-h] [--host IP] [--file LOGFILE] [--format TMPL]
+                    [--datefmt TMPL] [--chroot DIR] [--setuid USER]
+                    [--encoding NAME] [--verbose] [--version]
+
+Log incoming ICMP echo request messages to stdout and optionally into file.
+
+optional arguments:
+  -h, --help       show this help message and exit
+  --host IP        address to listen on (default: 127.0.0.1)
+  --file LOGFILE   file to write log to (log only to stdout by default)
+  --format TMPL    log format string (default: %(asctime)s %(message)s)
+  --datefmt TMPL   log time.strftime() format string (default: %b %d %H:%M:%S)
+  --chroot DIR     directory to chroot into after binding (default: /tmp)
+  --setuid USER    user to setuid to after binding (default: nobody)
+  --encoding NAME  encoding of ping messages (default: utf-8)
+  --verbose        increase stdout logging level to DEBUG
+  --version        show program's version number and exit
+```
+
+
 ### log-udp.py
 
 ```sh
