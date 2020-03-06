@@ -174,9 +174,14 @@ def serve_forever(s, *, encoding, bufsize=1472):
         ip = IPPacket.frombytes(raw)
         icmp = ICMPPacket.frombytes(ip.payload)
         if icmp.is_ping():
+            try:
+                msg = icmp.payload.decode(encoding)
+            except UnicodeDecodeError as e:
+                msg = ascii(icmp.payload)
+                logging.debug('%s: %s', e.__class__.__name__, e)
             logging.info('%s:%s %s %s %s' % (ip.src_addr, ip.ident,
                                              icmp.ident, icmp.seq_num,
-                                             icmp.payload))
+                                             msg))
 
 
 def main(args=None):
