@@ -133,7 +133,7 @@ def configure_logging(filename=None, *, level, file_level, format_, datefmt):
     return logging.config.dictConfig(cfg)
 
 
-class IPPacket(collections.namedtuple('IPPacket', IP_FIELDS)):
+class IPPacket(collections.namedtuple('_IPPacket', IP_FIELDS)):
 
     __slots__ = ()
 
@@ -151,7 +151,7 @@ class IPPacket(collections.namedtuple('IPPacket', IP_FIELDS)):
         return cls._make(header + (src_addr, dst_addr, payload))
 
 
-class ICMPPacket(collections.namedtuple('ICMPPacket', ICMP_FIELDS)):
+class ICMPPacket(collections.namedtuple('_ICMPPacket', ICMP_FIELDS)):
 
     __slots__ = ()
 
