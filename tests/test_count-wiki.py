@@ -21,7 +21,7 @@ EXPORT = '''\
 ENCODING = 'utf-8'
 
 
-def test_blame_wiki(capsys, tmp_path):
+def test_count_wiki(capsys, tmp_path):
     export = tmp_path / 'spamwiki-latest-pages-articles.xml.bz2'
 
     with export.open('wb') as z, bz2.open(z, 'wt', encoding=ENCODING) as f:
