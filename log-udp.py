@@ -32,7 +32,7 @@ SETUID = 'nobody'
 
 ENCODING = 'utf-8'
 
-TIMEZONE = pathlib.Path('/', 'etc', 'timezone')
+TIMEZONE = pathlib.Path('/etc/timezone')
 
 
 def port(s):
