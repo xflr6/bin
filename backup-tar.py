@@ -279,10 +279,12 @@ def main(args=None):
     args = parser.parse_args(args)
 
     dest_path = args.dest_dir / args.name
-    assert not dest_path.exists()
 
     log(f'tar source: {args.source_dir}',
         f'tar destination: {dest_path}')
+
+    if dest_path.exists():
+        return f'error: result file already exists'
 
     match = make_exclude_match(args.exclude_file)
 
@@ -310,10 +312,13 @@ def main(args=None):
     log(f'returncode: {proc.returncode}',
         f'time elapsed: {datetime.timedelta(seconds=stop - start)}')
 
-    assert dest_path.exists()
+    if not dest_path.exists():
+        return 'error: result file not found'
+
     dest_stat = dest_path.stat()
     log(f'tar result: {dest_path} ({dest_stat.st_size} bytes)')
-    assert dest_stat.st_size
+    if not dest_stat.st_size:
+        return 'error: result file is empty'
     log(format_permissions(dest_stat))
 
     log('', f'os.chmod(..., {args.chmod:#05o})')

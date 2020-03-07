@@ -130,7 +130,8 @@ def main(args=None):
         pairs = etree.iterparse(f, events=('start', 'end'))
 
         _, root = next(pairs)
-        assert re.fullmatch(MEDIAWIKI_EXPORT, root.tag)
+        if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
+            return 'error: invalid xml namespace'
         ns_map = {PREFIX: extract_ns(root.tag)}
 
         elements = iterelements(pairs,

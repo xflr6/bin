@@ -170,9 +170,13 @@ def main(args=None):
 
     n_found = n_dumped = n_bytes = 0
     for d in args.repo_dir:
-        assert d.is_dir()
+        if not d.is_dir():
+            return 'error: repo is not a directory'
+
         dest_path = args.target_dir / args.name.format(name=d.name)
         log('', f'source: {d}/', f'target: {dest_path}')
+        if dest_path.exists():
+            return f'error: result file already exists'
 
         found_size = dest_path.stat().st_size if dest_path.exists() else None
         if found_size is not None:
@@ -187,10 +191,13 @@ def main(args=None):
         log(f'time elapsed: {datetime.timedelta(seconds=dump_stop - dump_start)}')
         n_dumped += 1
 
-        assert dest_path.exists()
+        if not dest_path.exists():
+            return 'error: result file not found'
+
         dest_size = dest_path.stat().st_size
         print(f'{caption} > {dest_path} ({dest_size} bytes)')
-        assert dest_size
+        if not dest_stat.st_size:
+            return 'error: result file is empty'
         n_bytes += dest_size
 
         if found_size is not None:

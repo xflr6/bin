@@ -91,7 +91,8 @@ def main(args=None):
     root = tree.getroot()
     ns = extract_ns(root.tag)
     log(f'xml: {ns}')
-    assert re.fullmatch(MEDIAWIKI_EXPORT, root.tag)
+    if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
+        return 'error: invalid xml namespace'
     ns = {'namespaces': {'mw': ns}}
 
     site, = tree.findall('mw:siteinfo', **ns)
@@ -103,8 +104,10 @@ def main(args=None):
     for k, v in page_infos.items():
         log(f'page/{k}: {v}')
 
-    assert page_infos['ns'] == '0'
-    assert page_infos['title'] == args.page_title
+    if page_infos['ns'] != '0':
+        return 'error: mediawiki:ns mismatch'
+    if page_infos['title'] != args.page_title
+        return 'error: mediawiki:title mismatch'
 
     log(f'search string: {args.search_string}')
     for r in page.iterfind('mw:revision', **ns):

@@ -72,7 +72,8 @@ def prompt_for_deletion(path):
 def removed_clone(path, reset=False):
     removed = clone = False
     if path.exists():
-        assert path.is_dir()
+        if not path.is_dir():
+            raise RuntimeError(f'path is not a directory: {path}')
         if reset and prompt_for_deletion(path):
             removed = clone = True
     else:
