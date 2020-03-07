@@ -80,12 +80,12 @@ parser.add_argument('--name', metavar='TEMPLATE',
                     help=f'dump filename time.strftime() format string template'
                          f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
 
-parser.add_argument('--no-auto-compress', action='store_true',
+parser.add_argument('--no-auto-compress', dest='auto_compress', action='store_false',
                     help='never compress dump file(s)'
                          ' (default: auto-compress if --name ends with any of:'
                          f" {', '.join(COMPRESS)})")
 
-parser.add_argument('--no-deltas', action='store_true',
+parser.add_argument('--no-deltas', dest='deltas', action='store_false',
                     help="don't pass --deltas to $(svnadmin dump)")
 
 parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
@@ -97,7 +97,7 @@ parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
 parser.add_argument('--detail', action='store_true',
                     help='include detail infos for each repository')
 
-parser.add_argument('--verbose', action='store_true',
+parser.add_argument('--verbose', dest='quiet', action='store_false',
                     help="don't pass --quiet to $(svnadmin dump)")
 
 parser.add_argument('--version', action='version', version=__version__)
@@ -159,9 +159,9 @@ def main(args=None):
     log(f'file name template: {args.name}')
 
     cmd, filter_cmds, kwargs = pipe_args_kwargs(args.name,
-                                                deltas=not args.no_deltas,
-                                                auto_compress=not args.no_auto_compress,
-                                                quiet=not args.verbose,
+                                                deltas=args.deltas,
+                                                auto_compress=args.auto_compress,
+                                                quiet=args.quiet,
                                                 set_path=args.set_path)
 
     caption = ' | '.join(c for c, *_ in ([cmd] + filter_cmds))

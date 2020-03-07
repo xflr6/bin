@@ -100,7 +100,7 @@ parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
                     help='directory to chroot into after binding'
                          f' (default: {CHROOT})')
 
-parser.add_argument('--no-hardening', action='store_true',
+parser.add_argument('--no-hardening', dest='hardening', action='store_false',
                     help="don't give up privileges (ignore --setuid and --chroot)")
 
 parser.add_argument('--encoding', metavar='NAME', default=ENCODING,
@@ -188,7 +188,7 @@ def main(args=None):
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((args.host, args.port))
 
-    if not args.no_hardening:
+    if args.hardening:
         if args.chroot is not None:
             logging.debug('os.chroot(%r)', args.chroot)
             with TIMEZONE.open(encoding=ENCODING) as f:

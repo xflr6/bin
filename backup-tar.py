@@ -115,7 +115,7 @@ parser.add_argument('--name', metavar='TEMPLATE',
 parser.add_argument('--exclude-file', metavar='PATH', type=exclude_file,
                     help='path to file with one line per blacklist item')
 
-parser.add_argument('--no-auto-compress', action='store_true',
+parser.add_argument('--no-auto-compress', dest='auto_compress', action='store_false',
                     help="don't pass --auto-compress to tar")
 
 parser.add_argument('--owner', type=user, help='tar archive owner')
@@ -296,7 +296,7 @@ def main(args=None):
     log(f"file size sum: {infos['n_bytes']} bytes")
 
     cmd, kwargs = run_args_kwargs(args.source_dir, dest_path,
-                                  auto_compress=not args.no_auto_compress,
+                                  auto_compress=args.auto_compress,
                                   set_path=args.set_path)
 
     log('', f'os.umask({args.set_umask:#05o})')
