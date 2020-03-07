@@ -167,7 +167,7 @@ Log incoming ICMP echo request messages to stdout and optionally into file.
 
 optional arguments:
   -h, --help       show this help message and exit
-  --host IP        address to listen on (default: 127.0.0.1)
+  --host IP        address to listen on (default: 0.0.0.0)
   --file LOGFILE   file to write log to (log only to stdout by default)
   --format TMPL    log format string (default: %(asctime)s %(message)s)
   --datefmt TMPL   log time.strftime() format string (default: %b %d %H:%M:%S)
@@ -193,7 +193,7 @@ Log incoming UDP messages to stdout and optionally into file.
 
 optional arguments:
   -h, --help       show this help message and exit
-  --host IP        address to listen on (default: 127.0.0.1)
+  --host IP        address to listen on (default: 0.0.0.0)
   --port SERVICE   UDP port number or name to listen on (default: discard)
   --file LOGFILE   file to write log to (log only to stdout by default)
   --format TMPL    log format string (default: %(asctime)s %(message)s)
