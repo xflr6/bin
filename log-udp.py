@@ -96,9 +96,12 @@ parser.add_argument('--setuid', metavar='USER', type=user, default=SETUID,
                     help='user to setuid to after binding'
                          f' (default: {SETUID})')
 
-parser.add_argument('--chroot', nargs='?', metavar='DIR', type=directory, default=CHROOT,
+parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
                     help='directory to chroot into after binding'
                          f' (default: {CHROOT})')
+
+parser.add_argument('--no-hardening', action='store_true',
+                    help="don't give up privileges (ignore --setuid and --chroot)")
 
 parser.add_argument('--encoding', metavar='NAME', default=ENCODING,
                     help=f'encoding of UDP messages (default: {ENCODING})')
@@ -185,18 +188,19 @@ def main(args=None):
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((args.host, args.port))
 
-    if args.chroot is not None:
-        logging.debug('os.chroot(%r)', args.chroot)
-        with TIMEZONE.open(encoding=ENCODING) as f:
-            os.environ['TZ'] = f.readline().strip()
-        time.tzset()
-        os.chroot(args.chroot)
+    if not args.no_hardening:
+        if args.chroot is not None:
+            logging.debug('os.chroot(%r)', args.chroot)
+            with TIMEZONE.open(encoding=ENCODING) as f:
+                os.environ['TZ'] = f.readline().strip()
+            time.tzset()
+            os.chroot(args.chroot)
 
-    if args.setuid is not None:
-        logging.debug('os.setuid(%r)', args.setuid.pw_name)
-        os.setgid(args.setuid.pw_gid)
-        os.setgroups([])
-        os.setuid(args.setuid.pw_uid)
+        if args.setuid is not None:
+            logging.debug('os.setuid(%r)', args.setuid.pw_name)
+            os.setgid(args.setuid.pw_gid)
+            os.setgroups([])
+            os.setuid(args.setuid.pw_uid)
 
     logging.debug('serve_forever(%r)', s)
 
