@@ -189,18 +189,16 @@ def main(args=None):
     s.bind((args.host, args.port))
 
     if args.hardening:
-        if args.chroot is not None:
-            logging.debug('os.chroot(%r)', args.chroot)
-            with TIMEZONE.open(encoding=ENCODING) as f:
-                os.environ['TZ'] = f.readline().strip()
-            time.tzset()
-            os.chroot(args.chroot)
+        logging.debug('os.chroot(%r)', args.chroot)
+        with TIMEZONE.open(encoding=ENCODING) as f:
+            os.environ['TZ'] = f.readline().strip()
+        time.tzset()
+        os.chroot(args.chroot)
 
-        if args.setuid is not None:
-            logging.debug('os.setuid(%r)', args.setuid.pw_name)
-            os.setgid(args.setuid.pw_gid)
-            os.setgroups([])
-            os.setuid(args.setuid.pw_uid)
+        logging.debug('os.setuid(%r)', args.setuid.pw_name)
+        os.setgid(args.setuid.pw_gid)
+        os.setgroups([])
+        os.setuid(args.setuid.pw_uid)
 
     logging.debug('serve_forever(%r)', s)
 
