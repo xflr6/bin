@@ -175,8 +175,6 @@ def main(args=None):
 
         dest_path = args.target_dir / args.name.format(name=d.name)
         log('', f'source: {d}/', f'target: {dest_path}')
-        if dest_path.exists():
-            return f'error: result file already exists'
 
         found_size = dest_path.stat().st_size if dest_path.exists() else None
         if found_size is not None:
