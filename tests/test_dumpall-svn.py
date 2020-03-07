@@ -40,13 +40,14 @@ def test_dumpall_svn(tmp_path, mocker):
                              '--chmod', '600',
                              '--set-path', path]) is None
 
+    assert result.exists() and result.read_bytes() == b'\xde\xad\xbe\xef'
+
+    assert outfd.name == str(result)
+
     open_spy.assert_called_once_with(result, 'xb', opener=mocker.ANY)
     opener = open_spy.call_args.kwargs['opener']
     assert isinstance(opener, functools.partial) and opener.func is os.open
     assert (opener.args,  opener.keywords) == ((), {'mode': 0o600})
-
-    assert outfd.name == str(result)
-    assert result.exists() and result.read_bytes() == b'\xde\xad\xbe\xef'
 
     env = {'PATH': path}
 
