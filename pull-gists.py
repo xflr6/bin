@@ -45,7 +45,7 @@ parser.add_argument('gh_username', help='GitHub username')
 parser.add_argument('--reset', action='store_true',
                     help='delete present git clones first')
 
-parser.add_argument('--detail', action='store_true',
+parser.add_argument('--detail', dest='quiet', action='store_false',
                     help='show detailed info for each clone/update')
 
 parser.add_argument('--version', action='version', version=__version__)
@@ -97,7 +97,7 @@ def removed_clone(path, reset=False):
 def main(args=None):
     args = parser.parse_args(args)
 
-    if not args.detail:
+    if args.quiet:
         global log
         log = lambda *args, **kwargs: None
 
