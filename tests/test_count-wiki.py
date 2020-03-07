@@ -33,6 +33,6 @@ def test_count_wiki(capsys, tmp_path):
                             '--display-after', '100',
                             '--stop-after', '1000']) is None
 
-    captured = capsys.readouterr()
-    assert captured.out == '2\n'
-    assert captured.err == ''
+    out, err = capsys.readouterr()
+    assert out == '2\n'
+    assert not err

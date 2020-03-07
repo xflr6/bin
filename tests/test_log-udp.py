@@ -6,13 +6,16 @@ import pytest
 log_udp = importlib.import_module('log-udp')
 
 
-@pytest.mark.usefixtures('mock_pwd_grp', 'mock_strftime')
-def test_log_udp(capsys, mocker, host='127.0.0.1', port=9):
+@pytest.mark.usefixtures('mock_pwd_grp')
+def test_log_udp(capsys, mocker, host='127.0.0.1', port=9, encoding='utf-8'):
+    socket = mocker.patch('socket.socket', autospec=True)
+
+    msg = 'spam lovely spam'
+
     def recvfrom():
-        yield b'spam lovely spam', (host, port)
+        yield msg.encode(encoding), (host, port)
         raise SystemExit
 
-    socket = mocker.patch('socket.socket', autospec=True)
     socket.return_value.recvfrom.side_effect = recvfrom()
 
     assert log_udp.main(['--host', host,
@@ -22,16 +25,15 @@ def test_log_udp(capsys, mocker, host='127.0.0.1', port=9):
                          '--no-hardening',
                          '--verbose']) is None
 
-    captured = capsys.readouterr()
-    assert 'spam lovely' in captured.out
-    assert captured.err == ''
+    out, err = capsys.readouterr()
+    assert msg in out
+    assert not err
 
-    s = mocker.call()
-    socket_calls = [mocker.call(_socket.AF_INET, _socket.SOCK_DGRAM),
-                    s.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1),
-                    s.bind((host, port)),
-                    s.recvfrom(1024),
-                    s.recvfrom(1024),
-                    s.close()]
+    s = mocker.call(_socket.AF_INET, _socket.SOCK_DGRAM)
+    setsockopt = s.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
 
-    assert socket.mock_calls == socket_calls
+    assert socket.mock_calls == [s, setsockopt,
+                                 s.bind((host, port)),
+                                 s.recvfrom(1024),
+                                 s.recvfrom(1024),
+                                 s.close()]
