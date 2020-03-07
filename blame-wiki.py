@@ -106,7 +106,7 @@ def main(args=None):
 
     if page_infos['ns'] != '0':
         return 'error: mediawiki:ns mismatch'
-    if page_infos['title'] != args.page_title
+    if page_infos['title'] != args.page_title:
         return 'error: mediawiki:title mismatch'
 
     log(f'search string: {args.search_string}')

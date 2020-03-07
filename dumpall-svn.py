@@ -196,7 +196,7 @@ def main(args=None):
 
         dest_size = dest_path.stat().st_size
         print(f'{caption} > {dest_path} ({dest_size} bytes)')
-        if not dest_stat.st_size:
+        if not dest_size:
             return 'error: result file is empty'
         n_bytes += dest_size
 
