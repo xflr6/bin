@@ -14,12 +14,13 @@ REPLACE_BEFORE = '\n## License\n'
 
 ENCODING = 'utf-8'
 
+PYTHON = 'py' if platform.system() == 'Windows' else 'python3'
+
 
 def iterhelp(directory=pathlib.Path(), pattern='*.py'):
-    python = 'python' if platform.system() == 'Windows' else 'python3'
     for p in sorted(directory.glob(pattern)):
         if not p.name.startswith('_'):
-            cmd = [python, p, '--help']
+            cmd = [PYTHON, p, '--help']
             kwargs = {'encoding': ENCODING}
             proc = subprocess.run(cmd, stdout=subprocess.PIPE, **kwargs)
             stdout = proc.stdout if not proc.returncode else None

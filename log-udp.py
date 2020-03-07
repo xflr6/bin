@@ -52,6 +52,15 @@ def datefmt(s):
         return s
 
 
+def user(s):
+    import pwd
+
+    try:
+        return pwd.getpwnam(s)
+    except KeyError:
+        raise argparse.ArgumentTypeError(f'unknown user: {s}')
+
+
 def directory(s):
     try:
         result = pathlib.Path(s)
@@ -61,15 +70,6 @@ def directory(s):
     if result is None or not result.is_dir():
         raise argparse.ArgumentTypeError(f'not a present directory: {s}')
     return result
-
-
-def user(s):
-    import pwd
-
-    try:
-        return pwd.getpwnam(s)
-    except KeyError:
-        raise argparse.ArgumentTypeError(f'unknown user: {s}')
 
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -92,13 +92,13 @@ parser.add_argument('--datefmt', metavar='TMPL', type=datefmt, default=DATEFMT,
                     help='log time.strftime() format string'
                          f' (default: {DATEFMT.replace("%", "%%")})')
 
-parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
-                    help='directory to chroot into after binding'
-                         f' (default: {CHROOT})')
-
 parser.add_argument('--setuid', metavar='USER', type=user, default=SETUID,
                     help='user to setuid to after binding'
                          f' (default: {SETUID})')
+
+parser.add_argument('--chroot', nargs='?', metavar='DIR', type=directory, default=CHROOT,
+                    help='directory to chroot into after binding'
+                         f' (default: {CHROOT})')
 
 parser.add_argument('--encoding', metavar='NAME', default=ENCODING,
                     help=f'encoding of UDP messages (default: {ENCODING})')

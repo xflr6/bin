@@ -160,7 +160,7 @@ optional arguments:
 ```sh
 $ log-pings.py --help
 usage: log-pings.py [-h] [--host IP] [--file LOGFILE] [--format TMPL]
-                    [--datefmt TMPL] [--chroot DIR] [--setuid USER]
+                    [--datefmt TMPL] [--setuid USER] [--chroot DIR]
                     [--encoding NAME] [--verbose] [--version]
 
 Log incoming ICMP echo request messages to stdout and optionally into file.
@@ -171,8 +171,8 @@ optional arguments:
   --file LOGFILE   file to write log to (log only to stdout by default)
   --format TMPL    log format string (default: %(asctime)s %(message)s)
   --datefmt TMPL   log time.strftime() format string (default: %b %d %H:%M:%S)
-  --chroot DIR     directory to chroot into after binding (default: /tmp)
   --setuid USER    user to setuid to after binding (default: nobody)
+  --chroot DIR     directory to chroot into after binding (default: /tmp)
   --encoding NAME  encoding of ping messages (default: utf-8)
   --verbose        increase stdout logging level to DEBUG
   --version        show program's version number and exit
@@ -184,8 +184,8 @@ optional arguments:
 ```sh
 $ log-udp.py --help
 usage: log-udp.py [-h] [--host IP] [--port SERVICE] [--file LOGFILE]
-                  [--format TMPL] [--datefmt TMPL] [--chroot DIR]
-                  [--setuid USER] [--encoding NAME] [--verbose] [--version]
+                  [--format TMPL] [--datefmt TMPL] [--setuid USER]
+                  [--chroot [DIR]] [--encoding NAME] [--verbose] [--version]
 
 Log incoming UDP messages to stdout and optionally into file.
 
@@ -196,8 +196,8 @@ optional arguments:
   --file LOGFILE   file to write log to (log only to stdout by default)
   --format TMPL    log format string (default: %(asctime)s %(message)s)
   --datefmt TMPL   log time.strftime() format string (default: %b %d %H:%M:%S)
-  --chroot DIR     directory to chroot into after binding (default: /tmp)
   --setuid USER    user to setuid to after binding (default: nobody)
+  --chroot [DIR]   directory to chroot into after binding (default: /tmp)
   --encoding NAME  encoding of UDP messages (default: utf-8)
   --verbose        increase stdout logging level to DEBUG
   --version        show program's version number and exit
