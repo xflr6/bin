@@ -189,7 +189,7 @@ def main(args=None):
 
         assert dest_path.exists()
         dest_size = dest_path.stat().st_size
-        print(f'{caption} result: {dest_path} ({dest_size} bytes)')
+        print(f'{caption} > {dest_path} ({dest_size} bytes)')
         assert dest_size
         n_bytes += dest_size
 
