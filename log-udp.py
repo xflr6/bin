@@ -160,7 +160,7 @@ def serve_forever(s, *, encoding, bufsize=2**10):
             msg = ascii(raw)
             logging.debug('%s: %s', e.__class__.__name__, e)
 
-        logging.info('%s:%s %s', host, port, msg)
+        logging.info('%s:%d %s', host, port, msg)
 
 
 def main(args=None):

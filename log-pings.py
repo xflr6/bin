@@ -174,6 +174,7 @@ class ICMPPacket(collections.namedtuple('_ICMPPacket', ICMP_FIELDS)):
 def serve_forever(s, *, encoding, bufsize=1472):
     while True:
         raw = s.recv(bufsize)
+
         ip = IPPacket.frombytes(raw)
         icmp = ICMPPacket.frombytes(ip.payload)
         if icmp.is_ping():
@@ -182,8 +183,9 @@ def serve_forever(s, *, encoding, bufsize=1472):
             except UnicodeDecodeError as e:
                 msg = ascii(icmp.payload)
                 logging.debug('%s: %s', e.__class__.__name__, e)
-            logging.info('%s:%s %s %s %s', ip.src_addr, ip.ident,
-                                           icmp.ident, icmp.seq_num, msg)
+
+            logging.info('%s:%d %d %d %s', ip.src_addr, ip.ident,
+                         icmp.ident, icmp.seq_num, msg)
 
 
 def main(args=None):
