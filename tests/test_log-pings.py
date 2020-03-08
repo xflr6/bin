@@ -63,10 +63,14 @@ def test_log_pings(capsys, mocker, packet, host='127.0.0.1'):
 
     socket.return_value.recv.side_effect = recv()
 
+    bufsize = 4242
+
     assert log_pings.main(['--host', host,
                            '--setuid', 'nonuser',
                            '--chroot', '.',
                            '--no-hardening',
+                           '--encoding', 'ascii',
+                           '--max-size', str(bufsize),
                            '--verbose']) is None
 
     out, err = capsys.readouterr()
@@ -89,8 +93,8 @@ def test_log_pings(capsys, mocker, packet, host='127.0.0.1'):
 
     assert socket.mock_calls == [s,
                                  s.bind((host, _socket.IPPROTO_ICMP)),
-                                 s.recv(1472),
-                                 s.recv(1472),
-                                 s.recv(1472),
-                                 s.recv(1472),
+                                 s.recv(bufsize),
+                                 s.recv(bufsize),
+                                 s.recv(bufsize),
+                                 s.recv(bufsize),
                                  s.close()]

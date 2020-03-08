@@ -161,7 +161,8 @@ optional arguments:
 $ log-pings.py --help
 usage: log-pings.py [-h] [--host IP] [--file LOGFILE] [--format TMPL]
                     [--datefmt TMPL] [--setuid USER] [--chroot DIR]
-                    [--no-hardening] [--encoding NAME] [--verbose] [--version]
+                    [--no-hardening] [--encoding NAME] [--max-size N]
+                    [--verbose] [--version]
 
 Log incoming ICMP echo request messages to stdout and optionally into file.
 
@@ -175,6 +176,7 @@ optional arguments:
   --chroot DIR     directory to chroot into after binding (default: /tmp)
   --no-hardening   don't give up privileges (ignore --setuid and --chroot)
   --encoding NAME  try to decode data with this encoding (default: utf-8)
+  --max-size N     byte limit for packages to accept (default: 1472)
   --verbose        increase stdout logging level to DEBUG
   --version        show program's version number and exit
 ```

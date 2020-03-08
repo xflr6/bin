@@ -31,6 +31,8 @@ SETUID = 'nobody'
 
 ENCODING = 'utf-8'
 
+BUFSIZE = 1472
+
 TIMEZONE = pathlib.Path('/etc/timezone')
 
 IP_FIELDS = ['version_ihl', 'tos', 'length', 'ident', 'flags_fragoffset',
@@ -68,6 +70,17 @@ def directory(s):
     return result
 
 
+def positive_int(s):
+    try:
+        result = int(s)
+    except ValueError:
+        result = None
+
+    if result is None or not result > 0:
+        raise argparse.ArgumentTypeError(f'need positive int: {s}')
+    return result
+
+
 parser = argparse.ArgumentParser(description=__doc__)
 
 parser.add_argument('--host', metavar='IP', default=HOST,
@@ -98,6 +111,11 @@ parser.add_argument('--no-hardening', dest='hardening', action='store_false',
 parser.add_argument('--encoding', metavar='NAME', default=ENCODING,
                     help='try to decode data with this encoding'
                          f' (default: {ENCODING})')
+
+parser.add_argument('--max-size', metavar='N', dest='bufsize',
+                    type=positive_int, default=BUFSIZE,
+                    help='byte limit for packages to accept'
+                         f' (default: {BUFSIZE})')
 
 parser.add_argument('--verbose', action='store_true',
                     help='increase stdout logging level to DEBUG')
@@ -212,7 +230,7 @@ class ICMPPacket(collections.namedtuple('_ICMPPacket', ICMP_FIELDS)):
         return self.type == ICMP_ECHO and self.code == ICMP_NO_CODE
 
 
-def serve_forever(s, *, encoding, bufsize=1472):
+def serve_forever(s, *, encoding, bufsize):
     while True:
         raw = s.recv(bufsize)
 
@@ -266,7 +284,7 @@ def main(args=None):
     logging.debug('serve_forever(%r)', s)
 
     try:
-        serve_forever(s, encoding=args.encoding)
+        serve_forever(s, encoding=args.encoding, bufsize=args.bufsize)
     except socket.error:
         logging.exception('socket.error')
         return 'socket error'
