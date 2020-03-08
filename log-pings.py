@@ -23,13 +23,13 @@ HOST = '0.0.0.0'
 
 FORMAT = '%(asctime)s%(ip)s%(icmp)s %(message)s'
 
+DATEFMT = '%b %d %H:%M:%S'
+
 IP_INFO = ' %(src_addr)s:%(ident)d'
 
 ICMP_INFO = ' %(ident)d %(seq_num)d'
 
 EX = {'ip': '', 'icmp': ''}
-
-DATEFMT = '%b %d %H:%M:%S'
 
 CHROOT = '/tmp'
 
@@ -37,7 +37,7 @@ SETUID = 'nobody'
 
 ENCODING = 'utf-8'
 
-BUFSIZE = 1472
+BUFSIZE = 4096
 
 TIMEZONE = pathlib.Path('/etc/timezone')
 
