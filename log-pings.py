@@ -155,13 +155,6 @@ def configure_logging(filename=None, *, level, file_level, format_, datefmt):
     return logging.config.dictConfig(cfg)
 
 
-def rfc1071_checksum(ints):
-    val = sum(ints)
-    while val >> 16:
-        val = (val & 0xffff) + (val >> 16)
-    return ~val & 0xffff
-
-
 def verify_checksum(b, *, format=None):
     if format is None:
         n_ints, is_odd = divmod(len(b), 2)
@@ -175,6 +168,13 @@ def verify_checksum(b, *, format=None):
     if result:
         raise InvalidChecksumError(f'0x{result:04x}')
     return result
+
+
+def rfc1071_checksum(ints):
+    val = sum(ints)
+    while val >> 16:
+        val = (val & 0xffff) + (val >> 16)
+    return ~val & 0xffff
 
 
 class InvalidChecksumError(ValueError):
@@ -281,7 +281,8 @@ def main(args=None):
         os.setgroups([])
         os.setuid(args.setuid.pw_uid)
 
-    logging.debug('serve_forever(%r)', s)
+    logging.debug('serve_forever(%r, encoding=%r, bufsize=%r)',
+                  s, args.encoding, args.bufsize)
 
     try:
         serve_forever(s, encoding=args.encoding, bufsize=args.bufsize)
