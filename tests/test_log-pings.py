@@ -5,31 +5,54 @@ import pytest
 
 log_pings = importlib.import_module('log-pings')
 
+IP_HEADER = {'version_ihl': 0x45, 'tos': 0,
+             'length': 60,
+             'ident': 15,
+             'flags_fragoffset': 0,
+             'ttl': 42, 'proto': 1,
+             'hdr_checksum': 0x92af,
+             'src_addr': '127.0.0.2',
+             'dst_addr': '127.0.0.1'}
+
+ICMP_HEADER = {'type': 8, 'code': 0,
+               'checksum': 0x4c33,
+               'ident': 255,
+               'seq_num': 42}
+
+MSG = 'abcdefghijklmnopqrstuvwabcdefghi'
+
+
+@pytest.fixture
+def packet(msg=MSG, encoding='utf-8'):
+    msg = msg.encode(encoding)
+
+    icmp = log_pings.ICMPPacket(payload=msg, **ICMP_HEADER)
+    ip = log_pings.IPPacket(payload=icmp.to_bytes(), **IP_HEADER)
+
+    assert ip.to_bytes() == (b'\x45\x00'  # version=4 ihl=5 tos=0
+                             b'\x00\x3c'  # length=60
+                             b'\x00\x0f'  # ident=15
+                             b'\x00\x00'  # flags=0 fragoffset=0
+                             b'\x2a\x01'  # ttl=42 proto=1
+                             b'\x92\xaf'  # hdr_checksum=37551
+                             b'\x7f\x00\x00\x02'  # scr_addr='127.0.0.2'
+                             b'\x7f\x00\x00\x01'  # dst_addr='127.0.0.1'
+                             b'\x08\x00'  # type=8 code=0
+                             b'\x4c\x33'  # checksum=19507
+                             b'\x00\xff'  # ident=255
+                             b'\x00\x2a'  # seq_num=42
+                             + msg)
+
+    return ip
+
 
 @pytest.mark.usefixtures('mock_pwd_grp')
-def test_log_pings(capsys, mocker, host='127.0.0.1', encoding='utf-8'):
+def test_log_pings(capsys, mocker, packet, host='127.0.0.1'):
     socket = mocker.patch('socket.socket', autospec=True)
 
-    msg = 'abcdefghijklmnopqrstuvwabcdefghi'
-
-    headers = (b'\x45'              # version=4 ihl=5
-               b'\x00'              # tos=0
-               b'\x00\x3c'          # length=60
-               b'\x00\x0f'          # ident=15
-               b'\x00\x00'          # flags=0 fragoffset=0
-               b'\x2a'              # ttl=42
-               b'\x01'              # proto=1
-               b'\xff\xff'          # checksum=65535
-               b'\x7f\x00\x00\x02'  # scr_addr='127.0.0.2'
-               b'\x7f\x00\x00\x01'  # dst_addr='127.0.0.1'
-               b'\x08'              # type=8
-               b'\x00'              # code=0
-               b'\xff\xff'          # checksum=65535
-               b'\x00\xff'          # ident=255
-               b'\x00\x2a')         # seqnum=42
-
     def recv():
-        yield headers + msg.encode(encoding)
+        yield packet.to_bytes()
+        yield packet._replace(hdr_checksum=0x0).to_bytes()
         raise SystemExit
 
     socket.return_value.recv.side_effect = recv()
@@ -41,13 +64,15 @@ def test_log_pings(capsys, mocker, host='127.0.0.1', encoding='utf-8'):
                            '--verbose']) is None
 
     out, err = capsys.readouterr()
-    assert f'127.0.0.2:15 255 42 {msg}' in out
+    assert f'127.0.0.2:15 255 42 {MSG}' in out
+    assert 'InvalidChecksumError: 0x92af' in out
     assert not err
 
     s = mocker.call(_socket.AF_INET, _socket.SOCK_RAW, _socket.IPPROTO_ICMP)
 
     assert socket.mock_calls == [s,
                                  s.bind((host, _socket.IPPROTO_ICMP)),
+                                 s.recv(1472),
                                  s.recv(1472),
                                  s.recv(1472),
                                  s.close()]

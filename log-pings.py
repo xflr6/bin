@@ -136,22 +136,50 @@ def configure_logging(filename=None, *, level, file_level, format_, datefmt):
     return logging.config.dictConfig(cfg)
 
 
+def rfc1071_checksum(ints):
+    val = sum(ints)
+    while val >> 16:
+        val = (val & 0xffff) + (val >> 16)
+    return ~val & 0xffff
+
+
+def verify_checksum(b, *, format='!10H'):
+    ints = struct.unpack(format, b)
+    result = rfc1071_checksum(ints)
+    if result:
+        raise InvalidChecksumError(f'{result:#06x}')
+    return result
+
+
+class InvalidChecksumError(ValueError):
+    pass
+
+
 class IPPacket(collections.namedtuple('_IPPacket', IP_FIELDS)):
 
     __slots__ = ()
 
-    _header = slice(None, 12)
+    _header = slice(None, 20)
+    _int_fields = slice(None, 12)
     _src_addr = slice(12, 16)
     _dst_addr = slice(16, 20)
     _payload = slice(20, None)
 
+    _int_fields_format = '!BBHHHBBH'
+    
     @classmethod
-    def frombytes(cls, b):
-        header = struct.unpack('!BBHHHBBH', b[cls._header])
+    def from_bytes(cls, b):
+        verify_checksum(b[cls._header])
+        int_fields = struct.unpack(cls._int_fields_format, b[cls._int_fields])
         src_addr = socket.inet_ntoa(b[cls._src_addr])
         dst_addr = socket.inet_ntoa(b[cls._dst_addr])
         payload = b[cls._payload]
-        return cls._make(header + (src_addr, dst_addr, payload))
+        return cls._make(int_fields + (src_addr, dst_addr, payload))
+
+    def to_bytes(self):
+        int_fields = struct.pack(self._int_fields_format, *self[:-3])
+        src_addr, dst_addr = map(socket.inet_aton, self[-3:-1])
+        return b''.join([int_fields, src_addr, dst_addr, self.payload])
 
 
 class ICMPPacket(collections.namedtuple('_ICMPPacket', ICMP_FIELDS)):
@@ -161,11 +189,22 @@ class ICMPPacket(collections.namedtuple('_ICMPPacket', ICMP_FIELDS)):
     _header = slice(None, 8)
     _payload = slice(8, None)
 
+    _header_format = '!BBHHH'
+
     @classmethod
-    def frombytes(cls, b):
-        header = struct.unpack('!BBHHH', b[cls._header])
+    def from_bytes(cls, b):
+        n_ints, remainder = divmod(len(b), 2)
+        format = f'!{n_ints}H'
+        if remainder:
+            b += b'\x00'
+        verify_checksum(b, format=format)
+        header = struct.unpack(cls._header_format, b[cls._header])
         payload = b[cls._payload]
         return cls._make(header + (payload,))
+
+    def to_bytes(self):
+        header = struct.pack(self._header_format, *self[:-1])
+        return header + self.payload
 
     def is_ping(self, ICMP_ECHO=8, ICMP_NO_CODE=0):
         return self.type == ICMP_ECHO and self.code == ICMP_NO_CODE
@@ -175,8 +214,13 @@ def serve_forever(s, *, encoding, bufsize=1472):
     while True:
         raw = s.recv(bufsize)
 
-        ip = IPPacket.frombytes(raw)
-        icmp = ICMPPacket.frombytes(ip.payload)
+        try:
+            ip = IPPacket.from_bytes(raw)
+            icmp = ICMPPacket.from_bytes(ip.payload)
+        except InvalidChecksumError as e:
+            logging.debug('%s: %s', e.__class__.__name__, e)
+            continue
+
         if icmp.is_ping():
             try:
                 msg = icmp.payload.decode(encoding)
