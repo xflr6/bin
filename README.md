@@ -160,9 +160,9 @@ optional arguments:
 ```sh
 $ log-pings.py --help
 usage: log-pings.py [-h] [--host IP] [--file LOGFILE] [--format TMPL]
-                    [--datefmt TMPL] [--setuid USER] [--chroot DIR]
-                    [--no-hardening] [--encoding NAME] [--max-size N]
-                    [--verbose] [--version]
+                    [--datefmt TMPL] [--ipfmt TMPL] [--icmpfmt TMPL]
+                    [--setuid USER] [--chroot DIR] [--no-hardening]
+                    [--encoding NAME] [--max-size N] [--verbose] [--version]
 
 Log incoming ICMP echo request messages to stdout and optionally into file.
 
@@ -170,8 +170,10 @@ optional arguments:
   -h, --help       show this help message and exit
   --host IP        address to listen on (default: 0.0.0.0)
   --file LOGFILE   file to write log to (log only to stdout by default)
-  --format TMPL    log format string (default: %(asctime)s %(message)s)
-  --datefmt TMPL   log time.strftime() format string (default: %b %d %H:%M:%S)
+  --format TMPL    log format (default: %(asctime)s%(infos)s %(message)s)
+  --datefmt TMPL   log time.strftime() format (default: %b %d %H:%M:%S)
+  --ipfmt TMPL     log format (default: %(src_addr)s:%(ident)d)
+  --icmpfmt TMPL   log format (default: %(ident)d %(seq_num)d)
   --setuid USER    user to setuid to after binding (default: nobody)
   --chroot DIR     directory to chroot into after binding (default: /tmp)
   --no-hardening   don't give up privileges (ignore --setuid and --chroot)

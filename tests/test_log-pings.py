@@ -66,6 +66,7 @@ def test_log_pings(capsys, mocker, packet, host='127.0.0.1'):
     bufsize = 4242
 
     assert log_pings.main(['--host', host,
+                           '--icmpfmt', ' [%(ident)d:%(seq_num)d]',
                            '--setuid', 'nonuser',
                            '--chroot', '.',
                            '--no-hardening',
@@ -79,8 +80,8 @@ def test_log_pings(capsys, mocker, packet, host='127.0.0.1'):
 
     expected = ["... listening on '127.0.0.1'",
                 "... serve_forever(...)",
-                f'... 127.0.0.2:15 255 42 {MSG}',
-                '... 127.0.0.2:15 255 42 abcde',
+                f'... 127.0.0.2:15 [255:42] {MSG}',
+                '... 127.0.0.2:15 [255:42] abcde',
                 '... InvalidChecksumError: 0x92af',
                 '... SystemExit() exiting',
                 '... socket.close()']

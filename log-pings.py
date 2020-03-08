@@ -21,7 +21,13 @@ import time
 
 HOST = '0.0.0.0'
 
-FORMAT = '%(asctime)s %(message)s'
+FORMAT = '%(asctime)s%(infos)s %(message)s'
+
+IP_INFO = ' %(src_addr)s:%(ident)d'
+
+ICMP_INFO = ' %(ident)d %(seq_num)d'
+
+EX = {'infos': ''}
 
 DATEFMT = '%b %d %H:%M:%S'
 
@@ -90,12 +96,17 @@ parser.add_argument('--file', metavar='LOGFILE', type=pathlib.Path,
                     help='file to write log to (log only to stdout by default)')
 
 parser.add_argument('--format', metavar='TMPL', default=FORMAT,
-                    help='log format string'
-                         f' (default: {FORMAT.replace("%", "%%")})')
+                    help=f'log format (default: {FORMAT.replace("%", "%%")})')
 
 parser.add_argument('--datefmt', metavar='TMPL', type=datefmt, default=DATEFMT,
-                    help='log time.strftime() format string'
+                    help='log time.strftime() format'
                          f' (default: {DATEFMT.replace("%", "%%")})')
+
+parser.add_argument('--ipfmt', metavar='TMPL', default=IP_INFO,
+                    help=f'log format (default: {IP_INFO.replace("%", "%%")})')
+
+parser.add_argument('--icmpfmt', metavar='TMPL', default=ICMP_INFO,
+                    help=f'log format (default: {ICMP_INFO.replace("%", "%%")})')
 
 parser.add_argument('--setuid', metavar='USER', type=user, default=SETUID,
                     help='user to setuid to after binding'
@@ -230,7 +241,7 @@ class ICMPPacket(collections.namedtuple('_ICMPPacket', ICMP_FIELDS)):
         return self.type == ICMP_ECHO and self.code == ICMP_NO_CODE
 
 
-def serve_forever(s, *, encoding, bufsize):
+def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
     while True:
         raw = s.recv(bufsize)
 
@@ -238,17 +249,19 @@ def serve_forever(s, *, encoding, bufsize):
             ip = IPPacket.from_bytes(raw)
             icmp = ICMPPacket.from_bytes(ip.payload)
         except InvalidChecksumError as e:
-            logging.debug('%s: %s', e.__class__.__name__, e)
+            logging.debug('%s: %s', e.__class__.__name__, e, extra=EX)
             continue
 
         if icmp.is_ping():
             try:
-                msg = icmp.payload.decode(encoding)
+                message = icmp.payload.decode(encoding)
             except UnicodeDecodeError:
-                msg = ascii(icmp.payload)
+                messsage = ascii(icmp.payload)
 
-            logging.info('%s:%d %d %d %s', ip.src_addr, ip.ident,
-                         icmp.ident, icmp.seq_num, msg)
+            ip_info = ip_tmpl % ip._asdict()
+            icmp_info = icmp_tmpl % icmp._asdict()
+
+            logging.info(message, extra={'infos': ip_info + icmp_info})
 
 
 def main(args=None):
@@ -264,36 +277,39 @@ def main(args=None):
                       format_=args.format, datefmt=args.datefmt)
 
     cmd = pathlib.Path(sys.argv[0]).name
-    logging.info(f'{cmd} listening on %r', args.host)
+    logging.info(f'{cmd} listening on %r', args.host, extra=EX)
 
     s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
     s.bind((args.host, socket.IPPROTO_ICMP))
 
     if args.hardening:
-        logging.debug('os.chroot(%r)', args.chroot)
+        logging.debug('os.chroot(%r)', args.chroot, extra=EX)
         with TIMEZONE.open(encoding=ENCODING) as f:
             os.environ['TZ'] = f.readline().strip()
         time.tzset()
         os.chroot(args.chroot)
 
-        logging.debug('os.setuid(%r)', args.setuid.pw_name)
+        logging.debug('os.setuid(%r)', args.setuid.pw_name, extra=EX)
         os.setgid(args.setuid.pw_gid)
         os.setgroups([])
         os.setuid(args.setuid.pw_uid)
 
-    kwargs = {'encoding': args.encoding, 'bufsize': args.bufsize}
+    kwargs = {'ip_tmpl': args.ipfmt,
+              'icmp_tmpl': args.icmpfmt,
+              'encoding': args.encoding,
+              'bufsize': args.bufsize}
 
-    logging.debug('serve_forever(%r, **%r)', s, kwargs)
+    logging.debug('serve_forever(%r, **%r)', s, kwargs, extra=EX)
 
     try:
         serve_forever(s, **kwargs)
     except socket.error:
-        logging.exception('socket.error')
+        logging.exception('socket.error', extra=EX)
         return 'socket error'
     except SystemExit as e:
-        logging.info(f'{cmd} %r exiting', e)
+        logging.info(f'{cmd} %r exiting', e, extra=EX)
     finally:
-        logging.debug('socket.close()')
+        logging.debug('socket.close()', extra=EX)
         s.close()
 
     return None
