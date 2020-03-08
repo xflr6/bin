@@ -146,7 +146,10 @@ def rfc1071_checksum(ints):
 def verify_checksum(b, *, format=None):
     if format is None:
         n_ints, is_odd = divmod(len(b), 2)
-        format = f'!{n_ints}H' + ('B' if is_odd else '')
+        if is_odd:
+            b += b'\x00'
+            n_ints += 1
+        format = f'!{n_ints}H'
 
     ints = struct.unpack(format, b)
     result = rfc1071_checksum(ints)
@@ -170,15 +173,14 @@ class IPPacket(collections.namedtuple('_IPPacket', IP_FIELDS)):
     _payload = slice(20, None)
 
     _int_fields_format = '!BBHHHBBH'
-    
+
     @classmethod
     def from_bytes(cls, b):
         verify_checksum(b[cls._header], format='!10H')
         int_fields = struct.unpack(cls._int_fields_format, b[cls._int_fields])
         src_addr = socket.inet_ntoa(b[cls._src_addr])
         dst_addr = socket.inet_ntoa(b[cls._dst_addr])
-        payload = b[cls._payload]
-        return cls._make(int_fields + (src_addr, dst_addr, payload))
+        return cls._make(int_fields + (src_addr, dst_addr, b[cls._payload]))
 
     def to_bytes(self):
         int_fields = struct.pack(self._int_fields_format, *self[:-3])
@@ -199,8 +201,7 @@ class ICMPPacket(collections.namedtuple('_ICMPPacket', ICMP_FIELDS)):
     def from_bytes(cls, b):
         verify_checksum(b)
         header = struct.unpack(cls._header_format, b[cls._header])
-        payload = b[cls._payload]
-        return cls._make(header + (payload,))
+        return cls._make(header + ( b[cls._payload],))
 
     def to_bytes(self):
         header = struct.pack(self._header_format, *self[:-1])

@@ -52,7 +52,10 @@ def test_log_pings(capsys, mocker, packet, host='127.0.0.1'):
 
     def recv():
         yield packet.to_bytes()
-        yield packet._replace(hdr_checksum=0x0).to_bytes()
+        icmp = log_pings.ICMPPacket.from_bytes(packet.payload)
+        icmp = icmp._replace(payload=b'abcde', checksum=0xcd0f)
+        yield packet._replace(payload=icmp.to_bytes()).to_bytes()
+        yield packet._replace(hdr_checksum=0).to_bytes()
         raise SystemExit
 
     socket.return_value.recv.side_effect = recv()
@@ -65,6 +68,7 @@ def test_log_pings(capsys, mocker, packet, host='127.0.0.1'):
 
     out, err = capsys.readouterr()
     assert f'127.0.0.2:15 255 42 {MSG}' in out
+    assert f'127.0.0.2:15 255 42 abcde' in out
     assert 'InvalidChecksumError: 0x92af' in out
     assert not err
 
@@ -72,6 +76,7 @@ def test_log_pings(capsys, mocker, packet, host='127.0.0.1'):
 
     assert socket.mock_calls == [s,
                                  s.bind((host, _socket.IPPROTO_ICMP)),
+                                 s.recv(1472),
                                  s.recv(1472),
                                  s.recv(1472),
                                  s.recv(1472),
