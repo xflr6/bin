@@ -47,7 +47,7 @@ IP_FIELDS = {'version_ihl': 'B', 'tos': 'B',
              'flags_fragoffset': 'H',
              'ttl': 'B', 'proto': 'B',
              'hdr_checksum': 'H',
-             'src_addr': None, 'dst_addr': None,
+             'src_addr': '4s', 'dst_addr': '4s',
              'payload': None}
 
 ICMP_FIELDS = {'type': 'B', 'code': 'B',
@@ -206,24 +206,21 @@ class IPPacket(collections.namedtuple('_IPPacket', list(IP_FIELDS))):
 
     __slots__ = ()
 
-    _header = slice(None, 20)
-    _int_fields = slice(None, 12)
-    _src_addr = slice(12, 16)
-    _dst_addr = slice(16, 20)
-    _payload = slice(20, None)
+    _header_format = '!' + ''.join(t for t in IP_FIELDS.values() if t)
 
-    _int_fields_format = '!' + ''.join(t for t in IP_FIELDS.values() if t)
+    _header_size = struct.calcsize(_header_format)
 
     @classmethod
     def from_bytes(cls, b):
-        verify_checksum(b[cls._header], format='!10H')
-        int_fields = struct.unpack(cls._int_fields_format, b[cls._int_fields])
-        src_addr = socket.inet_ntoa(b[cls._src_addr])
-        dst_addr = socket.inet_ntoa(b[cls._dst_addr])
-        return cls._make(int_fields + (src_addr, dst_addr, b[cls._payload]))
+        header = b[:cls._header_size]
+        verify_checksum(header, format='!10H')
+        fields = struct.unpack(cls._header_format, header)
+        src_addr, dst_addr = map(socket.inet_ntoa, fields[-2:])
+        return cls._make(fields[:-2] + (src_addr, dst_addr, b[cls._header_size:]))
 
     def to_bytes(self):
-        int_fields = struct.pack(self._int_fields_format, *self[:-3])
+        format_ = self._header_format.replace('4s', '')
+        int_fields = struct.pack(format_, *self[:-3])
         src_addr, dst_addr = map(socket.inet_aton, self[-3:-1])
         return b''.join([int_fields, src_addr, dst_addr, self.payload])
 
@@ -232,16 +229,15 @@ class ICMPPacket(collections.namedtuple('_ICMPPacket', list(ICMP_FIELDS))):
 
     __slots__ = ()
 
-    _header = slice(None, 8)
-    _payload = slice(8, None)
-
     _header_format = '!' + ''.join(t for t in ICMP_FIELDS.values() if t)
+
+    _header_size = struct.calcsize(_header_format)
 
     @classmethod
     def from_bytes(cls, b):
         verify_checksum(b)
-        header = struct.unpack(cls._header_format, b[cls._header])
-        return cls._make(header + ( b[cls._payload],))
+        header = struct.unpack(cls._header_format, b[:cls._header_size])
+        return cls._make(header + (b[cls._header_size:],))
 
     def to_bytes(self):
         header = struct.pack(self._header_format, *self[:-1])
