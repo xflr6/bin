@@ -96,7 +96,8 @@ parser.add_argument('--no-hardening', dest='hardening', action='store_false',
                     help="don't give up privileges (ignore --setuid and --chroot)")
 
 parser.add_argument('--encoding', metavar='NAME', default=ENCODING,
-                    help=f'encoding of ping messages (default: {ENCODING})')
+                    help='try to decode data with this encoding'
+                         f' (default: {ENCODING})')
 
 parser.add_argument('--verbose', action='store_true',
                     help='increase stdout logging level to DEBUG')

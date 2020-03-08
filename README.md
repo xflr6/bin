@@ -174,7 +174,7 @@ optional arguments:
   --setuid USER    user to setuid to after binding (default: nobody)
   --chroot DIR     directory to chroot into after binding (default: /tmp)
   --no-hardening   don't give up privileges (ignore --setuid and --chroot)
-  --encoding NAME  encoding of ping messages (default: utf-8)
+  --encoding NAME  try to decode data with this encoding (default: utf-8)
   --verbose        increase stdout logging level to DEBUG
   --version        show program's version number and exit
 ```
