@@ -21,13 +21,13 @@ import time
 
 HOST = '0.0.0.0'
 
-FORMAT = '%(asctime)s%(infos)s %(message)s'
+FORMAT = '%(asctime)s%(ip)s%(icmp)s %(message)s'
 
 IP_INFO = ' %(src_addr)s:%(ident)d'
 
 ICMP_INFO = ' %(ident)d %(seq_num)d'
 
-EX = {'infos': ''}
+EX = {'ip': '', 'icmp': ''}
 
 DATEFMT = '%b %d %H:%M:%S'
 
@@ -258,10 +258,8 @@ def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
             except UnicodeDecodeError:
                 message = ascii(icmp.payload)
 
-            ip_info = ip_tmpl % ip._asdict()
-            icmp_info = icmp_tmpl % icmp._asdict()
-
-            logging.info(message, extra={'infos': ip_info + icmp_info})
+            logging.info(message, extra={'ip': ip_tmpl % ip._asdict(),
+                                         'icmp': icmp_tmpl % icmp._asdict()})
 
 
 def main(args=None):

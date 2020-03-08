@@ -170,7 +170,7 @@ optional arguments:
   -h, --help       show this help message and exit
   --host IP        address to listen on (default: 0.0.0.0)
   --file LOGFILE   file to write log to (log only to stdout by default)
-  --format TMPL    log format (default: %(asctime)s%(infos)s %(message)s)
+  --format TMPL    log format (default: %(asctime)s%(ip)s%(icmp)s %(message)s)
   --datefmt TMPL   log time.strftime() format (default: %b %d %H:%M:%S)
   --ipfmt TMPL     log format (default: %(src_addr)s:%(ident)d)
   --icmpfmt TMPL   log format (default: %(ident)d %(seq_num)d)
