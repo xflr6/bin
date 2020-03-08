@@ -1,4 +1,5 @@
 import importlib
+import re
 import socket as _socket
 
 import pytest
@@ -67,10 +68,20 @@ def test_log_pings(capsys, mocker, packet, host='127.0.0.1'):
                            '--verbose']) is None
 
     out, err = capsys.readouterr()
-    assert f'127.0.0.2:15 255 42 {MSG}' in out
-    assert f'127.0.0.2:15 255 42 abcde' in out
-    assert 'InvalidChecksumError: 0x92af' in out
     assert not err
+    lines = out.splitlines()
+
+    expected = ["... listening on '127.0.0.1'",
+                "... serve_forever(...)",
+                f'... 127.0.0.2:15 255 42 {MSG}',
+                '... 127.0.0.2:15 255 42 abcde',
+                '... InvalidChecksumError: 0x92af',
+                '... SystemExit() exiting',
+                '... socket.close()']
+
+    for l, e in zip(lines, expected):
+        pattern = re.escape(e).replace(r'\.\.\.', r'.*')
+        assert re.fullmatch(pattern, l)
 
     s = mocker.call(_socket.AF_INET, _socket.SOCK_RAW, _socket.IPPROTO_ICMP)
 

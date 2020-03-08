@@ -225,9 +225,8 @@ def serve_forever(s, *, encoding, bufsize=1472):
         if icmp.is_ping():
             try:
                 msg = icmp.payload.decode(encoding)
-            except UnicodeDecodeError as e:
+            except UnicodeDecodeError:
                 msg = ascii(icmp.payload)
-                logging.debug('%s: %s', e.__class__.__name__, e)
 
             logging.info('%s:%d %d %d %s', ip.src_addr, ip.ident,
                          icmp.ident, icmp.seq_num, msg)
