@@ -281,11 +281,12 @@ def main(args=None):
         os.setgroups([])
         os.setuid(args.setuid.pw_uid)
 
-    logging.debug('serve_forever(%r, encoding=%r, bufsize=%r)',
-                  s, args.encoding, args.bufsize)
+    kwargs = {'encoding': args.encoding, 'bufsize': args.bufsize}
+
+    logging.debug('serve_forever(%r, **%r)', s, kwargs)
 
     try:
-        serve_forever(s, encoding=args.encoding, bufsize=args.bufsize)
+        serve_forever(s, **kwargs)
     except socket.error:
         logging.exception('socket.error')
         return 'socket error'
