@@ -41,10 +41,20 @@ BUFSIZE = 1472
 
 TIMEZONE = pathlib.Path('/etc/timezone')
 
-IP_FIELDS = ['version_ihl', 'tos', 'length', 'ident', 'flags_fragoffset',
-             'ttl', 'proto', 'hdr_checksum', 'src_addr', 'dst_addr', 'payload']
+IP_FIELDS = {'version_ihl': 'B', 'tos': 'B',
+             'length': 'H',
+             'ident': 'H',
+             'flags_fragoffset': 'H',
+             'ttl': 'B', 'proto': 'B',
+             'hdr_checksum': 'H',
+             'src_addr': None, 'dst_addr': None,
+             'payload': None}
 
-ICMP_FIELDS = ['type', 'code', 'checksum', 'ident', 'seq_num', 'payload']
+ICMP_FIELDS = {'type': 'B', 'code': 'B',
+               'checksum': 'H',
+               'ident': 'H',
+               'seq_num': 'H',
+               'payload': None}
 
 
 def datefmt(s):
@@ -192,7 +202,7 @@ class InvalidChecksumError(ValueError):
     pass
 
 
-class IPPacket(collections.namedtuple('_IPPacket', IP_FIELDS)):
+class IPPacket(collections.namedtuple('_IPPacket', list(IP_FIELDS))):
 
     __slots__ = ()
 
@@ -202,7 +212,7 @@ class IPPacket(collections.namedtuple('_IPPacket', IP_FIELDS)):
     _dst_addr = slice(16, 20)
     _payload = slice(20, None)
 
-    _int_fields_format = '!BBHHHBBH'
+    _int_fields_format = '!' + ''.join(t for t in IP_FIELDS.values() if t)
 
     @classmethod
     def from_bytes(cls, b):
@@ -218,14 +228,14 @@ class IPPacket(collections.namedtuple('_IPPacket', IP_FIELDS)):
         return b''.join([int_fields, src_addr, dst_addr, self.payload])
 
 
-class ICMPPacket(collections.namedtuple('_ICMPPacket', ICMP_FIELDS)):
+class ICMPPacket(collections.namedtuple('_ICMPPacket', list(ICMP_FIELDS))):
 
     __slots__ = ()
 
     _header = slice(None, 8)
     _payload = slice(8, None)
 
-    _header_format = '!BBHHH'
+    _header_format = '!' + ''.join(t for t in ICMP_FIELDS.values() if t)
 
     @classmethod
     def from_bytes(cls, b):
