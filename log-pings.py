@@ -219,10 +219,9 @@ class IPPacket(collections.namedtuple('_IPPacket', list(IP_FIELDS))):
         return cls._make(fields[:-2] + (src_addr, dst_addr, b[cls._header_size:]))
 
     def to_bytes(self):
-        format_ = self._header_format.replace('4s', '')
-        int_fields = struct.pack(format_, *self[:-3])
-        src_addr, dst_addr = map(socket.inet_aton, self[-3:-1])
-        return b''.join([int_fields, src_addr, dst_addr, self.payload])
+        fields = self[:-3] + tuple(map(socket.inet_aton, self[-3:-1]))
+        header = struct.pack(self._header_format, *fields)
+        return header + self.payload
 
 
 class ICMPPacket(collections.namedtuple('_ICMPPacket', list(ICMP_FIELDS))):
