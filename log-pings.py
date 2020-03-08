@@ -256,7 +256,7 @@ def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
             try:
                 message = icmp.payload.decode(encoding)
             except UnicodeDecodeError:
-                messsage = ascii(icmp.payload)
+                message = ascii(icmp.payload)
 
             ip_info = ip_tmpl % ip._asdict()
             icmp_info = icmp_tmpl % icmp._asdict()
