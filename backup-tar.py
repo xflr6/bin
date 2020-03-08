@@ -299,7 +299,7 @@ def main(args=None):
                                   auto_compress=args.auto_compress,
                                   set_path=args.set_path)
 
-    log('', f'os.umask({args.set_umask:#05o})')
+    log('', f'os.umask(0o{args.set_umask:03o})')
     os.umask(args.set_umask)
 
     log(f'subprocess.Popen({cmd}, **{kwargs})')
@@ -321,7 +321,7 @@ def main(args=None):
         return 'error: result file is empty'
     log(format_permissions(dest_stat))
 
-    log('', f'os.chmod(..., {args.chmod:#05o})')
+    log('', f'os.chmod(..., 0o{args.chmod:03o})')
     dest_path.chmod(args.chmod)
     if args.owner or args.group:
         log(f'shutil.chown(..., user={args.owner}, group={args.group})')

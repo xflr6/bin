@@ -154,7 +154,7 @@ def verify_checksum(b, *, format=None):
     ints = struct.unpack(format, b)
     result = rfc1071_checksum(ints)
     if result:
-        raise InvalidChecksumError(f'{result:#06x}')
+        raise InvalidChecksumError(f'0x{result:04x}')
     return result
 
 

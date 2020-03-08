@@ -208,7 +208,7 @@ def main(args=None):
                                   set_path=args.set_path,
                                   quiet=args.quiet)
 
-    log('', f'os.umask({args.set_umask:#05o})')
+    log('', f'os.umask(0o{args.set_umask:03o})')
     os.umask(args.set_umask)
 
     log(f'subprocess.run({cmd}, **{kwargs})')
@@ -231,7 +231,7 @@ def main(args=None):
         return 'error: result file is empty'
     log(format_permissions(dest_stat))
 
-    log('', f'os.chmod(..., {args.chmod:#05o})')
+    log('', f'os.chmod(..., 0o{args.chmod:03o})')
     dest_path.chmod(args.chmod)
     if args.owner or args.group:
         log(f'shutil.chown(..., user={args.owner}, group={args.group})')
