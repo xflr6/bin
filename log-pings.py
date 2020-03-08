@@ -143,7 +143,12 @@ def rfc1071_checksum(ints):
     return ~val & 0xffff
 
 
-def verify_checksum(b, *, format='!10H'):
+def verify_checksum(b, *, format=None):
+    if format is None:
+        n_ints, remainder = divmod(len(b), 2)
+        format = f'!{n_ints + remainder}H'
+        if remainder:
+            b += b'\x00'
     ints = struct.unpack(format, b)
     result = rfc1071_checksum(ints)
     if result:
@@ -169,7 +174,7 @@ class IPPacket(collections.namedtuple('_IPPacket', IP_FIELDS)):
     
     @classmethod
     def from_bytes(cls, b):
-        verify_checksum(b[cls._header])
+        verify_checksum(b[cls._header], format='!10H')
         int_fields = struct.unpack(cls._int_fields_format, b[cls._int_fields])
         src_addr = socket.inet_ntoa(b[cls._src_addr])
         dst_addr = socket.inet_ntoa(b[cls._dst_addr])
@@ -193,11 +198,7 @@ class ICMPPacket(collections.namedtuple('_ICMPPacket', ICMP_FIELDS)):
 
     @classmethod
     def from_bytes(cls, b):
-        n_ints, remainder = divmod(len(b), 2)
-        format = f'!{n_ints}H'
-        if remainder:
-            b += b'\x00'
-        verify_checksum(b, format=format)
+        verify_checksum(b)
         header = struct.unpack(cls._header_format, b[cls._header])
         payload = b[cls._payload]
         return cls._make(header + (payload,))
