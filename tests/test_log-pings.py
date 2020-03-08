@@ -30,7 +30,8 @@ def packet(msg=MSG, encoding='utf-8'):
     icmp = log_pings.ICMPPacket(payload=msg, **ICMP_HEADER)
     ip = log_pings.IPPacket(payload=icmp.to_bytes(), **IP_HEADER)
 
-    assert ip.to_bytes() == (b'\x45\x00'  # version=4 ihl=5 tos=0
+    assert ip.to_bytes() == (# IP_HEADER
+                             b'\x45\x00'  # version=4 ihl=5 tos=0
                              b'\x00\x3c'  # length=60
                              b'\x00\x0f'  # ident=15
                              b'\x00\x00'  # flags=0 fragoffset=0
@@ -38,6 +39,7 @@ def packet(msg=MSG, encoding='utf-8'):
                              b'\x92\xaf'  # hdr_checksum=37551
                              b'\x7f\x00\x00\x02'  # scr_addr='127.0.0.2'
                              b'\x7f\x00\x00\x01'  # dst_addr='127.0.0.1'
+                             # ICMP_HEADER
                              b'\x08\x00'  # type=8 code=0
                              b'\x4c\x33'  # checksum=19507
                              b'\x00\xff'  # ident=255
