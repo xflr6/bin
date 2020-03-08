@@ -145,10 +145,9 @@ def rfc1071_checksum(ints):
 
 def verify_checksum(b, *, format=None):
     if format is None:
-        n_ints, remainder = divmod(len(b), 2)
-        format = f'!{n_ints + remainder}H'
-        if remainder:
-            b += b'\x00'
+        n_ints, is_odd = divmod(len(b), 2)
+        format = f'!{n_ints}H' + ('B' if is_odd else '')
+
     ints = struct.unpack(format, b)
     result = rfc1071_checksum(ints)
     if result:
