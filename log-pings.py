@@ -9,6 +9,7 @@ __license__ = 'MIT, see LICENSE.txt'
 __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
+import codecs
 import collections
 import logging
 import os
@@ -86,6 +87,13 @@ def directory(s):
     return result
 
 
+def encoding(s):
+    try:
+        return codecs.lookup(s).name
+    except LookupError:
+        raise argparse.ArgumentTypeError(f'unknown encoding: {s}')
+
+
 def positive_int(s):
     try:
         result = int(s)
@@ -129,7 +137,7 @@ parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
 parser.add_argument('--no-hardening', dest='hardening', action='store_false',
                     help="don't give up privileges (ignore --setuid and --chroot)")
 
-parser.add_argument('--encoding', metavar='NAME', default=ENCODING,
+parser.add_argument('--encoding', metavar='NAME', type=encoding, default=ENCODING,
                     help='try to decode data with this encoding'
                          f' (default: {ENCODING})')
 
