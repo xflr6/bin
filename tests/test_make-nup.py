@@ -31,7 +31,9 @@ def test_make_nup(tmp_path, mocker, keep, encoding='utf-8'):
     assert make_nup.main([str(pdf_path),
                           '--name', '{stem}-2UP.pdf',
                           '--paper', 'legal',
+                          '--nup', '2x1',
                           '--pages', '1-42',
+                          '--orient', 'a',
                           '--scale', '.942',
                           '--no-frame',
                           '--no-openright']
