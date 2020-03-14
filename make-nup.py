@@ -116,7 +116,7 @@ parser.add_argument('--name', metavar='TMPL',
 parser.add_argument('--paper', metavar='SIZE', default=PAPER,
                     help=f'output LaTeX paper size (default: {PAPER})')
 
-parser.add_argument('--nup', metavar='NxN', type=nup, default=NUP,
+parser.add_argument('--nup', metavar='XxY', type=nup, default=NUP,
                     help=f'nup option for  \\includepdfmerge (default: {NUP})')
 
 parser.add_argument('--pages', metavar='RANGE', default=PAGES,

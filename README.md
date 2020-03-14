@@ -215,7 +215,7 @@ optional arguments:
 
 ```sh
 $ make-nup.py --help
-usage: make-nup.py [-h] [--name TMPL] [--paper SIZE] [--nup NxN]
+usage: make-nup.py [-h] [--name TMPL] [--paper SIZE] [--nup XxY]
                    [--pages RANGE] [--orient {l,p,a}] [--scale FACTOR]
                    [--no-frame] [--no-openright] [--keep] [--version]
                    pdf_file
@@ -229,7 +229,7 @@ optional arguments:
   -h, --help        show this help message and exit
   --name TMPL       template for 2up PDF file (default: {stem}_2up.pdf)
   --paper SIZE      output LaTeX paper size (default: a4)
-  --nup NxN         nup option for \includepdfmerge (default: 2x1)
+  --nup XxY         nup option for \includepdfmerge (default: 2x1)
   --pages RANGE     pages option for \includepdfmerge (default: -)
   --orient {l,p,a}  l(andscape), p(ortrait), a(uto) (default: a)
   --scale FACTOR    scale option for \includepdfmerge (default: 1.01)
