@@ -38,7 +38,7 @@ SETUID = 'nobody'
 
 ENCODING = 'utf-8'
 
-BUFSIZE = 4096
+BUFSIZE = 2**16
 
 TIMEZONE = pathlib.Path('/etc/timezone')
 
@@ -48,8 +48,7 @@ IP_FIELDS = {'version_ihl': 'B', 'tos': 'B',
              'flags_fragoffset': 'H',
              'ttl': 'B', 'proto': 'B',
              'hdr_checksum': 'H',
-             'src_addr': '4s', 'dst_addr': '4s',
-             'payload': None}
+             'src_addr': '4s', 'dst_addr': '4s'}
 
 ICMP_FIELDS = {'type': 'B', 'code': 'B',
                'checksum': 'H',
@@ -188,7 +187,7 @@ def verify_checksum(b, *, format=None):
     if format is None:
         n_ints, is_odd = divmod(len(b), 2)
         if is_odd:
-            b += b'\x00'
+            b = bytes(b) + b'\x00'
             n_ints += 1
         format = f'!{n_ints}H'
 
@@ -210,26 +209,24 @@ class InvalidChecksumError(ValueError):
     pass
 
 
-class IPPacket(collections.namedtuple('_IPPacket', list(IP_FIELDS))):
+class IPHeader(collections.namedtuple('_IPHeader', list(IP_FIELDS))):
 
     __slots__ = ()
 
-    _header_format = '!' + ''.join(t for t in IP_FIELDS.values() if t)
+    _header_format = '!' + ''.join(t for t in IP_FIELDS.values())
 
     _header_size = struct.calcsize(_header_format)
 
     @classmethod
     def from_bytes(cls, b):
-        header = b[:cls._header_size]
-        verify_checksum(header, format='!10H')
-        fields = struct.unpack(cls._header_format, header)
+        verify_checksum(b, format='!10H')
+        fields = struct.unpack(cls._header_format, b)
         src_addr, dst_addr = map(socket.inet_ntoa, fields[-2:])
-        return cls._make(fields[:-2] + (src_addr, dst_addr, b[cls._header_size:]))
+        return cls._make(fields[:-2] + (src_addr, dst_addr))
 
     def to_bytes(self):
-        fields = self[:-3] + tuple(map(socket.inet_aton, self[-3:-1]))
-        header = struct.pack(self._header_format, *fields)
-        return header + self.payload
+        fields = self[:-2] + tuple(map(socket.inet_aton, self[-2:]))
+        return struct.pack(self._header_format, *fields)
 
 
 class ICMPPacket(collections.namedtuple('_ICMPPacket', list(ICMP_FIELDS))):
@@ -244,7 +241,8 @@ class ICMPPacket(collections.namedtuple('_ICMPPacket', list(ICMP_FIELDS))):
     def from_bytes(cls, b):
         verify_checksum(b)
         header = struct.unpack(cls._header_format, b[:cls._header_size])
-        return cls._make(header + (b[cls._header_size:],))
+        payload = bytes(b[cls._header_size:])
+        return cls._make(header + (payload,))
 
     def to_bytes(self):
         header = struct.pack(self._header_format, *self[:-1])
@@ -255,12 +253,15 @@ class ICMPPacket(collections.namedtuple('_ICMPPacket', list(ICMP_FIELDS))):
 
 
 def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
+    buf = bytearray(bufsize)
+    view = memoryview(buf)
+
     while True:
-        raw = s.recv(bufsize)
+        n_bytes = s.recv_into(buf)
 
         try:
-            ip = IPPacket.from_bytes(raw)
-            icmp = ICMPPacket.from_bytes(ip.payload)
+            ip = IPHeader.from_bytes(view[:20])
+            icmp = ICMPPacket.from_bytes(view[20:n_bytes])
         except InvalidChecksumError as e:
             logging.debug('%s: %s', e.__class__.__name__, e, extra=EX)
             continue

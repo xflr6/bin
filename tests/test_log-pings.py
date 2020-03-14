@@ -1,3 +1,4 @@
+import argparse
 import importlib
 import re
 import socket as _socket
@@ -24,46 +25,55 @@ MSG = 'abcdefghijklmnopqrstuvwabcdefghi'
 
 
 @pytest.fixture
-def packet(msg=MSG, encoding='utf-8'):
-    msg = msg.encode(encoding)
+def packet(encoding='utf-8'):
+    ip = log_pings.IPHeader(**IP_HEADER)
 
+    msg = MSG.encode(encoding)
     icmp = log_pings.ICMPPacket(payload=msg, **ICMP_HEADER)
-    ip = log_pings.IPPacket(payload=icmp.to_bytes(), **IP_HEADER)
 
-    assert ip.to_bytes() == (# IP_HEADER
-                             b'\x45\x00'  # version=4 ihl=5 tos=0
-                             b'\x00\x3c'  # length=60
-                             b'\x00\x0f'  # ident=15
-                             b'\x00\x00'  # flags=0 fragoffset=0
-                             b'\x2a\x01'  # ttl=42 proto=1
-                             b'\x92\xaf'  # hdr_checksum=37551
-                             b'\x7f\x00\x00\x02'  # scr_addr='127.0.0.2'
-                             b'\x7f\x00\x00\x01'  # dst_addr='127.0.0.1'
-                             # ICMP_HEADER
-                             b'\x08\x00'  # type=8 code=0
-                             b'\x4c\x33'  # checksum=19507
-                             b'\x00\xff'  # ident=255
-                             b'\x00\x2a'  # seq_num=42
-                             + msg)
+    raw = ip.to_bytes() + icmp.to_bytes()
 
-    return ip
+    assert raw == (# IP_HEADER
+                   b'\x45\x00'  # version=4 ihl=5 tos=0
+                   b'\x00\x3c'  # length=60
+                   b'\x00\x0f'  # ident=15
+                   b'\x00\x00'  # flags=0 fragoffset=0
+                   b'\x2a\x01'  # ttl=42 proto=1
+                   b'\x92\xaf'  # hdr_checksum=37551
+                   b'\x7f\x00\x00\x02'  # scr_addr='127.0.0.2'
+                   b'\x7f\x00\x00\x01'  # dst_addr='127.0.0.1'
+                   # ICMP_HEADER
+                   b'\x08\x00'  # type=8 code=0
+                   b'\x4c\x33'  # checksum=19507
+                   b'\x00\xff'  # ident=255
+                   b'\x00\x2a'  # seq_num=42
+                   + msg)
+
+    return argparse.Namespace(ip=ip, icmp=icmp)
 
 
 @pytest.mark.usefixtures('mock_pwd_grp')
 def test_log_pings(capsys, mocker, packet, host='127.0.0.1'):
     socket = mocker.patch('socket.socket', autospec=True)
 
-    def recv():
-        yield packet.to_bytes()
-        icmp = log_pings.ICMPPacket.from_bytes(packet.payload)
-        icmp = icmp._replace(payload=b'abcde', checksum=0xcd0f)
-        yield packet._replace(payload=icmp.to_bytes()).to_bytes()
-        yield packet._replace(hdr_checksum=0).to_bytes()
-        raise SystemExit
+    packets = iter([
+        packet.ip.to_bytes() + packet.icmp.to_bytes(),
+        packet.ip.to_bytes() + packet.icmp._replace(payload=b'abcde', checksum=0xcd0f).to_bytes(),
+        packet.ip._replace(hdr_checksum=0).to_bytes() + packet.icmp.to_bytes(),
+    ])
 
-    socket.return_value.recv.side_effect = recv()
+    def recv_into(buf):
+        try:
+            p = next(packets)
+        except StopIteration:
+            raise SystemExit
+        assert len(p) <= len(buf)
+        buf[:len(p)] = p
+        return len(p)
 
-    bufsize = 4242
+    socket.return_value.recv_into.side_effect = recv_into
+
+    bufsize = 128
 
     assert log_pings.main(['--host', host,
                            '--ipfmt', ' %(src_addr)s:%(ident)s [%(hdr_checksum)x]',
@@ -95,8 +105,8 @@ def test_log_pings(capsys, mocker, packet, host='127.0.0.1'):
 
     assert socket.mock_calls == [s,
                                  s.bind((host, _socket.IPPROTO_ICMP)),
-                                 s.recv(bufsize),
-                                 s.recv(bufsize),
-                                 s.recv(bufsize),
-                                 s.recv(bufsize),
+                                 s.recv_into(mocker.ANY),
+                                 s.recv_into(mocker.ANY),
+                                 s.recv_into(mocker.ANY),
+                                 s.recv_into(mocker.ANY),
                                  s.close()]
