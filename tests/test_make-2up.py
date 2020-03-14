@@ -3,6 +3,8 @@ import importlib
 import os
 import subprocess
 
+import pytest
+
 make_2up = importlib.import_module('make-2up')
 
 
@@ -17,7 +19,8 @@ def chdir(path):
     return
 
 
-def test_make_2up(tmp_path, mocker, encoding='utf-8'):
+@pytest.mark.parametrize('keep', [False, True], ids=lambda x: 'keep=%r' % x)
+def test_make_2up(tmp_path, mocker, keep, encoding='utf-8'):
     paths = 'spam.pdf', 'spam-2up.tex', 'spam-2up.pdf'
     pdf_path, tex_path, dest_path = (tmp_path / p for p in paths)
 
@@ -43,9 +46,10 @@ def test_make_2up(tmp_path, mocker, encoding='utf-8'):
                               '{stem}-2up.pdf',
                               '--pages', '1-42',
                               '--scale', '.9',
-                              '--no-frame']) is None
+                              '--no-frame']
+                             + (['--keep'] if keep else [])) is None
 
-    assert not tex_path.exists()
+    assert tex_path.exists() == keep
 
     assert doc == ('\\documentclass[paper=a4,paper=landscape]{scrartcl}\n'
                    '\\usepackage{pdfpages}\n'
