@@ -53,15 +53,21 @@ def test_make_2up(tmp_path, mocker, keep, encoding='utf-8'):
 
     assert tex_path.exists() == keep
 
-    assert doc == '''\
-\\documentclass[paper=legal,paper=landscape]{scrartcl}
-\\usepackage{pdfpages}
-\\pagestyle{empty}
-\\begin{document}
-% http://www.ctan.org/pkg/pdfpages
-\\includepdfmerge[nup=2x1,openright=false,scale=.942,frame=false]{spam.pdf,1-42}
-\\end{document}
-'''
+    doc = doc.replace('\n', '').replace(' ', '')
+    assert doc == ('\\documentclass['
+                       'paper=legal,'
+                       'paper=landscape'
+                   ']{scrartcl}'
+                       '\\usepackage{pdfpages}'
+                       '\\pagestyle{empty}'
+                   '\\begin{document}'
+                       '\\includepdfmerge['
+                           'nup=2x1,'
+                           'openright=false,'
+                           'scale=.942,'
+                           'frame=false'
+                   ']{spam.pdf,1-42}'
+                   '\\end{document}')
 
     run.assert_called_once_with(['pdflatex',
                                  '-interaction=batchmode',
