@@ -1,4 +1,5 @@
 import importlib
+import re
 import subprocess
 
 import pytest
@@ -14,13 +15,14 @@ def test_make_nup(tmp_path, mocker, keep, encoding='utf-8'):
     pdf_path.write_bytes(b'')
     tex_path.write_text('', encoding=encoding)
 
-    doc = None
+    doc = newlines = None
 
     def run(*args, **kwargs):
-        nonlocal doc
+        nonlocal newlines, doc
 
         with open(tex_path, encoding=encoding, newline='') as f:
             doc = f.read()
+            newlines = f.newlines
 
         dest_path.write_bytes(b'\xde\xad\xbe\xef')
 
@@ -41,7 +43,7 @@ def test_make_nup(tmp_path, mocker, keep, encoding='utf-8'):
 
     assert tex_path.exists() == keep
 
-    doc = doc.replace('\n', '').replace(' ', '')
+    doc = re.sub(r'\s', '', doc)
     assert doc == ('\\documentclass['
                        'paper=legal,'
                        'paper=landscape'
@@ -56,6 +58,8 @@ def test_make_nup(tmp_path, mocker, keep, encoding='utf-8'):
                            'frame=false'
                        ']{spam.pdf,1-42}'
                    '\\end{document}')
+
+    assert newlines == '\n'
 
     run.assert_called_once_with(['pdflatex', '-interaction=batchmode',
                                  tex_path.name], check=True, cwd=tmp_path)
