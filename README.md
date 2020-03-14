@@ -211,13 +211,13 @@ optional arguments:
 ```
 
 
-### make-2up.py
+### make-nup.py
 
 ```sh
-$ make-2up.py --help
-usage: make-2up.py [-h] [--name TMPL] [--paper SIZE] [--pages RANGE]
-                   [--scale FACTOR] [--no-frame] [--no-openright] [--keep]
-                   [--version]
+$ make-nup.py --help
+usage: make-nup.py [-h] [--name TMPL] [--paper SIZE] [--nup NxN]
+                   [--pages RANGE] [--scale FACTOR] [--no-frame]
+                   [--no-openright] [--keep] [--version]
                    pdf_file
 
 Compile a 2up version of a PDF file using LaTeX pdfpages' \includepdfmerge.
@@ -229,6 +229,7 @@ optional arguments:
   -h, --help      show this help message and exit
   --name TMPL     template for 2up PDF file (default: {stem}_2up.pdf)
   --paper SIZE    output LaTeX paper size (default: a4)
+  --nup NxN       nup option for \includepdfmerge (default: 2x1)
   --pages RANGE   pages option for \includepdfmerge (default: -)
   --scale FACTOR  scale option for \includepdfmerge (default: 1.01)
   --no-frame      don't pass frame option to \includepdfmerge

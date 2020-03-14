@@ -3,7 +3,7 @@
 
 """Compile a 2up version of a PDF file using LaTeX pdfpages' \\includepdfmerge."""
 
-__title__ = 'make-2up.py'
+__title__ = 'make-nup.py'
 __version__ = '0.1.dev0'
 __author__ = 'Sebastian Bank <sebastian.bank@uni-leipzig.de>'
 __license__ = 'MIT, see LICENSE.txt'
@@ -20,19 +20,21 @@ NAME_TEMPLATE = '{stem}_2up.pdf'
 
 PAPER = 'a4'
 
+NUP='2x1'
+
 PAGES = '-'
 
 SCALE = '1.01'
 
 TEMPLATE = ('\\documentclass['  # http://www.ctan.org/pkg/pdfpages'
                 'paper=$paper,'
-                'paper=landscape'
+                'paper=$orientation'
             ']{scrartcl}\n'
                 '\\usepackage{pdfpages}\n'
                 '\\pagestyle{empty}\n'
             '\\begin{document}\n'
                 '\\includepdfmerge['
-                    'nup=2x1,'
+                    'nup=$nup,'
                     'openright=$openright,'
                     'scale=$scale,'
                     'frame=$frame'
@@ -43,6 +45,22 @@ OPEN_KWARGS = {'encoding': 'utf-8', 'newline': '\n'}
 
 
 log = functools.partial(print, file=sys.stderr, sep='\n')
+
+
+def nup(s):
+    nups = None, None
+    fields = tuple(f.strip() or None for f in s.strip().lower().partition('x'))
+    if all(fields):
+        try:
+            nups = tuple(map(int, fields[::2]))
+        except ValueError:
+            pass
+
+    if not all(nups) or not all(n > 0 for n in nups):
+        raise argparse.ArgumentTypeError(f'invalid nup: {s} (required: NxN)')
+
+    x, y = nups
+    return argparse.Namespace(x=x, y=y)
 
 
 def present_pdf_file(s):
@@ -94,6 +112,9 @@ parser.add_argument('--name', metavar='TMPL',
 parser.add_argument('--paper', metavar='SIZE', default=PAPER,
                     help=f'output LaTeX paper size (default: {PAPER})')
 
+parser.add_argument('--nup', metavar='NxN', type=nup, default=NUP,
+                    help=f'nup option for  \\includepdfmerge (default: {NUP})')
+
 parser.add_argument('--pages', metavar='RANGE', default=PAGES,
                     help=f'pages option for \\includepdfmerge (default: {PAGES})')
 
@@ -112,9 +133,12 @@ parser.add_argument('--keep', dest='clean_up', action='store_false',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def render_template(*, paper, filename, pages, openright, scale, frame):
+def render_template(xnup, ynup, *,
+                    paper, filename, pages, openright, scale, frame):
     template = string.Template(TEMPLATE)
     context = {'paper': paper,
+               'orientation': 'landscape' if xnup > ynup else 'portrait',
+               'nup': f'{xnup:d}x{ynup:d}',
                'filename': filename,
                'pages': pages,
                'scale': scale,
@@ -135,7 +159,8 @@ def main(args=None):
         f'pdfpages doc: {doc_path}',
         f'destination: {dest_path}', '')
 
-    doc = render_template(paper=args.paper,
+    doc = render_template(xnup=args.nup.x, ynup=args.nup.y,
+                          paper=args.paper,
                           filename=args.pdf_file.name,
                           pages=args.pages,
                           openright=args.openright,

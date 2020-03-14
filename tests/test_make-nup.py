@@ -3,11 +3,11 @@ import subprocess
 
 import pytest
 
-make_2up = importlib.import_module('make-2up')
+make_nup = importlib.import_module('make-nup')
 
 
 @pytest.mark.parametrize('keep', [False, True], ids=lambda x: 'keep=%r' % x)
-def test_make_2up(tmp_path, mocker, keep, encoding='utf-8'):
+def test_make_nup(tmp_path, mocker, keep, encoding='utf-8'):
     paths = 'spam.pdf', 'spam-2UP.tex', 'spam-2UP.pdf'
     pdf_path, tex_path, dest_path = (tmp_path / p for p in paths)
 
@@ -28,7 +28,7 @@ def test_make_2up(tmp_path, mocker, keep, encoding='utf-8'):
 
     run = mocker.patch('subprocess.run', side_effect=run, autospec=True)
 
-    assert make_2up.main([str(pdf_path),
+    assert make_nup.main([str(pdf_path),
                           '--name', '{stem}-2UP.pdf',
                           '--paper', 'legal',
                           '--pages', '1-42',
