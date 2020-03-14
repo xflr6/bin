@@ -22,7 +22,7 @@ PAPER = 'a4'
 
 ORIENT = 'a'
 
-NUP='2x1'
+NUP = '2x1'
 
 PAGES = '-'
 
@@ -117,7 +117,7 @@ parser.add_argument('--paper', metavar='SIZE', default=PAPER,
                     help=f'output LaTeX paper size (default: {PAPER})')
 
 parser.add_argument('--nup', metavar='XxY', type=nup, default=NUP,
-                    help=f'nup option for  \\includepdfmerge (default: {NUP})')
+                    help=f'nup option for \\includepdfmerge (default: {NUP})')
 
 parser.add_argument('--pages', metavar='RANGE', default=PAGES,
                     help=f'pages option for \\includepdfmerge (default: {PAGES})')
