@@ -39,7 +39,7 @@ TEMPLATE = ('\\documentclass['  # http://www.ctan.org/pkg/pdfpages'
                 ']{$filename,$pages}\n'
             '\\end{document}\n')
 
-ENCODING = 'utf-8'
+OPEN_KWARGS = {'encoding': 'utf-8', 'newline': '\n'}
 
 
 log = functools.partial(print, file=sys.stderr, sep='\n')
@@ -142,14 +142,14 @@ def main(args=None):
                           scale=args.scale,
                           frame=args.frame)
 
-    log(f'{doc_path!r}.write_text(..., encoding={ENCODING!r})')
-    with doc_path.open('wt', encoding=ENCODING, newline='\n') as f:
+    log(f'{doc_path!r}.write_text(..., **{OPEN_KWARGS})')
+    with doc_path.open('wt', **OPEN_KWARGS) as f:
         f.write(doc)
 
     cmd = ['pdflatex', '-interaction=batchmode', doc_path.name]
     kwargs = {'cwd': doc_path.parent}
 
-    log(f'subprocess.run({cmd!r}, **{kwargs})')
+    log(f'subprocess.run({cmd}, **{kwargs})')
     log(f'{"[ start subprocess ]":-^80}')
     subprocess.run(cmd, check=True, **kwargs)
     log(f'{"[ end subprocess ]":-^80}')
