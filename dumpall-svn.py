@@ -52,6 +52,8 @@ def template(s):
 
     if not result:
         raise argparse.ArgumentTypeError(f'invalid or empty template: {s}')
+    elif pathlib.Path(result).parent.name:
+        raise argparse.ArgumentTypeError(f'template contains directory: {s}')
     return result
 
 
