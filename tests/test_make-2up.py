@@ -52,7 +52,7 @@ def test_make_2up(tmp_path, mocker, keep, encoding='utf-8'):
                            'openright=false,'
                            'scale=.942,'
                            'frame=false'
-                   ']{spam.pdf,1-42}'
+                       ']{spam.pdf,1-42}'
                    '\\end{document}')
 
     run.assert_called_once_with(['pdflatex', '-interaction=batchmode',
