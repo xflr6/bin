@@ -89,7 +89,7 @@ parser.add_argument('--scale', metavar='FACTOR', type=factor, default=SCALE,
 parser.add_argument('--no-frame', dest='frame', action='store_false',
                     help="don't pass frame option to \\includepdfmerge")
 
-parser.add_argument('--keep', dest='cleanup', action='store_false',
+parser.add_argument('--keep', dest='clean_up', action='store_false',
                     help="don't delete intermediate files (*.tex, *.log, etc.)")
 
 parser.add_argument('--version', action='version', version=__version__)
@@ -103,8 +103,6 @@ def main(args=None):
         dest_path = args.pdf_file.with_name(dest_path.name)
 
     doc_path = dest_path.with_suffix('.tex')
-
-    delete_glob = dest_path.with_suffix('.*').name if args.cleanup else None
 
     log(f'source: {args.pdf_file}',
         f'pdfpages doc: {doc_path}',
@@ -131,7 +129,8 @@ def main(args=None):
     if not dest_path.exists():
         return 'error: result file not found'
 
-    if delete_glob is not None:
+    if args.clean_up:
+        delete_glob = dest_path.with_suffix('.*').name
         delete_paths = set(dest_path.parent.glob(delete_glob)) - {dest_path}
         for p in sorted(delete_paths):
             log(f'{p!r}.unlink()')
