@@ -216,26 +216,27 @@ optional arguments:
 ```sh
 $ make-nup.py --help
 usage: make-nup.py [-h] [--name TMPL] [--paper SIZE] [--nup NxN]
-                   [--pages RANGE] [--scale FACTOR] [--no-frame]
-                   [--no-openright] [--keep] [--version]
+                   [--pages RANGE] [--orient {l,p,a}] [--scale FACTOR]
+                   [--no-frame] [--no-openright] [--keep] [--version]
                    pdf_file
 
 Compile a 2up version of a PDF file using LaTeX pdfpages' \includepdfmerge.
 
 positional arguments:
-  pdf_file        name of the source PDF file for \includepdfmerge
+  pdf_file          name of the source PDF file for \includepdfmerge
 
 optional arguments:
-  -h, --help      show this help message and exit
-  --name TMPL     template for 2up PDF file (default: {stem}_2up.pdf)
-  --paper SIZE    output LaTeX paper size (default: a4)
-  --nup NxN       nup option for \includepdfmerge (default: 2x1)
-  --pages RANGE   pages option for \includepdfmerge (default: -)
-  --scale FACTOR  scale option for \includepdfmerge (default: 1.01)
-  --no-frame      don't pass frame option to \includepdfmerge
-  --no-openright  don't pass openright option to \includepdfmerge
-  --keep          don't delete intermediate files (*.tex, *.log, etc.)
-  --version       show program's version number and exit
+  -h, --help        show this help message and exit
+  --name TMPL       template for 2up PDF file (default: {stem}_2up.pdf)
+  --paper SIZE      output LaTeX paper size (default: a4)
+  --nup NxN         nup option for \includepdfmerge (default: 2x1)
+  --pages RANGE     pages option for \includepdfmerge (default: -)
+  --orient {l,p,a}  l(andscape), p(ortrait), a(uto) (default: a)
+  --scale FACTOR    scale option for \includepdfmerge (default: 1.01)
+  --no-frame        don't pass frame option to \includepdfmerge
+  --no-openright    don't pass openright option to \includepdfmerge
+  --keep            don't delete intermediate files (*.tex, *.log, etc.)
+  --version         show program's version number and exit
 ```
 
 

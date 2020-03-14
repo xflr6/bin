@@ -20,11 +20,15 @@ NAME_TEMPLATE = '{stem}_2up.pdf'
 
 PAPER = 'a4'
 
+ORIENT = 'a'
+
 NUP='2x1'
 
 PAGES = '-'
 
 SCALE = '1.01'
+
+LANDSCAPE = {'l': True, 'p': False, 'a': None}
 
 TEMPLATE = ('\\documentclass['  # http://www.ctan.org/pkg/pdfpages'
                 'paper=$paper,'
@@ -118,6 +122,9 @@ parser.add_argument('--nup', metavar='NxN', type=nup, default=NUP,
 parser.add_argument('--pages', metavar='RANGE', default=PAGES,
                     help=f'pages option for \\includepdfmerge (default: {PAGES})')
 
+parser.add_argument('--orient', choices=list(LANDSCAPE), default=ORIENT,
+                    help=f'l(andscape), p(ortrait), a(uto) (default: {ORIENT})')
+
 parser.add_argument('--scale', metavar='FACTOR', type=factor, default=SCALE,
                     help=f'scale option for \\includepdfmerge (default: {SCALE})')
 
@@ -134,10 +141,12 @@ parser.add_argument('--version', action='version', version=__version__)
 
 
 def render_template(xnup, ynup, *,
-                    paper, filename, pages, openright, scale, frame):
+                    paper, ls, filename, pages, openright, scale, frame):
+    if ls is None:
+        ls = True if xnup > ynup else False
     template = string.Template(TEMPLATE)
     context = {'paper': paper,
-               'orientation': 'landscape' if xnup > ynup else 'portrait',
+               'orientation': 'landscape' if ls else 'portrait',
                'nup': f'{xnup:d}x{ynup:d}',
                'filename': filename,
                'pages': pages,
@@ -161,6 +170,7 @@ def main(args=None):
 
     doc = render_template(xnup=args.nup.x, ynup=args.nup.y,
                           paper=args.paper,
+                          ls=LANDSCAPE[args.orient],
                           filename=args.pdf_file.name,
                           pages=args.pages,
                           openright=args.openright,
