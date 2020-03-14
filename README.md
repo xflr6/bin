@@ -227,7 +227,7 @@ positional arguments:
 
 optional arguments:
   -h, --help        show this help message and exit
-  --name TMPL       template for 2up PDF file (default: {stem}_2up.pdf)
+  --name TMPL       template for nup PDF file (default: {stem}_2up.pdf)
   --paper SIZE      output LaTeX paper size (default: a4)
   --nup XxY         nup option for \includepdfmerge (default: 2x1)
   --pages RANGE     pages option for \includepdfmerge (default: -)

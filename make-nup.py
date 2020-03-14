@@ -61,7 +61,7 @@ def nup(s):
             pass
 
     if not all(nups) or not all(n > 0 for n in nups):
-        raise argparse.ArgumentTypeError(f'invalid nup: {s} (required: NxN)')
+        raise argparse.ArgumentTypeError(f'invalid nup: {s} (e.g: 2x2)')
 
     x, y = nups
     return argparse.Namespace(x=x, y=y)
@@ -111,7 +111,7 @@ parser.add_argument('pdf_file', type=present_pdf_file,
 
 parser.add_argument('--name', metavar='TMPL',
                     type=template, default=NAME_TEMPLATE,
-                    help=f'template for 2up PDF file (default: {NAME_TEMPLATE})')
+                    help=f'template for nup PDF file (default: {NAME_TEMPLATE})')
 
 parser.add_argument('--paper', metavar='SIZE', default=PAPER,
                     help=f'output LaTeX paper size (default: {PAPER})')
