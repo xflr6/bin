@@ -147,10 +147,11 @@ def main(args=None):
         f.write(doc)
 
     cmd = ['pdflatex', '-interaction=batchmode', doc_path.name]
+    kwargs = {'cwd': doc_path.parent}
 
-    log(f'subprocess.run({cmd!r}, cwd={doc_path.parent})')
+    log(f'subprocess.run({cmd!r}, **{kwargs})')
     log(f'{"[ start subprocess ]":-^80}')
-    subprocess.run(cmd, check=True, cwd=doc_path.parent)
+    subprocess.run(cmd, check=True, **kwargs)
     log(f'{"[ end subprocess ]":-^80}')
 
     if not dest_path.exists():
