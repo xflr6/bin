@@ -1,22 +1,9 @@
-import contextlib
 import importlib
-import os
 import subprocess
 
 import pytest
 
 make_2up = importlib.import_module('make-2up')
-
-
-@contextlib.contextmanager
-def chdir(path):
-    old = os.getcwd()
-
-    os.chdir(path)
-    yield None
-
-    os.chdir(old)
-    return
 
 
 @pytest.mark.parametrize('keep', [False, True], ids=lambda x: 'keep=%r' % x)
@@ -41,15 +28,14 @@ def test_make_2up(tmp_path, mocker, keep, encoding='utf-8'):
 
     run = mocker.patch('subprocess.run', side_effect=run, autospec=True)
 
-    with chdir(tmp_path):
-        assert make_2up.main([pdf_path.name,
-                              '{stem}-2UP.pdf',
-                              '--paper', 'legal',
-                              '--pages', '1-42',
-                              '--scale', '.942',
-                              '--no-frame',
-                              '--no-openright']
-                             + (['--keep'] if keep else [])) is None
+    assert make_2up.main([str(pdf_path),
+                          '--name', '{stem}-2UP.pdf',
+                          '--paper', 'legal',
+                          '--pages', '1-42',
+                          '--scale', '.942',
+                          '--no-frame',
+                          '--no-openright']
+                         + (['--keep'] if keep else [])) is None
 
     assert tex_path.exists() == keep
 
@@ -69,7 +55,5 @@ def test_make_2up(tmp_path, mocker, keep, encoding='utf-8'):
                    ']{spam.pdf,1-42}'
                    '\\end{document}')
 
-    run.assert_called_once_with(['pdflatex',
-                                 '-interaction=batchmode',
-                                 tex_path.relative_to(tmp_path)],
-                                check=True)
+    run.assert_called_once_with(['pdflatex', '-interaction=batchmode',
+                                 tex_path.name], check=True, cwd=tmp_path)

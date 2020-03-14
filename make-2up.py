@@ -66,6 +66,8 @@ def template(s):
 
     if not value:
         raise argparse.ArgumentTypeError(f'invalid or empty template: {s}')
+    elif pathlib.Path(value).parent.name:
+        raise argparse.ArgumentTypeError(f'template contains directory: {s}')
     return s
 
 
@@ -85,8 +87,9 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('pdf_file', type=present_pdf_file,
                     help='name of the source PDF file for \\includepdfmerge')
 
-parser.add_argument('dest_file', nargs='?', type=template, default=NAME_TEMPLATE,
-                    help=f'name template for 2up PDF file (default: {NAME_TEMPLATE})')
+parser.add_argument('--name', metavar='TMPL',
+                    type=template, default=NAME_TEMPLATE,
+                    help=f'template for 2up PDF file (default: {NAME_TEMPLATE})')
 
 parser.add_argument('--paper', metavar='SIZE', default=PAPER,
                     help=f'output LaTeX paper size (default: {PAPER})')
@@ -123,9 +126,8 @@ def render_template(*, paper, filename, pages, openright, scale, frame):
 def main(args=None):
     args = parser.parse_args(args)
 
-    dest_path = pathlib.Path(args.dest_file.format(stem=args.pdf_file.stem))
-    if not args.pdf_file.parent.name:
-        dest_path = args.pdf_file.with_name(dest_path.name)
+    dest_path = args.name.format(stem=args.pdf_file.stem)
+    dest_path = args.pdf_file.with_name(dest_path)
 
     doc_path = dest_path.with_suffix('.tex')
 
@@ -134,7 +136,7 @@ def main(args=None):
         f'destination: {dest_path}', '')
 
     doc = render_template(paper=args.paper,
-                          filename=args.pdf_file,
+                          filename=args.pdf_file.name,
                           pages=args.pages,
                           openright=args.openright,
                           scale=args.scale,
@@ -144,11 +146,11 @@ def main(args=None):
     with doc_path.open('wt', encoding=ENCODING, newline='\n') as f:
         f.write(doc)
 
-    cmd = ['pdflatex', '-interaction=batchmode', doc_path]
+    cmd = ['pdflatex', '-interaction=batchmode', doc_path.name]
 
-    log(f'subprocess.run({cmd!r})')
+    log(f'subprocess.run({cmd!r}, cwd={doc_path.parent})')
     log(f'{"[ start subprocess ]":-^80}')
-    subprocess.run(cmd, check=True)
+    subprocess.run(cmd, check=True, cwd=doc_path.parent)
     log(f'{"[ end subprocess ]":-^80}')
 
     if not dest_path.exists():

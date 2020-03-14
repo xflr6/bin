@@ -215,18 +215,19 @@ optional arguments:
 
 ```sh
 $ make-2up.py --help
-usage: make-2up.py [-h] [--paper SIZE] [--pages RANGE] [--scale FACTOR]
-                   [--no-frame] [--no-openright] [--keep] [--version]
-                   pdf_file [dest_file]
+usage: make-2up.py [-h] [--name TMPL] [--paper SIZE] [--pages RANGE]
+                   [--scale FACTOR] [--no-frame] [--no-openright] [--keep]
+                   [--version]
+                   pdf_file
 
 Compile a 2up version of a PDF file using LaTeX pdfpages' \includepdfmerge.
 
 positional arguments:
   pdf_file        name of the source PDF file for \includepdfmerge
-  dest_file       name template for 2up PDF file (default: {stem}_2up.pdf)
 
 optional arguments:
   -h, --help      show this help message and exit
+  --name TMPL     template for 2up PDF file (default: {stem}_2up.pdf)
   --paper SIZE    output LaTeX paper size (default: a4)
   --pages RANGE   pages option for \includepdfmerge (default: -)
   --scale FACTOR  scale option for \includepdfmerge (default: 1.01)
