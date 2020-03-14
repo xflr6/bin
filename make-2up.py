@@ -128,6 +128,9 @@ def main(args=None):
     subprocess.run(cmd, check=True)
     log(f'{"[ end subprocess ]":-^80}')
 
+    if not dest_path.exists():
+        return 'error: result file not found'
+
     if delete_glob is not None:
         delete_paths = set(dest_path.parent.glob(delete_glob)) - {dest_path}
         for p in sorted(delete_paths):
