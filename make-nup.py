@@ -141,12 +141,13 @@ parser.add_argument('--version', action='version', version=__version__)
 
 
 def render_template(xnup, ynup, *,
-                    paper, ls, filename, pages, openright, scale, frame):
-    if ls is None:
-        ls = True if xnup > ynup else False
+                    paper, landscape, filename, pages, openright, scale, frame):
+    if landscape is None:
+        landscape = xnup > ynup
+
     template = string.Template(TEMPLATE)
     context = {'paper': paper,
-               'orientation': 'landscape' if ls else 'portrait',
+               'orientation': 'landscape' if landscape else 'portrait',
                'nup': f'{xnup:d}x{ynup:d}',
                'filename': filename,
                'pages': pages,
@@ -168,9 +169,9 @@ def main(args=None):
         f'pdfpages doc: {doc_path}',
         f'destination: {dest_path}', '')
 
-    doc = render_template(xnup=args.nup.x, ynup=args.nup.y,
+    doc = render_template(args.nup.x, args.nup.y,
                           paper=args.paper,
-                          ls=LANDSCAPE[args.orient],
+                          landscape=LANDSCAPE[args.orient],
                           filename=args.pdf_file.name,
                           pages=args.pages,
                           openright=args.openright,
