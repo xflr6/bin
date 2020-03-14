@@ -118,7 +118,7 @@ def main(args=None):
                           frame='true' if args.frame else 'false')
 
     log(f'{doc_path!r}.write_text(..., encoding={ENCODING!r})')
-    with doc_path.open('wt', encoding=ENCODING, newline='') as f:
+    with doc_path.open('wt', encoding=ENCODING, newline='\n') as f:
         f.write(doc)
 
     cmd = ['pdflatex', '-interaction=batchmode', doc_path]

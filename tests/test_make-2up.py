@@ -28,8 +28,12 @@ def test_make_2up(tmp_path, mocker, encoding='utf-8'):
 
     def run(*args, **kwargs):
         nonlocal doc
-        doc = tex_path.read_text(encoding=encoding)
+
+        with open(tex_path, encoding=encoding, newline='') as f:
+            doc = f.read()
+
         dest_path.write_bytes(b'\xde\xad\xbe\xef')
+
         return mocker.create_autospec(subprocess.CompletedProcess, returncode=0)
 
     run = mocker.patch('subprocess.run', side_effect=run, autospec=True)
