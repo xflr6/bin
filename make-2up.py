@@ -18,18 +18,27 @@ import sys
 
 NAME_TEMPLATE = '{stem}_2up.pdf'
 
-DOC_TEMPLATE = ('\\documentclass[paper=a4,paper=landscape]{scrartcl}\n'
-                '\\usepackage{pdfpages}\n'
-                '\\pagestyle{empty}\n'
+DOC_TEMPLATE = ('\\documentclass['
+                    'paper=$paper,'
+                    'paper=landscape'
+                ']{scrartcl}\n'
+                    '\\usepackage{pdfpages}\n'
+                    '\\pagestyle{empty}\n'
                 '\\begin{document}\n'
-                '% http://www.ctan.org/pkg/pdfpages\n'
-                '\\includepdfmerge[nup=2x1,openright,scale=$scale,frame=$frame]'
-                '{$filename,$pages}\n'
-                '\\end{document}')
+                    '% http://www.ctan.org/pkg/pdfpages\n'
+                    '\\includepdfmerge['
+                        'nup=2x1,'
+                        'openright=$openright,'
+                        'scale=$scale,'
+                        'frame=$frame'
+                    ']{$filename,$pages}\n'
+                '\\end{document}\n')
 
 PAGES = '-'
 
 SCALE = '1.01'
+
+PAPER = 'a4'
 
 ENCODING = 'utf-8'
 
@@ -80,6 +89,9 @@ parser.add_argument('pdf_file', type=present_pdf_file,
 parser.add_argument('dest_file', nargs='?', type=template, default=NAME_TEMPLATE,
                     help=f'name template for 2up PDF file (default: {NAME_TEMPLATE})')
 
+parser.add_argument('--paper', metavar='SIZE', default=PAPER,
+                    help=f'output LaTeX paper size (default: {PAPER})')
+
 parser.add_argument('--pages', metavar='RANGE', default=PAGES,
                     help=f'pages option for \\includepdfmerge (default: {PAGES})')
 
@@ -89,10 +101,25 @@ parser.add_argument('--scale', metavar='FACTOR', type=factor, default=SCALE,
 parser.add_argument('--no-frame', dest='frame', action='store_false',
                     help="don't pass frame option to \\includepdfmerge")
 
+parser.add_argument('--no-openright', dest='openright', action='store_false',
+                    help="don't pass openright option to \\includepdfmerge")
+
 parser.add_argument('--keep', dest='clean_up', action='store_false',
                     help="don't delete intermediate files (*.tex, *.log, etc.)")
 
 parser.add_argument('--version', action='version', version=__version__)
+
+
+def render_template(template=DOC_TEMPLATE, *,
+                    paper, filename, pages, openright, scale, frame):
+    template = string.Template(template)
+    context = {'paper': paper,
+               'filename': filename,
+               'pages': pages,
+               'scale': scale,
+               'openright': 'true' if openright else 'false',
+               'frame': 'true' if frame else 'false'}
+    return template.substitute(context)
 
 
 def main(args=None):
@@ -108,12 +135,12 @@ def main(args=None):
         f'pdfpages doc: {doc_path}',
         f'destination: {dest_path}', '')
 
-    tmpl = string.Template(DOC_TEMPLATE)
-
-    doc = tmpl.substitute(filename=args.pdf_file,
+    doc = render_template(paper=args.paper,
+                          filename=args.pdf_file,
                           pages=args.pages,
+                          openright=args.openright,
                           scale=args.scale,
-                          frame='true' if args.frame else 'false')
+                          frame=args.frame)
 
     log(f'{doc_path!r}.write_text(..., encoding={ENCODING!r})')
     with doc_path.open('wt', encoding=ENCODING, newline='\n') as f:

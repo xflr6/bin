@@ -21,7 +21,7 @@ def chdir(path):
 
 @pytest.mark.parametrize('keep', [False, True], ids=lambda x: 'keep=%r' % x)
 def test_make_2up(tmp_path, mocker, keep, encoding='utf-8'):
-    paths = 'spam.pdf', 'spam-2up.tex', 'spam-2up.pdf'
+    paths = 'spam.pdf', 'spam-2UP.tex', 'spam-2UP.pdf'
     pdf_path, tex_path, dest_path = (tmp_path / p for p in paths)
 
     pdf_path.write_bytes(b'')
@@ -43,22 +43,25 @@ def test_make_2up(tmp_path, mocker, keep, encoding='utf-8'):
 
     with chdir(tmp_path):
         assert make_2up.main([pdf_path.name,
-                              '{stem}-2up.pdf',
+                              '{stem}-2UP.pdf',
+                              '--paper', 'legal',
                               '--pages', '1-42',
-                              '--scale', '.9',
-                              '--no-frame']
+                              '--scale', '.942',
+                              '--no-frame',
+                              '--no-openright']
                              + (['--keep'] if keep else [])) is None
 
     assert tex_path.exists() == keep
 
-    assert doc == ('\\documentclass[paper=a4,paper=landscape]{scrartcl}\n'
-                   '\\usepackage{pdfpages}\n'
-                   '\\pagestyle{empty}\n'
-                   '\\begin{document}\n'
-                   '% http://www.ctan.org/pkg/pdfpages\n'
-                   '\\includepdfmerge[nup=2x1,openright,scale=.9,frame=false]'
-                   '{spam.pdf,1-42}\n'
-                   '\\end{document}')
+    assert doc == '''\
+\\documentclass[paper=legal,paper=landscape]{scrartcl}
+\\usepackage{pdfpages}
+\\pagestyle{empty}
+\\begin{document}
+% http://www.ctan.org/pkg/pdfpages
+\\includepdfmerge[nup=2x1,openright=false,scale=.942,frame=false]{spam.pdf,1-42}
+\\end{document}
+'''
 
     run.assert_called_once_with(['pdflatex',
                                  '-interaction=batchmode',

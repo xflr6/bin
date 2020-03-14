@@ -215,8 +215,8 @@ optional arguments:
 
 ```sh
 $ make-2up.py --help
-usage: make-2up.py [-h] [--pages RANGE] [--scale FACTOR] [--no-frame] [--keep]
-                   [--version]
+usage: make-2up.py [-h] [--paper SIZE] [--pages RANGE] [--scale FACTOR]
+                   [--no-frame] [--no-openright] [--keep] [--version]
                    pdf_file [dest_file]
 
 Compile a 2up version of a PDF file using LaTeX pdfpages' \includepdfmerge.
@@ -227,9 +227,11 @@ positional arguments:
 
 optional arguments:
   -h, --help      show this help message and exit
+  --paper SIZE    output LaTeX paper size (default: a4)
   --pages RANGE   pages option for \includepdfmerge (default: -)
   --scale FACTOR  scale option for \includepdfmerge (default: 1.01)
   --no-frame      don't pass frame option to \includepdfmerge
+  --no-openright  don't pass openright option to \includepdfmerge
   --keep          don't delete intermediate files (*.tex, *.log, etc.)
   --version       show program's version number and exit
 ```
