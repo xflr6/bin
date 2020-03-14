@@ -18,27 +18,27 @@ import sys
 
 NAME_TEMPLATE = '{stem}_2up.pdf'
 
-DOC_TEMPLATE = ('\\documentclass['
-                    'paper=$paper,'
-                    'paper=landscape'
-                ']{scrartcl}\n'
-                    '\\usepackage{pdfpages}\n'
-                    '\\pagestyle{empty}\n'
-                '\\begin{document}\n'
-                    '% http://www.ctan.org/pkg/pdfpages\n'
-                    '\\includepdfmerge['
-                        'nup=2x1,'
-                        'openright=$openright,'
-                        'scale=$scale,'
-                        'frame=$frame'
-                    ']{$filename,$pages}\n'
-                '\\end{document}\n')
+PAPER = 'a4'
 
 PAGES = '-'
 
 SCALE = '1.01'
 
-PAPER = 'a4'
+TEMPLATE = ('\\documentclass['
+                'paper=$paper,'
+                'paper=landscape'
+            ']{scrartcl}\n'
+                '\\usepackage{pdfpages}\n'
+                '\\pagestyle{empty}\n'
+            '\\begin{document}\n'
+                '% http://www.ctan.org/pkg/pdfpages\n'
+                '\\includepdfmerge['
+                    'nup=2x1,'
+                    'openright=$openright,'
+                    'scale=$scale,'
+                    'frame=$frame'
+                ']{$filename,$pages}\n'
+            '\\end{document}\n')
 
 ENCODING = 'utf-8'
 
@@ -110,9 +110,8 @@ parser.add_argument('--keep', dest='clean_up', action='store_false',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def render_template(template=DOC_TEMPLATE, *,
-                    paper, filename, pages, openright, scale, frame):
-    template = string.Template(template)
+def render_template(*, paper, filename, pages, openright, scale, frame):
+    template = string.Template(TEMPLATE)
     context = {'paper': paper,
                'filename': filename,
                'pages': pages,
