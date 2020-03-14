@@ -211,6 +211,30 @@ optional arguments:
 ```
 
 
+### make-2up.py
+
+```sh
+$ make-2up.py --help
+usage: make-2up.py [-h] [--pages RANGE] [--scale FACTOR] [--no-frame] [--keep]
+                   [--version]
+                   pdf_file [dest_file]
+
+Compile a 2up version of a PDF file using LaTeX pdfpages' \includepdfmerge.
+
+positional arguments:
+  pdf_file        name of the source PDF file for \includepdfmerge
+  dest_file       name template for 2up PDF file (default: {stem}_2up.pdf)
+
+optional arguments:
+  -h, --help      show this help message and exit
+  --pages RANGE   pages option for \includepdfmerge (default: -)
+  --scale FACTOR  scale option for \includepdfmerge (default: 1.01)
+  --no-frame      don't pass frame option to \includepdfmerge
+  --keep          don't delete intermediate files (*.tex, *.log, etc.)
+  --version       show program's version number and exit
+```
+
+
 ### pull-gists.py
 
 ```sh
