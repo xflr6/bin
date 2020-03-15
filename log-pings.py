@@ -223,7 +223,7 @@ def validate_checksum(header, *, index=None, bytes=None):
             msg = f'non-zero result 0x{result:04x}'
         else:
             found = header[index]
-            zeroed = header[:index] + (0,) + header[index + 1:]
+            zeroed = header[:index] + [0] + header[index + 1:]
             expected = rfc1071_checksum(zeroed)
             msg = f'0x{found:04x} (expected: 0x{expected:04x})'
         raise InvalidChecksumError(msg)
@@ -232,8 +232,10 @@ def validate_checksum(header, *, index=None, bytes=None):
 
 def rfc1071_checksum(ints):
     val = sum(ints)
+
     while val >> 16:
         val = (val & 0xffff) + (val >> 16)
+
     return ~val & 0xffff
 
 
@@ -262,15 +264,15 @@ class IPHeader(NetworkStructure):
         return cls.from_buffer_copy(b)
 
     def validate_checksum(self):
-        validate_checksum(((self.version << 12) + (self.ihl << 8) + self.tos,
-                           self.length,
-                           self.ident,
-                           self.flags_fragoffset,
-                           (self.ttl << 8) + self.proto,
-                           self.hdr_checksum,
-                           self.src_addr >> 16, self.src_addr & 0xffff,
-                           self.dst_addr >> 16, self.dst_addr & 0xffff),
-                          index=5)
+        ints = [(self.version << 12) + (self.ihl << 8) + self.tos,
+                 self.length,
+                 self.ident,
+                 self.flags_fragoffset,
+                 (self.ttl << 8) + self.proto,
+                 self.hdr_checksum,
+                 self.src_addr >> 16, self.src_addr & 0xffff,
+                 self.dst_addr >> 16, self.dst_addr & 0xffff]
+        validate_checksum(ints, index=5)
 
     @property
     def src(self):
@@ -331,11 +333,11 @@ class ICMPPacket(NetworkStructure):
         return inst
 
     def validate_checksum(self):
-        validate_checksum(((self.type << 8) + self.code,
-                           self.checksum,
-                           self.ident,
-                           self.seq_num),
-                          index=1, bytes=self.payload)
+        ints = [(self.type << 8) + self.code,
+                self.checksum,
+                self.ident,
+                self.seq_num]
+        validate_checksum(ints, index=1, bytes=self.payload)
 
     def is_ping(self, ICMP_ECHO=8, ICMP_NO_CODE=0):
         return self.type == ICMP_ECHO and self.code == ICMP_NO_CODE
