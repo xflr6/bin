@@ -20,14 +20,14 @@ def ip_header():
                             src='127.0.0.2',
                             dst='127.0.0.1')
 
-    assert ip.to_bytes() == (b'\x45\x00'
-                             b'\x00\x3c'
-                             b'\x00\x0f'
-                             b'\x00\x00'
-                             b'\x2a\x01'
-                             b'\x92\xaf'
-                             b'\x7f\x00\x00\x02'
-                             b'\x7f\x00\x00\x01')
+    assert ip.to_bytes().hex(' ') == ('45 00 '
+                                      '00 3c '
+                                      '00 0f '
+                                      '00 00 '
+                                      '2a 01 '
+                                      '92 af '
+                                      '7f 00 00 02 '
+                                      '7f 00 00 01')
 
     return ip
 
@@ -42,11 +42,11 @@ def icmp_packet(encoding='utf-8'):
                                 seq_num=42,
                                 payload=msg)
 
-    assert icmp.to_bytes() == (b'\x08\x00'
-                               b'\x4c\x33'
-                               b'\x00\xff'
-                               b'\x00\x2a'
-                               + msg)
+    assert icmp.to_bytes().hex(' ') == ('08 00 '
+                                        '4c 33 '
+                                        '00 ff '
+                                        '00 2a '
+                                        + msg.hex(' '))
 
     return icmp
 
