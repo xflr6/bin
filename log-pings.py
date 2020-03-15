@@ -327,6 +327,7 @@ def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
 
         try:
             ip = IPHeader.from_bytes(view[:20])
+            logging.debug('%s', ip, extra=EX)
             icmp = ICMPPacket.from_bytes(view[20:n_bytes])
         except InvalidChecksumError as e:
             logging.debug('%s: %s', e.__class__.__name__, e, extra=EX)
