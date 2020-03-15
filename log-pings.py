@@ -10,8 +10,10 @@ __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
 import codecs
+import collections
 import ctypes
 import logging
+import operator
 import os
 import pathlib
 import signal
@@ -222,13 +224,29 @@ class MappingProxy:
         self._delegate = delegate
 
     def __getitem__(self, key):
+        get_attr = operator.attrgetter(key)
         try:
-            return getattr(self._delegate, key)
+            return get_attr(self._delegate)
         except AttributeError:
             raise KeyError(key)
 
 
 B8, H16, L32 = ctypes.c_uint8, ctypes.c_uint16, ctypes.c_uint32
+
+
+class IPFlags(collections.namedtuple('_IPFlags', ['res', 'df', 'mf'])):
+
+    __slots__= ()
+
+    @classmethod
+    def from_int(cls, i):
+
+        def iterbools(i, mask):
+            while mask:
+                yield bool(i & mask)
+                mask >>= 1
+
+        return cls._make(iterbools(i, 0b100))
 
 
 class IPHeader(NetworkStructure):
@@ -251,14 +269,7 @@ class IPHeader(NetworkStructure):
 
     @property
     def flags(self):
-        flags = self.flags_fragoffset >> 13
-
-        def iterbools(n, mask):
-            while mask:
-                yield bool(flags & mask)
-                mask >>= 1
-
-        return tuple(iterbools(flags, 0b100))
+        return IPFlags.from_int(self.flags_fragoffset >> 13)
 
     @property
     def fragoffset(self):
