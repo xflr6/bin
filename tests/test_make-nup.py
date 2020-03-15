@@ -44,8 +44,6 @@ def test_make_nup(tmp_path, mocker, keep, encoding='utf-8'):
                           '--no-openright']
                          + (['--keep'] if keep else [])) is None
 
-    assert tex_path.exists() == keep
-
     doc = re.sub(r'\s', '', doc)
     assert doc == ('\\documentclass['
                        'paper=legal,'
@@ -63,6 +61,8 @@ def test_make_nup(tmp_path, mocker, keep, encoding='utf-8'):
                    '\\end{document}')
 
     assert newlines == '\n'
+
+    assert tex_path.exists() == keep
 
     run.assert_called_once_with(['pdflatex', '-interaction=batchmode',
                                  tex_path.name], check=True, cwd=tmp_path)
