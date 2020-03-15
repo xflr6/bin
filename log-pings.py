@@ -209,7 +209,7 @@ def validate_checksum(ints, *, index=None):
     result = rfc1071_checksum(ints)
     if result:
         if index is None:
-            msg = f'non-zero result: 0x{result:0fx}'
+            msg = f'non-zero result 0x{result:04x}'
         else:
             zeroed = ints[:index] + (0,) + ints[index + 1:]
             expected = rfc1071_checksum(zeroed)
