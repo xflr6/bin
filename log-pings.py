@@ -205,18 +205,15 @@ class MappingProxy:
             raise KeyError(key)
 
 
-def verify_checksum(b, *, format=None):
-    if format is None:
-        n_ints, is_odd = divmod(len(b), 2)
-        if is_odd:
-            b = bytes(b) + b'\x00'
-            n_ints += 1
-        format = f'!{n_ints}H'
-
-    ints = struct.unpack(format, b)
+def validate_checksum(ints, *, index=None):
     result = rfc1071_checksum(ints)
-    if result:
-        raise InvalidChecksumError(f'0x{result:04x}')
+    if result and index is not None:
+        expected = ''
+        if index is not None:
+            zeroed = ints[:index] + (0,) + ints[index + 1:]
+            expected = rfc1071_checksum(zeroed)
+            expected = f' (expected: 0x{expected:04x})'
+        raise InvalidChecksumError(f'0x{ints[index]:04x}{expected}')
     return result
 
 
@@ -249,8 +246,18 @@ class IPHeader(NetworkStructure):
 
     @classmethod
     def from_bytes(cls, b):
-        verify_checksum(b, format='!10H')
         return cls.from_buffer_copy(b)
+
+    def validate_checksum(self):
+        validate_checksum(((self.version << 12) + (self.ihl << 8) + self.tos,
+                           self.length,
+                           self.ident,
+                           self.flags_fragoffset,
+                           (self.ttl << 8) + self.proto,
+                           self.hdr_checksum,
+                           self.src_addr >> 16, self.src_addr & 0xffff,
+                           self.dst_addr >> 16, self.dst_addr & 0xffff),
+                          index=5)
 
     @property
     def src(self):
@@ -306,10 +313,22 @@ class ICMPPacket(NetworkStructure):
 
     @classmethod
     def from_bytes(cls, b):
-        verify_checksum(b)
         inst = cls.from_buffer_copy(b)
         inst.payload = bytes(b[8:])
         return inst
+
+    def validate_checksum(self):
+        payload = self.payload
+        n_ints, is_odd = divmod(len(payload), 2)
+        if is_odd:
+            payload += b'\x00' 
+            n_ints += 1
+        validate_checksum(((self.type << 8) + self.code,
+                           self.checksum,
+                           self.ident,
+                           self.seq_num)
+                          + struct.unpack(f'!{n_ints}H', payload),
+                          index=1)
 
     def is_ping(self, ICMP_ECHO=8, ICMP_NO_CODE=0):
         return self.type == ICMP_ECHO and self.code == ICMP_NO_CODE
@@ -325,10 +344,15 @@ def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
     while True:
         n_bytes = s.recv_into(buf)
 
+        ip = IPHeader.from_bytes(view[:20])
+        logging.debug('%s', ip, extra=EX)
+
+        icmp = ICMPPacket.from_bytes(view[20:n_bytes])
+        logging.debug('%s', icmp, extra=EX)
+
         try:
-            ip = IPHeader.from_bytes(view[:20])
-            logging.debug('%s', ip, extra=EX)
-            icmp = ICMPPacket.from_bytes(view[20:n_bytes])
+            ip.validate_checksum()
+            icmp.validate_checksum()
         except InvalidChecksumError as e:
             logging.debug('%s: %s', e.__class__.__name__, e, extra=EX)
             continue

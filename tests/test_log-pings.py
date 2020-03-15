@@ -58,7 +58,7 @@ def test_log_pings(capsys, mocker, ip_header, icmp_packet, host='127.0.0.1'):
     packets = iter([
         ip_header.to_bytes() + icmp_packet.to_bytes(),
         ip_header.to_bytes() + icmp_packet.replace(payload=b'abcde', checksum=0xcd0f).to_bytes(),
-        ip_header.replace(hdr_checksum=0).to_bytes() + icmp_packet.to_bytes(),
+        ip_header.replace(hdr_checksum=0xdead).to_bytes() + icmp_packet.to_bytes(),
     ])
 
     def recv_into(buf):
@@ -95,12 +95,21 @@ def test_log_pings(capsys, mocker, ip_header, icmp_packet, host='127.0.0.1'):
                 '... IPHeader(version=4, ihl=5, tos=0, length=60, ident=15,'
                 ' flags_fragoffset=0, ttl=42, proto=1, hdr_checksum=37551,'
                 ' src_addr=2130706434, dst_addr=2130706433)',
+                '... ICMPPacket(type=8, code=0, checksum=19507, ident=255,'
+                ' seq_num=42)',
                 f'... 127.0.0.2:15 [92af] False <255:42> {MSG}',
                 '... IPHeader(version=4, ihl=5, tos=0, length=60, ident=15,'
                 ' flags_fragoffset=0, ttl=42, proto=1, hdr_checksum=37551,'
                 ' src_addr=2130706434, dst_addr=2130706433)',
+                '... ICMPPacket(type=8, code=0, checksum=52495, ident=255,'
+                ' seq_num=42)',
                 '... 127.0.0.2:15 [92af] False <255:42> abcde',
-                '... InvalidChecksumError: 0x92af',
+                '... IPHeader(version=4, ihl=5, tos=0, length=60, ident=15,'
+                ' flags_fragoffset=0, ttl=42, proto=1, hdr_checksum=57005,'
+                ' src_addr=2130706434, dst_addr=2130706433)',
+                '... ICMPPacket(type=8, code=0, checksum=19507, ident=255,'
+                ' seq_num=42)',
+                '... InvalidChecksumError: 0xdead (expected: 0x92af)',
                 '... SystemExit() exiting',
                 '... socket.close()']
 
