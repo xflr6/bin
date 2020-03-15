@@ -8,6 +8,7 @@ __author__ = 'Sebastian Bank <sebastian.bank@uni-leipzig.de>'
 __license__ = 'MIT, see LICENSE.txt'
 __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
+import array
 import argparse
 import codecs
 import collections
@@ -18,7 +19,6 @@ import os
 import pathlib
 import signal
 import socket
-import struct
 import sys
 import time
 
@@ -208,11 +208,14 @@ class MappingProxy:
 def validate_checksum(header, *, index=None, bytes=None):
     ints = header
     if bytes is not None:
-        n_ints, is_odd = divmod(len(bytes), 2)
-        if is_odd:
-            bytes += b'\x00'
-            n_ints += 1
-        ints += struct.unpack(f'!{n_ints}H', bytes)
+        ints = array.array('H', ints)
+        if len(bytes) % 2:
+            bytes = bytearray(bytes)
+            bytes.append(0)
+        b_ints = array.array('H', bytes)
+        if sys.byteorder != 'big':
+            b_ints.byteswap()
+        ints.extend(b_ints)
 
     result = rfc1071_checksum(ints)
     if result:
