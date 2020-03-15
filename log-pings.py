@@ -176,8 +176,8 @@ class NetworkStructure(ctypes.BigEndianStructure):
     __slots__ = ()
 
     def __repr__(self):
-        kwargs = ', '.join(f'{f}={getattr(self, f)}' for f, *_ in self._fields_)
-        return f'{self.__class__.__name__}({kwargs})'
+        kwargs = ', '.join(f'{f}=%({f})r' for f, *_ in self._fields_)
+        return self.format(f'{self.__class__.__name__}({kwargs})')
 
     def format(self, template):
         return template % MappingProxy(self)
