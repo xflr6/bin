@@ -75,7 +75,9 @@ def test_log_pings(capsys, mocker, ip_header, icmp_packet, host='127.0.0.1'):
     bufsize = 128
 
     assert log_pings.main(['--host', host,
-                           '--ipfmt', ' %(src)s:%(ident)s [%(hdr_checksum)x] %(flags.df)s',
+                           '--ipfmt', (' %(src)s:%(ident)s'
+                                       ' [%(hdr_checksum)x]'
+                                       ' %(flags.df)s'),
                            '--icmpfmt', ' <%(ident)d:%(seq_num)d>',
                            '--setuid', 'nonuser',
                            '--chroot', '.',
@@ -90,9 +92,13 @@ def test_log_pings(capsys, mocker, ip_header, icmp_packet, host='127.0.0.1'):
 
     expected = ["... listening on '127.0.0.1'",
                 '... serve_forever(...)',
-                '... IPHeader(version=4, ihl=5, tos=0, length=60, ident=15, flags_fragoffset=0, ttl=42, proto=1, hdr_checksum=37551, src_addr=2130706434, dst_addr=2130706433)',
+                '... IPHeader(version=4, ihl=5, tos=0, length=60, ident=15,'
+                ' flags_fragoffset=0, ttl=42, proto=1, hdr_checksum=37551,'
+                ' src_addr=2130706434, dst_addr=2130706433)',
                 f'... 127.0.0.2:15 [92af] False <255:42> {MSG}',
-                '... IPHeader(version=4, ihl=5, tos=0, length=60, ident=15, flags_fragoffset=0, ttl=42, proto=1, hdr_checksum=37551, src_addr=2130706434, dst_addr=2130706433)',
+                '... IPHeader(version=4, ihl=5, tos=0, length=60, ident=15,'
+                ' flags_fragoffset=0, ttl=42, proto=1, hdr_checksum=37551,'
+                ' src_addr=2130706434, dst_addr=2130706433)',
                 '... 127.0.0.2:15 [92af] False <255:42> abcde',
                 '... InvalidChecksumError: 0x92af',
                 '... SystemExit() exiting',
