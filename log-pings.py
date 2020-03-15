@@ -207,13 +207,14 @@ class MappingProxy:
 
 def validate_checksum(ints, *, index=None):
     result = rfc1071_checksum(ints)
-    if result and index is not None:
-        expected = ''
-        if index is not None:
+    if result:
+        if index is None:
+            msg = f'non-zero result: 0x{result:0fx}'
+        else:
             zeroed = ints[:index] + (0,) + ints[index + 1:]
             expected = rfc1071_checksum(zeroed)
-            expected = f' (expected: 0x{expected:04x})'
-        raise InvalidChecksumError(f'0x{ints[index]:04x}{expected}')
+            msg = f'0x{ints[index]:04x} (expected: 0x{expected:04x})'
+        raise InvalidChecksumError(msg)
     return result
 
 
