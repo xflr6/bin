@@ -12,11 +12,18 @@ def test_log_udp(capsys, mocker, host='127.0.0.1', port=9, encoding='utf-8'):
 
     msg = 'spam lovely spam'
 
-    def recvfrom():
-        yield msg.encode(encoding), (host, port)
-        raise SystemExit
+    packets = iter([msg.encode(encoding)])
 
-    socket.return_value.recvfrom.side_effect = recvfrom()
+    def recvfrom_into(buf):
+        try:
+            p = next(packets)
+        except StopIteration:
+            raise SystemExit
+        assert len(p) <= len(buf)
+        buf[:len(p)] = p
+        return len(p), (host, port)
+
+    socket.return_value.recvfrom_into.side_effect = recvfrom_into
 
     assert log_udp.main(['--host', host,
                          '--port', str(port),
@@ -34,6 +41,6 @@ def test_log_udp(capsys, mocker, host='127.0.0.1', port=9, encoding='utf-8'):
 
     assert socket.mock_calls == [s, setsockopt,
                                  s.bind((host, port)),
-                                 s.recvfrom(1024),
-                                 s.recvfrom(1024),
+                                 s.recvfrom_into(mocker.ANY),
+                                 s.recvfrom_into(mocker.ANY),
                                  s.close()]

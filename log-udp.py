@@ -159,13 +159,18 @@ def itertail(iterable, *, n):
 
 
 def serve_forever(s, *, encoding, bufsize=2**10):
+    buf = bytearray(bufsize)
+
     while True:
-        raw, (host, port) = s.recvfrom(bufsize)
+        n_bytes, (host, port) = s.recvfrom_into(buf)
+        raw = buf[:n_bytes]
+
+        logging.debug('%d, (%r, %d) = s.recvfrom_into(...)', n_bytes, host, port)
 
         try:
             msg = raw.decode(encoding).strip()
         except UnicodeDecodeError as e:
-            msg = ascii(raw)
+            msg = ascii(bytes(raw))
             logging.debug('%s: %s', e.__class__.__name__, e)
 
         logging.info('%s:%d %s', host, port, msg)
