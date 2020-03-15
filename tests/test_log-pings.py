@@ -12,14 +12,14 @@ MSG = 'abcdefghijklmnopqrstuvwabcdefghi'
 
 @pytest.fixture
 def ip_header():
-    ip = log_pings.IPHeader(version_ihl=0x45, tos=0,
+    ip = log_pings.IPHeader(version=4, ihl=5, tos=0,
                             length=60,
                             ident=15,
                             flags_fragoffset=0,
                             ttl=42, proto=1,
                             hdr_checksum=0x92af,
-                            src_addr='127.0.0.2',
-                            dst_addr='127.0.0.1')
+                            src='127.0.0.2',
+                            dst='127.0.0.1')
 
     assert ip.to_bytes() == (b'\x45\x00'
                              b'\x00\x3c'
@@ -58,8 +58,8 @@ def test_log_pings(capsys, mocker, ip_header, icmp_packet, host='127.0.0.1'):
 
     packets = iter([
         ip_header.to_bytes() + icmp_packet.to_bytes(),
-        ip_header.to_bytes() + icmp_packet._replace(payload=b'abcde', checksum=0xcd0f).to_bytes(),
-        ip_header._replace(hdr_checksum=0).to_bytes() + icmp_packet.to_bytes(),
+        ip_header.to_bytes() + icmp_packet.replace(payload=b'abcde', checksum=0xcd0f).to_bytes(),
+        ip_header.replace(hdr_checksum=0).to_bytes() + icmp_packet.to_bytes(),
     ])
 
     def recv_into(buf):
@@ -76,7 +76,7 @@ def test_log_pings(capsys, mocker, ip_header, icmp_packet, host='127.0.0.1'):
     bufsize = 128
 
     assert log_pings.main(['--host', host,
-                           '--ipfmt', ' %(src_addr)s:%(ident)s [%(hdr_checksum)x]',
+                           '--ipfmt', ' %(src)s:%(ident)s [%(hdr_checksum)x]',
                            '--icmpfmt', ' <%(ident)d:%(seq_num)d>',
                            '--setuid', 'nonuser',
                            '--chroot', '.',

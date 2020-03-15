@@ -172,7 +172,7 @@ optional arguments:
   --file LOGFILE   file to write log to (log only to stdout by default)
   --format TMPL    log format (default: %(asctime)s%(ip)s%(icmp)s %(message)s)
   --datefmt TMPL   log time.strftime() format (default: %b %d %H:%M:%S)
-  --ipfmt TMPL     log format (default: %(src_addr)s:%(ident)d)
+  --ipfmt TMPL     log format (default: %(src)s:%(ident)d)
   --icmpfmt TMPL   log format (default: %(ident)d %(seq_num)d)
   --setuid USER    user to setuid to after binding (default: nobody)
   --chroot DIR     directory to chroot into after binding (default: /tmp)

@@ -10,7 +10,7 @@ __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
 import codecs
-import collections
+import ctypes
 import logging
 import os
 import pathlib
@@ -26,7 +26,7 @@ FORMAT = '%(asctime)s%(ip)s%(icmp)s %(message)s'
 
 DATEFMT = '%b %d %H:%M:%S'
 
-IP_INFO = ' %(src_addr)s:%(ident)d'
+IP_INFO = ' %(src)s:%(ident)d'
 
 ICMP_INFO = ' %(ident)d %(seq_num)d'
 
@@ -41,20 +41,6 @@ ENCODING = 'utf-8'
 BUFSIZE = 2**16
 
 TIMEZONE = pathlib.Path('/etc/timezone')
-
-IP_FIELDS = {'version_ihl': 'B', 'tos': 'B',
-             'length': 'H',
-             'ident': 'H',
-             'flags_fragoffset': 'H',
-             'ttl': 'B', 'proto': 'B',
-             'hdr_checksum': 'H',
-             'src_addr': '4s', 'dst_addr': '4s'}
-
-ICMP_FIELDS = {'type': 'B', 'code': 'B',
-               'checksum': 'H',
-               'ident': 'H',
-               'seq_num': 'H',
-               'payload': None}
 
 
 def datefmt(s):
@@ -209,47 +195,113 @@ class InvalidChecksumError(ValueError):
     pass
 
 
-class IPHeader(collections.namedtuple('_IPHeader', list(IP_FIELDS))):
+class NetworkStructure(ctypes.BigEndianStructure):
 
     __slots__ = ()
 
-    _header_format = '!' + ''.join(t for t in IP_FIELDS.values())
+    def __repr__(self):
+        kwargs = ', '.join(f'{f}={getattr(self, f)}' for f, *_ in self._fields_)
+        return f'{self.__class__.__name__}({kwargs})'
 
-    _header_size = struct.calcsize(_header_format)
+    def format(self, template):
+        return template % MappingProxy(self)
+
+    def replace(self, **kwargs):
+        inst = self.__class__.from_buffer_copy(self)
+        for k, v in kwargs.items():
+            setattr(inst, k, v)
+        return inst
+
+    def to_bytes(self):
+        return bytes(self)
+
+
+class MappingProxy:
+
+    def __init__(self, delegate):
+        self._delegate = delegate
+
+    def __getitem__(self, key):
+        try:
+            return getattr(self._delegate, key)
+        except AttributeError:
+            raise KeyError(key)
+
+
+B8, H16, L32 = ctypes.c_uint8, ctypes.c_uint16, ctypes.c_uint32
+
+
+class IPHeader(NetworkStructure):
+
+    __slots__ = ()
+
+    _fields_ = [('version', B8, 4), ('ihl', B8, 4), ('tos', B8),
+                ('length', H16),
+                ('ident', H16),
+                ('flags_fragoffset', H16),
+                ('ttl', B8), ('proto', B8),
+                ('hdr_checksum', H16),
+                ('src_addr', L32),
+                ('dst_addr', L32)]
 
     @classmethod
     def from_bytes(cls, b):
         verify_checksum(b, format='!10H')
-        fields = struct.unpack(cls._header_format, b)
-        src_addr, dst_addr = map(socket.inet_ntoa, fields[-2:])
-        return cls._make(fields[:-2] + (src_addr, dst_addr))
+        return cls.from_buffer_copy(b)
 
-    def to_bytes(self):
-        fields = self[:-2] + tuple(map(socket.inet_aton, self[-2:]))
-        return struct.pack(self._header_format, *fields)
+    @property
+    def flags(self):
+        flags = self.flags_fragoffset >> 13
+
+        def iterbools(n, mask):
+            while mask:
+                yield bool(flags & mask)
+                mask >>= 1
+
+        return tuple(iterbools(flags, 0b100))
+
+    @property
+    def fragoffset(self):
+        return self.flags_fragoffset & 0b1111111111111
+
+    @property
+    def src(self):
+        return socket.inet_ntoa(struct.pack('!L', self.src_addr))
+
+    @property
+    def dst(self):
+        return socket.inet_ntoa(struct.pack('!L', self.dst_addr))
+
+    @src.setter
+    def src(self, s):
+        self.src_addr, = struct.unpack('!L', socket.inet_aton(s))
+
+    @dst.setter
+    def dst(self, s):
+        self.dst_addr, = struct.unpack('!L', socket.inet_aton(s))
 
 
-class ICMPPacket(collections.namedtuple('_ICMPPacket', list(ICMP_FIELDS))):
+class ICMPPacket(NetworkStructure):
 
-    __slots__ = ()
+    __slots__ = ('payload',)
 
-    _header_format = '!' + ''.join(t for t in ICMP_FIELDS.values() if t)
-
-    _header_size = struct.calcsize(_header_format)
+    _fields_ = [('type', B8), ('code', B8),
+                ('checksum', H16),
+                ('ident', H16),
+                ('seq_num', H16)]
 
     @classmethod
     def from_bytes(cls, b):
         verify_checksum(b)
-        header = struct.unpack(cls._header_format, b[:cls._header_size])
-        payload = bytes(b[cls._header_size:])
-        return cls._make(header + (payload,))
-
-    def to_bytes(self):
-        header = struct.pack(self._header_format, *self[:-1])
-        return header + self.payload
+        inst = cls.from_buffer_copy(b)
+        inst.payload = bytes(b[8:])
+        return inst
 
     def is_ping(self, ICMP_ECHO=8, ICMP_NO_CODE=0):
         return self.type == ICMP_ECHO and self.code == ICMP_NO_CODE
+
+    def to_bytes(self):
+        return bytes(self) + self.payload
 
 
 def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
@@ -272,8 +324,8 @@ def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
             except UnicodeDecodeError:
                 message = ascii(icmp.payload)
 
-            logging.info(message, extra={'ip': ip_tmpl % ip._asdict(),
-                                         'icmp': icmp_tmpl % icmp._asdict()})
+            logging.info(message, extra={'ip': ip.format(ip_tmpl),
+                                         'icmp': icmp.format(icmp_tmpl)})
 
 
 def main(args=None):
