@@ -234,7 +234,7 @@ def rfc1071_checksum(ints):
     val = sum(ints)
 
     while val >> 16:
-        val = (val & 0xffff) + (val >> 16)
+        val = (val >> 16) + (val & 0xffff)
 
     return ~val & 0xffff
 
@@ -265,13 +265,13 @@ class IPHeader(NetworkStructure):
 
     def validate_checksum(self):
         ints = [(self.version << 12) + (self.ihl << 8) + self.tos,
-                 self.length,
-                 self.ident,
-                 self.flags_fragoffset,
-                 (self.ttl << 8) + self.proto,
-                 self.hdr_checksum,
-                 self.src_addr >> 16, self.src_addr & 0xffff,
-                 self.dst_addr >> 16, self.dst_addr & 0xffff]
+                self.length,
+                self.ident,
+                self.flags_fragoffset,
+                (self.ttl << 8) + self.proto,
+                self.hdr_checksum,
+                self.src_addr >> 16, self.src_addr & 0xffff,
+                self.dst_addr >> 16, self.dst_addr & 0xffff]
         validate_checksum(ints, index=5)
 
     @property
