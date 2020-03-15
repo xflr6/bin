@@ -344,6 +344,7 @@ def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
 
     while True:
         n_bytes = s.recv_into(buf)
+        logging.debug('%d = s.recv_into(<buffer>)', n_bytes, extra=EX)
 
         ip = IPHeader.from_bytes(view[:20])
         logging.debug('%s', ip, extra=EX)

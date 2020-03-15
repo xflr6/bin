@@ -92,18 +92,21 @@ def test_log_pings(capsys, mocker, ip_header, icmp_packet, host='127.0.0.1'):
 
     expected = ["... listening on '127.0.0.1'",
                 '... serve_forever(...)',
+                '... 60 = s.recv_into(<buffer>)',
                 '... IPHeader(version=4, ihl=5, tos=0, length=60, ident=15,'
                 ' flags_fragoffset=0, ttl=42, proto=1, hdr_checksum=37551,'
                 ' src_addr=2130706434, dst_addr=2130706433)',
                 '... ICMPPacket(type=8, code=0, checksum=19507, ident=255,'
                 ' seq_num=42)',
                 f'... 127.0.0.2:15 [92af] False <255:42> {MSG}',
+                '... 33 = s.recv_into(<buffer>)',
                 '... IPHeader(version=4, ihl=5, tos=0, length=60, ident=15,'
                 ' flags_fragoffset=0, ttl=42, proto=1, hdr_checksum=37551,'
                 ' src_addr=2130706434, dst_addr=2130706433)',
                 '... ICMPPacket(type=8, code=0, checksum=52495, ident=255,'
                 ' seq_num=42)',
                 '... 127.0.0.2:15 [92af] False <255:42> abcde',
+                '... 60 = s.recv_into(<buffer>)',
                 '... IPHeader(version=4, ihl=5, tos=0, length=60, ident=15,'
                 ' flags_fragoffset=0, ttl=42, proto=1, hdr_checksum=57005,'
                 ' src_addr=2130706434, dst_addr=2130706433)',

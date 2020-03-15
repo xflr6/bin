@@ -165,7 +165,8 @@ def serve_forever(s, *, encoding, bufsize=2**10):
         n_bytes, (host, port) = s.recvfrom_into(buf)
         raw = buf[:n_bytes]
 
-        logging.debug('%d, (%r, %d) = s.recvfrom_into(...)', n_bytes, host, port)
+        logging.debug('%d, (%r, %d) = s.recvfrom_into(<buffer>)',
+                      n_bytes, host, port)
 
         try:
             msg = raw.decode(encoding).strip()
