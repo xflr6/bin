@@ -171,32 +171,6 @@ def configure_logging(filename=None, *, level, file_level, format_, datefmt):
     return logging.config.dictConfig(cfg)
 
 
-def verify_checksum(b, *, format=None):
-    if format is None:
-        n_ints, is_odd = divmod(len(b), 2)
-        if is_odd:
-            b = bytes(b) + b'\x00'
-            n_ints += 1
-        format = f'!{n_ints}H'
-
-    ints = struct.unpack(format, b)
-    result = rfc1071_checksum(ints)
-    if result:
-        raise InvalidChecksumError(f'0x{result:04x}')
-    return result
-
-
-def rfc1071_checksum(ints):
-    val = sum(ints)
-    while val >> 16:
-        val = (val & 0xffff) + (val >> 16)
-    return ~val & 0xffff
-
-
-class InvalidChecksumError(ValueError):
-    pass
-
-
 class NetworkStructure(ctypes.BigEndianStructure):
 
     __slots__ = ()
@@ -231,22 +205,33 @@ class MappingProxy:
             raise KeyError(key)
 
 
+def verify_checksum(b, *, format=None):
+    if format is None:
+        n_ints, is_odd = divmod(len(b), 2)
+        if is_odd:
+            b = bytes(b) + b'\x00'
+            n_ints += 1
+        format = f'!{n_ints}H'
+
+    ints = struct.unpack(format, b)
+    result = rfc1071_checksum(ints)
+    if result:
+        raise InvalidChecksumError(f'0x{result:04x}')
+    return result
+
+
+def rfc1071_checksum(ints):
+    val = sum(ints)
+    while val >> 16:
+        val = (val & 0xffff) + (val >> 16)
+    return ~val & 0xffff
+
+
+class InvalidChecksumError(ValueError):
+    pass
+
+
 B8, H16, L32 = ctypes.c_uint8, ctypes.c_uint16, ctypes.c_uint32
-
-
-class IPFlags(collections.namedtuple('_IPFlags', ['res', 'df', 'mf'])):
-
-    __slots__= ()
-
-    @classmethod
-    def from_int(cls, i):
-
-        def iterbools(i, mask):
-            while mask:
-                yield bool(i & mask)
-                mask >>= 1
-
-        return cls._make(iterbools(i, 0b100))
 
 
 class IPHeader(NetworkStructure):
@@ -268,6 +253,22 @@ class IPHeader(NetworkStructure):
         return cls.from_buffer_copy(b)
 
     @property
+    def src(self):
+        return socket.inet_ntoa(struct.pack('!L', self.src_addr))
+
+    @src.setter
+    def src(self, s):
+        self.src_addr, = struct.unpack('!L', socket.inet_aton(s))
+
+    @property
+    def dst(self):
+        return socket.inet_ntoa(struct.pack('!L', self.dst_addr))
+
+    @dst.setter
+    def dst(self, s):
+        self.dst_addr, = struct.unpack('!L', socket.inet_aton(s))
+
+    @property
     def flags(self):
         return IPFlags.from_int(self.flags_fragoffset >> 13)
 
@@ -275,21 +276,23 @@ class IPHeader(NetworkStructure):
     def fragoffset(self):
         return self.flags_fragoffset & 0b1111111111111
 
-    @property
-    def src(self):
-        return socket.inet_ntoa(struct.pack('!L', self.src_addr))
 
-    @property
-    def dst(self):
-        return socket.inet_ntoa(struct.pack('!L', self.dst_addr))
+class IPFlags(collections.namedtuple('_IPFlags', ['res', 'df', 'mf'])):
 
-    @src.setter
-    def src(self, s):
-        self.src_addr, = struct.unpack('!L', socket.inet_aton(s))
+    __slots__ = ()
 
-    @dst.setter
-    def dst(self, s):
-        self.dst_addr, = struct.unpack('!L', socket.inet_aton(s))
+    @classmethod
+    def from_int(cls, i):
+
+        def iterbools(i, mask):
+            while mask:
+                yield bool(i & mask)
+                mask >>= 1
+
+        return cls._make(iterbools(i, 0b100))
+
+    def __str__(self):
+        return ''.join('1' if f else 'x' for f in self)
 
 
 class ICMPPacket(NetworkStructure):
