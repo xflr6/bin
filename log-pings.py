@@ -271,19 +271,19 @@ class IPHeader(NetworkStructure):
 
     @property
     def src(self):
-        return socket.inet_ntoa(struct.pack('!L', self.src_addr))
+        return socket.inet_ntoa(self.src_addr.to_bytes(4, byteorder='big'))
 
     @src.setter
     def src(self, s):
-        self.src_addr, = struct.unpack('!L', socket.inet_aton(s))
+        self.src_addr = int.from_bytes(socket.inet_aton(s), byteorder='big')
 
     @property
     def dst(self):
-        return socket.inet_ntoa(struct.pack('!L', self.dst_addr))
+        return socket.inet_ntoa(self.dst_addr.to_bytes(4, byteorder='big'))
 
     @dst.setter
     def dst(self, s):
-        self.dst_addr, = struct.unpack('!L', socket.inet_aton(s))
+        self.dst_addr = int.from_bytes(socket.inet_aton(s), byteorder='big')
 
     @property
     def flags(self):
