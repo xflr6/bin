@@ -13,6 +13,7 @@ import argparse
 import codecs
 import collections
 import ctypes
+import datetime
 import logging
 import operator
 import os
@@ -345,6 +346,30 @@ class ICMPPacket(NetworkStructure):
     def to_bytes(self):
         return bytes(self) + self.payload
 
+    @property
+    def timeval(self):
+        if len(self.payload) < 8:
+            return None
+        return Timeval.from_bytes(self.payload[:8])
+
+
+class Timeval(NetworkStructure):
+
+    __slots__ = ()
+
+    _fields_ = [('sec', L32), ('usec', L32)]
+
+    def __repr__(self):
+        return f'<{self.__class__.__name__} {self.datetime}>'
+
+    @property
+    def timestamp(self):
+        return self.sec + self.usec / 1_000_000
+
+    @property
+    def datetime(self):
+        return datetime.datetime.utcfromtimestamp(self.timestamp)
+
 
 def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
     buf = bytearray(bufsize)
@@ -359,6 +384,10 @@ def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
 
         icmp = ICMPPacket.from_bytes(view[20:n_bytes])
         logging.debug('%s', icmp, extra=EX)
+
+        timeval = icmp.timeval
+        if timeval is not None:
+            logging.debug('%s', timeval, extra=EX)
 
         try:
             ip.validate_checksum()
