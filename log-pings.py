@@ -172,7 +172,7 @@ def configure_logging(filename=None, *, level, file_level, format_, datefmt):
     return logging.config.dictConfig(cfg)
 
 
-class NetworkStructure(ctypes.BigEndianStructure):
+class DataMixin:
 
     __slots__ = ()
 
@@ -251,7 +251,7 @@ class InvalidChecksumError(ValueError):
 B8, H16, L32 = ctypes.c_uint8, ctypes.c_uint16, ctypes.c_uint32
 
 
-class IPHeader(NetworkStructure):
+class IPHeader(DataMixin, ctypes.BigEndianStructure):
 
     __slots__ = ()
 
@@ -318,7 +318,7 @@ class IPFlags(collections.namedtuple('_IPFlags', ['res', 'df', 'mf'])):
         return ''.join('1' if f else 'x' for f in self)
 
 
-class ICMPPacket(NetworkStructure):
+class ICMPPacket(DataMixin, ctypes.BigEndianStructure):
 
     __slots__ = ('payload',)
 
@@ -353,7 +353,7 @@ class ICMPPacket(NetworkStructure):
         return Timeval.from_bytes(self.payload[:8])
 
 
-class Timeval(NetworkStructure):
+class Timeval(DataMixin, ctypes.LittleEndianStructure):
 
     __slots__ = ()
 
