@@ -208,13 +208,13 @@ class MappingProxy:
 def validate_checksum(header, *, index=None, bytes=None):
     ints = header
     if bytes is not None:
-        ints = array.array('H', ints)
         if len(bytes) % 2:
             bytes = bytearray(bytes)
             bytes.append(0)
         b_ints = array.array('H', bytes)
         if sys.byteorder != 'big':
             b_ints.byteswap()
+        ints = array.array('H', ints)
         ints.extend(b_ints)
 
     result = rfc1071_checksum(ints)

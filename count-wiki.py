@@ -173,7 +173,7 @@ def count_edits(root, pages, *, display_after, display_epath, stop_after,
 
             new_text = rev.findtext(text_epath)
             if new_text is not None:
-                n_lines[user] += lineschanged(old_text, new_text)
+                n_lines[user] += lines_changed(old_text, new_text)
 
                 old_text = new_text
 
@@ -185,7 +185,7 @@ def count_edits(root, pages, *, display_after, display_epath, stop_after,
     return count, n_edits, n_lines
 
 
-def lineschanged(a, b, _n_lines_factor={'insert': 2, 'replace': 1,
+def lines_changed(a, b, _n_lines_factor={'insert': 2, 'replace': 1,
                                         'delete': 0, 'equal': 0}):
     matcher = difflib.SequenceMatcher(None, a.splitlines(), b.splitlines())
 
