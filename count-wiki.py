@@ -113,20 +113,26 @@ def iterelements(pairs, tag, exclude_with):
             yield elem
 
 
+def make_display_func(display_epath):
+    if display_epath is None:
+        return lambda n, _: log(f'{n:,}')
+    else:
+        return lambda n, elem: log(f'{n:,}\t{elem.findtext(display_epath)}')
+
+
 def count_elements(root, elements, *, display_after, display_epath, stop_after):
     if display_after in (None, 0):
         if stop_after is not None:
             raise NotImplementedError
         return sum(root.clear() is None for _ in elements)
 
+    display_func = make_display_func(display_epath)
+
     count = 0
 
     for count, elem in enumerate(elements, start=1):
         if not count % display_after:
-            msg = f'{count:,}'
-            if display_epath is not None:
-                msg += f'\t{elem.findtext(display_epath)}'
-            log(msg)
+            display_func(count, elem)
 
         root.clear()  # free memory
 
@@ -138,13 +144,15 @@ def count_elements(root, elements, *, display_after, display_epath, stop_after):
 
 def count_edits(root, pages, *, display_after, display_epath, stop_after,
                 rev_epath, user_epath, text_epath):
+    display_func = make_display_func(display_epath)
+
     n_edits, n_lines = (collections.Counter() for _ in range(2))
 
     count = 0
 
     for count, p in enumerate(pages, start=1):
         if not count % display_after:
-            log(f'{count:,}\t{p.findtext(display_epath)}')
+            display_func(count, elem)
 
         old_text = ''
         for rev in p.iterfind(rev_epath):
