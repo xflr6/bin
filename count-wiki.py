@@ -166,19 +166,19 @@ def count_edits(root, pages, *, display_after, display_epath, stop_after,
     return count, n_edits, n_lines
 
 
-def lineschanged(a, b, measure={'replace': 1, 'delete': 0, 'insert': 2, 'equal': 0}):
+def lineschanged(a, b, n_lines_factor={'insert': 2, 'replace': 1,
+                                       'delete': 0, 'equal': 0}):
     matcher = difflib.SequenceMatcher(None, a.splitlines(), b.splitlines())
 
     result = 0
 
     for tiijj in matcher.get_opcodes():
-        factor = measure[tiijj[0]]
+        factor = n_lines_factor[tiijj[0]]
         if factor:
-            nlines = tiijj[4] - tiijj[3]
-            result += nlines * factor
+            n_lines = tiijj[4] - tiijj[3]
+            result += n_lines * factor
 
     return result
-
 
 
 def main(args=None):
