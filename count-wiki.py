@@ -152,7 +152,7 @@ def count_edits(root, pages, *, display_after, display_epath, stop_after,
 
     for count, p in enumerate(pages, start=1):
         if not count % display_after:
-            display_func(count, elem)
+            display_func(count, p)
 
         old_text = ''
         for rev in p.iterfind(rev_epath):
