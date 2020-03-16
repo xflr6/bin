@@ -117,7 +117,7 @@ positional arguments:
 optional arguments:
   -h, --help         show this help message and exit
   --tag TAG          end tag to count (default: mediawiki:page)
-  --stats            show page edit statistics instead of count
+  --stats            also compute and display page edit statistics
   --display PATH     ElementPath to log in sub-total (default:
                      mediawiki:title)
   --display-after N  log sub-total after N tags (default: 1000)

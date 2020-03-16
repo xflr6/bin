@@ -67,7 +67,7 @@ parser.add_argument('--tag', default=PAGE_TAG,
                     help=f'end tag to count (default: {PAGE_TAG})')
 
 parser.add_argument('--stats', dest='simple_stats', action='store_false',
-                    help='show page edit statistics instead of count')
+                    help='also compute and display page edit statistics')
 
 parser.add_argument('--display', metavar='PATH', default=DISPLAY_PATH,
                     help='ElementPath to log in sub-total'
@@ -163,7 +163,7 @@ def count_edits(root, pages, *, display_after, display_epath, stop_after,
         if count == stop_after:
             break
 
-    return n_edits, n_lines
+    return count, n_edits, n_lines
 
 
 def lineschanged(a, b, measure={'replace': 1, 'delete': 0, 'insert': 2, 'equal': 0}):
@@ -213,22 +213,22 @@ def main(args=None):
 
         if args.simple_stats:
             n = count_elements(root, elements, **kwargs)
+            counters = ()
         else:
             kwargs.update(rev_epath=make_epath(REVISION_PATH, ns_map),
                           user_epath=make_epath(USER_PATH, ns_map),
                           text_epath=make_epath(TEXT_PATH, ns_map))
 
-            counters = count_edits(root, elements, **kwargs)
+            n, n_edits, n_lines = count_edits(root, elements, **kwargs)
+            counters = n_edits, n_lines
 
     stop = time.monotonic()
     log(f'duration: {stop - start:.2f} seconds')
 
-    if args.simple_stats:
-        print(n)
-    else:
-        for c in counters:
-            lines = (f'{k!s:<16}\t{v:d}' for k, v in c.most_common())
-            print('', *lines, sep='\n')
+    print(n)
+    for c in counters:
+        lines = (f'{k!s:<16}\t{v:d}' for k, v in c.most_common())
+        print('', *lines, sep='\n')
 
     return None
 
