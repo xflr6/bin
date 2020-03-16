@@ -10,7 +10,11 @@ __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
 import bz2
+import collections
+import difflib
 import functools
+import gzip
+import pathlib
 import re
 import sys
 import time
@@ -20,7 +24,13 @@ PREFIX = 'mediawiki'
 
 PAGE_TAG = f'{PREFIX}:page'
 
-REDIRECT = f'{PREFIX}:redirect'
+REDIRECT_PATH = f'{PREFIX}:redirect'
+
+REVISION_PATH = f'{PREFIX}:revision'
+
+USER_PATH = f'{PREFIX}:contributor/{PREFIX}:username'
+
+TEXT_PATH = f'{PREFIX}:text'
 
 DISPLAY_PATH = f'{PREFIX}:title'
 
@@ -50,11 +60,14 @@ def positive_int(s):
 
 parser = argparse.ArgumentParser(description=__doc__)
 
-parser.add_argument('filename', type=argparse.FileType('rb'),
+parser.add_argument('filename', type=pathlib.Path,
                     help='path to MediaWiki XML export (format: .xml.bz2)')
 
 parser.add_argument('--tag', default=PAGE_TAG,
                     help=f'end tag to count (default: {PAGE_TAG})')
+
+parser.add_argument('--stats', dest='simple_stats', action='store_false',
+                    help='show page edit statistics instead of count')
 
 parser.add_argument('--display', metavar='PATH', default=DISPLAY_PATH,
                     help='ElementPath to log in sub-total'
@@ -100,7 +113,7 @@ def iterelements(pairs, tag, exclude_with):
             yield elem
 
 
-def count_elements(root, elements, *, display_after, display_path, stop_after):
+def count_elements(root, elements, *, display_after, display_epath, stop_after):
     if display_after in (None, 0):
         if stop_after is not None:
             raise NotImplementedError
@@ -111,42 +124,112 @@ def count_elements(root, elements, *, display_after, display_path, stop_after):
     for count, elem in enumerate(elements, start=1):
         if not count % display_after:
             msg = f'{count:,}'
-            if display_path is not None:
-                msg += f'\t{elem.findtext(display_path)}'
+            if display_epath is not None:
+                msg += f'\t{elem.findtext(display_epath)}'
             log(msg)
+
         root.clear()  # free memory
+
         if count == stop_after:
             break
 
     return count
 
 
+def count_edits(root, pages, *, display_after, display_epath, stop_after,
+                rev_epath, user_epath, text_epath):
+    n_edits, n_lines = (collections.Counter() for _ in range(2))
+
+    count = 0
+
+    for count, p in enumerate(pages, start=1):
+        if not count % display_after:
+            log(f'{count:,}\t{p.findtext(display_epath)}')
+
+        old_text = ''
+        for rev in p.iterfind(rev_epath):
+            user = rev.findtext(user_epath)
+
+            n_edits[user] += 1
+
+            new_text = rev.findtext(text_epath)
+            if new_text is not None:
+                n_lines[user] += lineschanged(old_text, new_text)
+
+                old_text = new_text
+
+        root.clear()  # free memory
+
+        if count == stop_after:
+            break
+
+    return n_edits, n_lines
+
+
+def lineschanged(a, b, measure={'replace': 1, 'delete': 0, 'insert': 2, 'equal': 0}):
+    matcher = difflib.SequenceMatcher(None, a.splitlines(), b.splitlines())
+
+    result = 0
+
+    for tiijj in matcher.get_opcodes():
+        factor = measure[tiijj[0]]
+        if factor:
+            nlines = tiijj[4] - tiijj[3]
+            result += nlines * factor
+
+    return result
+
+
+
 def main(args=None):
     args = parser.parse_args(args)
 
+    open_module = {'.bz2': bz2,
+                   '.gz': gzip,
+                   '.xml': __builtins__}
+
+    open_func = open_module[args.filename.suffix].open
+
     start = time.monotonic()
 
-    with args.filename as z, bz2.open(z) as f:
+    with open_func(args.filename) as f:
         pairs = etree.iterparse(f, events=('start', 'end'))
 
         _, root = next(pairs)
         if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
             return 'error: invalid xml namespace'
+
         ns_map = {PREFIX: extract_ns(root.tag)}
 
         elements = iterelements(pairs,
                                 tag=make_epath(args.tag, ns_map),
-                                exclude_with=make_epath(REDIRECT, ns_map))
+                                exclude_with=make_epath(REDIRECT_PATH, ns_map))
 
-        n = count_elements(root, elements,
-                           display_after=args.display_after,
-                           display_path=make_epath(args.display, ns_map, optional=True),
-                           stop_after=args.stop_after)
+        display_epath = make_epath(args.display, ns_map, optional=True)
+
+        kwargs = {'display_after': args.display_after,
+                  'display_epath': display_epath,
+                  'stop_after': args.stop_after}
+
+        if args.simple_stats:
+            n = count_elements(root, elements, **kwargs)
+        else:
+            kwargs.update(rev_epath=make_epath(REVISION_PATH, ns_map),
+                          user_epath=make_epath(USER_PATH, ns_map),
+                          text_epath=make_epath(TEXT_PATH, ns_map))
+
+            counters = count_edits(root, elements, **kwargs)
 
     stop = time.monotonic()
     log(f'duration: {stop - start:.2f} seconds')
 
-    print(n)
+    if args.simple_stats:
+        print(n)
+    else:
+        for c in counters:
+            lines = (f'{k!s:<16}\t{v:d}' for k, v in c.most_common())
+            print('', *lines, sep='\n')
+
     return None
 
 

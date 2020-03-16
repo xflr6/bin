@@ -105,8 +105,8 @@ optional arguments:
 
 ```sh
 $ count-wiki.py --help
-usage: count-wiki.py [-h] [--tag TAG] [--display PATH] [--display-after N]
-                     [--stop-after N] [--version]
+usage: count-wiki.py [-h] [--tag TAG] [--stats] [--display PATH]
+                     [--display-after N] [--stop-after N] [--version]
                      filename
 
 Count page tags in MediaWiki XML export.
@@ -117,6 +117,7 @@ positional arguments:
 optional arguments:
   -h, --help         show this help message and exit
   --tag TAG          end tag to count (default: mediawiki:page)
+  --stats            show page edit statistics instead of count
   --display PATH     ElementPath to log in sub-total (default:
                      mediawiki:title)
   --display-after N  log sub-total after N tags (default: 1000)
