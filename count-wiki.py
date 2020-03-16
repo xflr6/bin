@@ -219,11 +219,11 @@ def main(args=None):
         pairs = etree.iterparse(f, events=('start', 'end'))
 
         _, root = next(pairs)
+        if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
+            return f'error: invalid xml root tag {root.tag!r}'
+
         ns = extract_ns(root.tag)
         log(f'xml: {ns!r}')
-        if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
-            return f'error: invalid xml namespace {ns!r}'
-
         ns_map = {PREFIX: ns}
 
         elements = iterelements(pairs,

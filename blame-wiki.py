@@ -89,10 +89,11 @@ def main(args=None):
         tree = parse_response(f)
 
     root = tree.getroot()
+    if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
+        return f'error: invalid xml root tag {root.tag!r}'
+
     ns = extract_ns(root.tag)
     log(f'xml: {ns!r}')
-    if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
-        return f'error: invalid xml namespace {ns!r}'
     ns = {'namespaces': {'mw': ns}}
 
     site, = tree.findall('mw:siteinfo', **ns)
