@@ -29,6 +29,8 @@ def ip_header():
                                       '7f 00 00 02 '
                                       '7f 00 00 01')
 
+    ip.validate_checksum()
+
     return ip
 
 
@@ -47,6 +49,8 @@ def icmp_packet(encoding='utf-8'):
                                         '00 ff '
                                         '00 2a '
                                         + msg.hex(' '))
+
+    icmp.validate_checksum()
 
     return icmp
 

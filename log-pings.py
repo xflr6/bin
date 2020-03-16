@@ -175,6 +175,10 @@ class NetworkStructure(ctypes.BigEndianStructure):
 
     __slots__ = ()
 
+    @classmethod
+    def from_bytes(cls, b):
+        return cls.from_buffer_copy(b)
+
     def __repr__(self):
         kwargs = ', '.join(f'{f}=%({f})r' for f, *_ in self._fields_)
         return self.format(f'{self.__class__.__name__}({kwargs})')
@@ -259,10 +263,6 @@ class IPHeader(NetworkStructure):
                 ('src_addr', L32),
                 ('dst_addr', L32)]
 
-    @classmethod
-    def from_bytes(cls, b):
-        return cls.from_buffer_copy(b)
-
     def validate_checksum(self):
         ints = [(self.version << 12) + (self.ihl << 8) + self.tos,
                 self.length,
@@ -328,7 +328,7 @@ class ICMPPacket(NetworkStructure):
 
     @classmethod
     def from_bytes(cls, b):
-        inst = cls.from_buffer_copy(b)
+        inst = super().from_bytes(b)
         inst.payload = bytes(b[8:])
         return inst
 
