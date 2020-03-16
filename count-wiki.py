@@ -185,23 +185,25 @@ def lineschanged(a, b, _n_lines_factor={'insert': 2, 'replace': 1,
 
 def main(args=None):
     args = parser.parse_args(args)
+    log(f'filename: {args.filename}', '')
 
     open_module = {'.bz2': bz2,
                    '.gz': gzip,
-                   '.xml': __builtins__}
-
-    open_func = open_module[args.filename.suffix].open
+                   '.xml': __builtins__}[args.filename.suffix]
 
     start = time.monotonic()
 
-    with open_func(args.filename) as f:
+    log(f'{open_module.__name__}.open({args.filename!r})')
+    with open_module.open(args.filename, 'rb') as f:
         pairs = etree.iterparse(f, events=('start', 'end'))
 
         _, root = next(pairs)
+        ns = extract_ns(root.tag)
+        log(f'xml: {ns!r}')
         if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
-            return 'error: invalid xml namespace'
+            return f'error: invalid xml namespace {ns!r}'
 
-        ns_map = {PREFIX: extract_ns(root.tag)}
+        ns_map = {PREFIX: ns}
 
         elements = iterelements(pairs,
                                 tag=make_epath(args.tag, ns_map),

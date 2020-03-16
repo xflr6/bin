@@ -90,9 +90,9 @@ def main(args=None):
 
     root = tree.getroot()
     ns = extract_ns(root.tag)
-    log(f'xml: {ns}')
+    log(f'xml: {ns!r}')
     if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
-        return 'error: invalid xml namespace'
+        return f'error: invalid xml namespace {ns!r}'
     ns = {'namespaces': {'mw': ns}}
 
     site, = tree.findall('mw:siteinfo', **ns)
