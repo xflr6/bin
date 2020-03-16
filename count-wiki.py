@@ -36,9 +36,15 @@ DISPLAY_PATH = f'{PREFIX}:title'
 
 DISPLAY_AFTER = 1000
 
+MOST_COMMON_N = 100
+
 _MEDIAWIKI = re.escape('http://www.mediawiki.org')
 
 MEDIAWIKI_EXPORT = r'\{%s/xml/export-\d+(?:\.\d+)*/\}mediawiki' % _MEDIAWIKI
+
+SUFFIX_OPEN_MODULE = {'.bz2':  bz2,
+                      '.gz': gzip,
+                      '.xml': __builtins__}
 
 
 log = functools.partial(print, file=sys.stderr, sep='\n')
@@ -69,9 +75,10 @@ parser.add_argument('--tag', default=PAGE_TAG,
 parser.add_argument('--stats', dest='simple_stats', action='store_false',
                     help='also compute and display page edit statistics')
 
-parser.add_argument('--stats-top', dest='most_common_n',
-                    metavar='N', type=positive_int, default=10,
-                    help='show top N users by number of edits and lines edited')
+parser.add_argument('--stats-top', dest='most_common_n', 
+                    metavar='N', type=positive_int, default=MOST_COMMON_N,
+                    help='show top N users edits and lines'
+                         f' (default: {MOST_COMMON_N})')
 
 parser.add_argument('--display', metavar='PATH', default=DISPLAY_PATH,
                     help='ElementPath to log in sub-total'
@@ -199,9 +206,11 @@ def main(args=None):
     args = parser.parse_args(args)
     log(f'filename: {args.filename}', '')
 
-    open_module = {'.bz2': bz2,
-                   '.gz': gzip,
-                   '.xml': __builtins__}[args.filename.suffix]
+    try:
+        open_module = SUFFIX_OPEN_MODULE[args.filename.suffix]
+    except KeyError:
+        return ('error: invalid filename suffix'
+                f" (need one of: {', '.join(SUFFIX_OPEN_MODULE)})")
 
     start = time.monotonic()
 

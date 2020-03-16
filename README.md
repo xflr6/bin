@@ -119,7 +119,7 @@ optional arguments:
   -h, --help         show this help message and exit
   --tag TAG          end tag to count (default: mediawiki:page)
   --stats            also compute and display page edit statistics
-  --stats-top N      show top N users by number of edits and lines edited
+  --stats-top N      show top N users edits and lines (default: 100)
   --display PATH     ElementPath to log in sub-total (default:
                      mediawiki:title)
   --display-after N  log sub-total after N tags (default: 1000)
