@@ -69,6 +69,10 @@ parser.add_argument('--tag', default=PAGE_TAG,
 parser.add_argument('--stats', dest='simple_stats', action='store_false',
                     help='also compute and display page edit statistics')
 
+parser.add_argument('--stats-top', dest='most_common_n',
+                    metavar='N', type=positive_int, default=10,
+                    help='show top N users by number of edits and lines edited')
+
 parser.add_argument('--display', metavar='PATH', default=DISPLAY_PATH,
                     help='ElementPath to log in sub-total'
                          f' (default: {DISPLAY_PATH})')
@@ -239,7 +243,8 @@ def main(args=None):
 
     print(n)
     for c in counters:
-        lines = (f'{k!s:<16}\t{v:d}' for k, v in c.most_common())
+        top_n = c.most_common(args.most_common_n)
+        lines = (f'{user!s:<16}\t{n:d}' for user, n in top_n)
         print('', *lines, sep='\n')
 
     return None
