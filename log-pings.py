@@ -442,6 +442,7 @@ def serve_forever(s, *, max_size, encoding, ip_tmpl, icmp_tmpl):
         icmp = ICMPPacket.from_bytes(view[20:n_bytes])
         logging.debug('%s', icmp, extra=EX)
 
+        clean = False
         for p in (ip, icmp):
             try:
                 p.validate_checksum()
@@ -449,20 +450,25 @@ def serve_forever(s, *, max_size, encoding, ip_tmpl, icmp_tmpl):
                 logging.debug('%r: %r', e, p, extra=EX)
                 break
         else:
-            if not icmp.is_echo_request():
-                continue
+            clean = True
 
-            timeval = icmp.get_timeval()
-            if timeval is not None:
-                logging.debug('%s', timeval, extra=EX)
+        if not clean:
+            continue
 
-            try:
-                message = icmp.payload.decode(encoding)
-            except UnicodeDecodeError:
-                message = ascii(icmp.payload)
+        if not icmp.is_echo_request():
+            continue
 
-            logging.info(message, extra={'ip': ip.format(ip_tmpl),
-                                         'icmp': icmp.format(icmp_tmpl)})
+        timeval = icmp.get_timeval()
+        if timeval is not None:
+            logging.debug('%s', timeval, extra=EX)
+
+        try:
+            message = icmp.payload.decode(encoding)
+        except UnicodeDecodeError:
+            message = ascii(icmp.payload)
+
+        logging.info(message, extra={'ip': ip.format(ip_tmpl),
+                                     'icmp': icmp.format(icmp_tmpl)})
 
 
 def main(args=None):
