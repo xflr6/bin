@@ -41,7 +41,9 @@ SETUID = 'nobody'
 
 ENCODING = 'utf-8'
 
-MAX_SIZE = 1_500
+OVERHEAD = 20 + 8
+
+MAX_SIZE = 1_500 - OVERHEAD
 
 DATETIME_MAX = (datetime.datetime.max
                 - datetime.datetime(1970, 1, 1)).total_seconds()
@@ -496,7 +498,7 @@ def main(args=None):
     kwargs = {'ip_tmpl': args.ipfmt,
               'icmp_tmpl': args.icmpfmt,
               'encoding': args.encoding,
-              'max_size': args.max_size}
+              'max_size': args.max_size + OVERHEAD}
 
     logging.debug('serve_forever(%r, **%r)', s, kwargs, extra=EX)
 
