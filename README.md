@@ -176,7 +176,7 @@ optional arguments:
   --format TMPL    log format (default: %(asctime)s%(ip)s%(icmp)s %(message)s)
   --datefmt TMPL   log time.strftime() format (default: %b %d %H:%M:%S)
   --ipfmt TMPL     log format (default: %(src)s:%(ident)d)
-  --icmpfmt TMPL   log format (default: %(ident)d %(seq_num)d)
+  --icmpfmt TMPL   log format (default: %(ident)d:%(seq_num)d)
   --setuid USER    user to setuid to after binding (default: nobody)
   --chroot DIR     directory to chroot into after binding (default: /tmp)
   --no-hardening   don't give up privileges (ignore --setuid and --chroot)

@@ -31,7 +31,7 @@ DATEFMT = '%b %d %H:%M:%S'
 
 IP_INFO = ' %(src)s:%(ident)d'
 
-ICMP_INFO = ' %(ident)d %(seq_num)d'
+ICMP_INFO = ' %(ident)d:%(seq_num)d'
 
 EX = {'ip': '', 'icmp': ''}
 
