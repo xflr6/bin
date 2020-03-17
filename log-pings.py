@@ -355,12 +355,13 @@ class ICMPPacket(DataMixin, ctypes.BigEndianStructure):
 
     @property
     def timeval(self):
-        return self.get_timeval()
+        return self.get_timeval(min=None, max=None)
 
     def get_timeval(self, min=0, max=DATETIME_MAX):
+        payload = self.payload
         for cls in (Timeval64, Timeval32):
             try:
-                result = cls.from_bytes(self.payload)
+                result = cls.from_bytes(payload)
                 result.get_datetime(min=min, max=max)
             except (ValueError, OverflowError, OSError):
                 result = None
