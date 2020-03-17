@@ -351,11 +351,11 @@ class ICMPPacket(DataMixin, ctypes.BigEndianStructure):
         try:
             result = Timeval64.from_bytes(self.payload)
             result.datetime
-        except (ValueError, OSError):
+        except (ValueError, OverflowError, OSError):
             try:
                 result = Timeval32.from_bytes(self.payload)
                 result.datetime
-            except (ValueError, OSError):
+            except (ValueError, OverflowError, OSError):
                 result = None
 
         return result
