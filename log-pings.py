@@ -420,25 +420,25 @@ def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
         icmp = ICMPPacket.from_bytes(view[20:n_bytes])
         logging.debug('%s', icmp, extra=EX)
 
-        try:
-            ip.validate_checksum()
-            icmp.validate_checksum()
-        except InvalidChecksumError as e:
-            logging.debug('%s: %s', e.__class__.__name__, e, extra=EX)
-            continue
-
-        if icmp.is_ping():
-            timeval = icmp.get_timeval()
-            if timeval is not None:
-                logging.debug('%s', timeval, extra=EX)
-
+        for p in (ip, icmp):
             try:
-                message = icmp.payload.decode(encoding)
-            except UnicodeDecodeError:
-                message = ascii(icmp.payload)
+                p.validate_checksum()
+            except InvalidChecksumError as e:
+                logging.debug('%r: %r', e, p, extra=EX)
+                break
+        else:
+            if icmp.is_ping():
+                timeval = icmp.get_timeval()
+                if timeval is not None:
+                    logging.debug('%s', timeval, extra=EX)
 
-            logging.info(message, extra={'ip': ip.format(ip_tmpl),
-                                         'icmp': icmp.format(icmp_tmpl)})
+                try:
+                    message = icmp.payload.decode(encoding)
+                except UnicodeDecodeError:
+                    message = ascii(icmp.payload)
+
+                logging.info(message, extra={'ip': ip.format(ip_tmpl),
+                                             'icmp': icmp.format(icmp_tmpl)})
 
 
 def main(args=None):

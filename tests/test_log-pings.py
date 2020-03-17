@@ -117,7 +117,10 @@ def test_log_pings(capsys, mocker, ip_header, icmp_packet, host='127.0.0.1'):
                 ' src_addr=2130706434, dst_addr=2130706433)',
                 '... ICMPPacket(type=8, code=0, checksum=19507, ident=255,'
                 ' seq_num=42)',
-                '... InvalidChecksumError: 0xdead (expected: 0x92af)',
+                "... InvalidChecksumError('0xdead (expected: 0x92af)'):"
+                ' IPHeader(version=4, ihl=5, tos=0, length=60, ident=15,'
+                ' flags_fragoffset=0, ttl=42, proto=1, hdr_checksum=57005,'
+                ' src_addr=2130706434, dst_addr=2130706433)',
                 '... SystemExit() exiting',
                 '... socket.close()']
 
