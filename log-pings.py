@@ -41,11 +41,7 @@ SETUID = 'nobody'
 
 ENCODING = 'utf-8'
 
-BUFSIZE = 2**16
-
-ICMP_ECHO_REQUEST = 8
-
-ICMP_NO_CODE = 0
+MAX_SIZE = 1_500
 
 DATETIME_MAX = (datetime.datetime.max
                 - datetime.datetime(1970, 1, 1)).total_seconds()
@@ -136,10 +132,9 @@ parser.add_argument('--encoding', metavar='NAME', type=encoding, default=ENCODIN
                     help='try to decode data with this encoding'
                          f' (default: {ENCODING})')
 
-parser.add_argument('--max-size', metavar='N', dest='bufsize',
-                    type=positive_int, default=BUFSIZE,
-                    help='byte limit for packages to accept'
-                         f' (default: {BUFSIZE})')
+parser.add_argument('--max-size', metavar='N', type=positive_int, default=MAX_SIZE,
+                    help='byte limit for packages to process'
+                         f' (default: {MAX_SIZE})')
 
 parser.add_argument('--verbose', action='store_true',
                     help='increase stdout logging level to DEBUG')
@@ -262,6 +257,8 @@ class IPHeader(DataMixin, ctypes.BigEndianStructure):
 
     __slots__ = ()
 
+    IPPROTO_ICMP = socket.IPPROTO_ICMP
+
     _fields_ = [('version', B8, 4), ('ihl', B8, 4), ('tos', B8),
                 ('length', H16),
                 ('ident', H16),
@@ -281,6 +278,9 @@ class IPHeader(DataMixin, ctypes.BigEndianStructure):
                 self.src_addr >> 16, self.src_addr & 0xffff,
                 self.dst_addr >> 16, self.dst_addr & 0xffff]
         validate_checksum(ints, index=5)
+
+    def is_icmp(self):
+        return self.proto == self.IPPROTO_ICMP
 
     @property
     def src(self):
@@ -329,6 +329,10 @@ class ICMPPacket(DataMixin, ctypes.BigEndianStructure):
 
     __slots__ = ('payload',)
 
+    ICMP_ECHO_REQUEST = 8
+
+    ICMP_NO_CODE = 0
+
     _fields_ = [('type', B8), ('code', B8),
                 ('checksum', H16),
                 ('ident', H16),
@@ -347,8 +351,9 @@ class ICMPPacket(DataMixin, ctypes.BigEndianStructure):
                 self.seq_num]
         validate_checksum(ints, index=1, bytes=self.payload)
 
-    def is_ping(self, _type=ICMP_ECHO_REQUEST, _code=ICMP_NO_CODE):
-        return self.type == _type and self.code == _code
+    def is_echo_request(self):
+        return (self.type == self.ICMP_ECHO_REQUEST
+                and self.code == self.ICMP_NO_CODE)
 
     def to_bytes(self):
         return bytes(self) + self.payload
@@ -411,7 +416,10 @@ class Timeval64(TimevalMixin, DataMixin, ctypes.LittleEndianStructure):
     _fields_ = [('sec', Q64), ('usec', Q64)]
 
 
-def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
+def serve_forever(s, *, max_size, encoding, ip_tmpl, icmp_tmpl):
+    bufsize = 2 **16
+    assert bufsize >= max_size
+
     buf = bytearray(bufsize)
     view = memoryview(buf)
 
@@ -419,13 +427,13 @@ def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
         n_bytes = s.recv_into(buf)
         logging.debug('%d = s.recv_into(<buffer>)', n_bytes, extra=EX)
 
-        if n_bytes > bufsize:
+        if n_bytes > max_size:
             continue
 
         ip = IPHeader.from_bytes(view[:20])
         logging.debug('%s', ip, extra=EX)
 
-        if ip.proto != socket.IPPROTO_ICMP:
+        if not ip.is_icmp():
             continue
 
         icmp = ICMPPacket.from_bytes(view[20:n_bytes])
@@ -438,7 +446,7 @@ def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
                 logging.debug('%r: %r', e, p, extra=EX)
                 break
         else:
-            if not icmp.is_ping():
+            if not icmp.is_echo_request():
                 continue
 
             timeval = icmp.get_timeval()
@@ -487,7 +495,7 @@ def main(args=None):
     kwargs = {'ip_tmpl': args.ipfmt,
               'icmp_tmpl': args.icmpfmt,
               'encoding': args.encoding,
-              'bufsize': args.bufsize}
+              'max_size': args.max_size}
 
     logging.debug('serve_forever(%r, **%r)', s, kwargs, extra=EX)
 
