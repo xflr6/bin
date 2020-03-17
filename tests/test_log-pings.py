@@ -102,7 +102,7 @@ def test_log_pings(capsys, mocker, ip_header, icmp_packet, host='127.0.0.1'):
                 ' src_addr=2130706434, dst_addr=2130706433)',
                 '... ICMPPacket(type=8, code=0, checksum=19507, ident=255,'
                 ' seq_num=42)',
-                '... <Timeval 2023-05-16 11:30:00.606885>',
+                '... <Timeval 2023-05-16 11:30:00.606885 [32]>',
                 f'... 127.0.0.2:15 [92af] False <255:42> {MSG}',
                 '... 33 = s.recv_into(<buffer>)',
                 '... IPHeader(version=4, ihl=5, tos=0, length=60, ident=15,'
@@ -117,7 +117,7 @@ def test_log_pings(capsys, mocker, ip_header, icmp_packet, host='127.0.0.1'):
                 ' src_addr=2130706434, dst_addr=2130706433)',
                 '... ICMPPacket(type=8, code=0, checksum=19507, ident=255,'
                 ' seq_num=42)',
-                '... <Timeval 2023-05-16 11:30:00.606885>',
+                '... <Timeval 2023-05-16 11:30:00.606885 [32]>',
                 '... InvalidChecksumError: 0xdead (expected: 0x92af)',
                 '... SystemExit() exiting',
                 '... socket.close()']

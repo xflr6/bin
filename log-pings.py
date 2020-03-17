@@ -348,19 +348,26 @@ class ICMPPacket(DataMixin, ctypes.BigEndianStructure):
 
     @property
     def timeval(self):
-        if len(self.payload) < 8:
-            return None
-        return Timeval.from_bytes(self.payload[:8])
+        try:
+            result = Timeval64.from_bytes(self.payload)
+            result.datetime
+        except (ValueError, OSError):
+            try:
+                result = Timeval32.from_bytes(self.payload)
+                result.datetime
+            except (ValueError, OSError):
+                result = None
+
+        return result
 
 
-class Timeval(DataMixin, ctypes.LittleEndianStructure):
+class TimevalMixin:
 
     __slots__ = ()
 
-    _fields_ = [('sec', L32), ('usec', L32)]
-
-    def __repr__(self):
-        return f'<{self.__class__.__name__} {self.datetime}>'
+    def __str__(self):
+        int_size = self.__class__.sec.size
+        return self.format(f'<Timeval %(datetime)s [{int_size * 8}]>')
 
     @property
     def timestamp(self):
@@ -369,6 +376,23 @@ class Timeval(DataMixin, ctypes.LittleEndianStructure):
     @property
     def datetime(self):
         return datetime.datetime.utcfromtimestamp(self.timestamp)
+
+
+class Timeval32(TimevalMixin, DataMixin, ctypes.LittleEndianStructure):
+
+    __slots__ = ()
+
+    _fields_ = [('sec', L32), ('usec', L32)]
+
+
+Q64 = ctypes.c_uint64
+
+
+class Timeval64(TimevalMixin, DataMixin, ctypes.LittleEndianStructure):
+
+    __slots__ = ()
+
+    _fields_ = [('sec', Q64), ('usec', Q64)]
 
 
 def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
