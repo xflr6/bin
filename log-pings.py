@@ -418,7 +418,8 @@ class Timeval64(TimevalMixin, DataMixin, ctypes.LittleEndianStructure):
 
 def serve_forever(s, *, max_size, encoding, ip_tmpl, icmp_tmpl):
     bufsize = 2 **16
-    assert bufsize >= max_size
+    if max_size > bufsize:
+        raise ValueError(f'max_size {max_size} over buffer size {bufsize}')
 
     buf = bytearray(bufsize)
     view = memoryview(buf)
