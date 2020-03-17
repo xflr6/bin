@@ -371,7 +371,7 @@ class TimevalMixin:
 
     @property
     def timestamp(self):
-        return self.sec + self.usec / 1_000_000
+        return self.sec + (self.usec / 1_000_000)
 
     @property
     def datetime(self):
@@ -409,10 +409,6 @@ def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
         icmp = ICMPPacket.from_bytes(view[20:n_bytes])
         logging.debug('%s', icmp, extra=EX)
 
-        timeval = icmp.timeval
-        if timeval is not None:
-            logging.debug('%s', timeval, extra=EX)
-
         try:
             ip.validate_checksum()
             icmp.validate_checksum()
@@ -421,6 +417,10 @@ def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
             continue
 
         if icmp.is_ping():
+            timeval = icmp.timeval
+            if timeval is not None:
+                logging.debug('%s', timeval, extra=EX)
+
             try:
                 message = icmp.payload.decode(encoding)
             except UnicodeDecodeError:
