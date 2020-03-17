@@ -43,10 +43,14 @@ ENCODING = 'utf-8'
 
 BUFSIZE = 2**16
 
-TIMEZONE = pathlib.Path('/etc/timezone')
+ICMP_ECHO_REQUEST = 8
+
+ICMP_NO_CODE = 0
 
 DATETIME_MAX = (datetime.datetime.max
                 - datetime.datetime(1970, 1, 1)).total_seconds()
+
+TIMEZONE = pathlib.Path('/etc/timezone')
 
 
 def datefmt(s):
@@ -343,8 +347,8 @@ class ICMPPacket(DataMixin, ctypes.BigEndianStructure):
                 self.seq_num]
         validate_checksum(ints, index=1, bytes=self.payload)
 
-    def is_ping(self, ICMP_ECHO=8, ICMP_NO_CODE=0):
-        return self.type == ICMP_ECHO and self.code == ICMP_NO_CODE
+    def is_ping(self, _type=ICMP_ECHO_REQUEST, _code=ICMP_NO_CODE):
+        return self.type == _type and self.code == _code
 
     def to_bytes(self):
         return bytes(self) + self.payload
@@ -414,8 +418,14 @@ def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
         n_bytes = s.recv_into(buf)
         logging.debug('%d = s.recv_into(<buffer>)', n_bytes, extra=EX)
 
+        if n_bytes > bufsize:
+            continue
+
         ip = IPHeader.from_bytes(view[:20])
         logging.debug('%s', ip, extra=EX)
+
+        if ip.proto != socket.IPPROTO_ICMP:
+            continue
 
         icmp = ICMPPacket.from_bytes(view[20:n_bytes])
         logging.debug('%s', icmp, extra=EX)
@@ -427,18 +437,20 @@ def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
                 logging.debug('%r: %r', e, p, extra=EX)
                 break
         else:
-            if icmp.is_ping():
-                timeval = icmp.get_timeval()
-                if timeval is not None:
-                    logging.debug('%s', timeval, extra=EX)
+            if not icmp.is_ping():
+                continue
 
-                try:
-                    message = icmp.payload.decode(encoding)
-                except UnicodeDecodeError:
-                    message = ascii(icmp.payload)
+            timeval = icmp.get_timeval()
+            if timeval is not None:
+                logging.debug('%s', timeval, extra=EX)
 
-                logging.info(message, extra={'ip': ip.format(ip_tmpl),
-                                             'icmp': icmp.format(icmp_tmpl)})
+            try:
+                message = icmp.payload.decode(encoding)
+            except UnicodeDecodeError:
+                message = ascii(icmp.payload)
+
+            logging.info(message, extra={'ip': ip.format(ip_tmpl),
+                                         'icmp': icmp.format(icmp_tmpl)})
 
 
 def main(args=None):
