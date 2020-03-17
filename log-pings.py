@@ -135,7 +135,7 @@ parser.add_argument('--encoding', metavar='NAME', type=encoding, default=ENCODIN
                          f' (default: {ENCODING})')
 
 parser.add_argument('--max-size', metavar='N', type=positive_int, default=MAX_SIZE,
-                    help='byte limit for packages to process'
+                    help='payload byte limit for packages to process'
                          f' (default: {MAX_SIZE})')
 
 parser.add_argument('--verbose', action='store_true',
@@ -419,7 +419,7 @@ class Timeval64(TimevalMixin, DataMixin, ctypes.LittleEndianStructure):
 
 
 def serve_forever(s, *, max_size, encoding, ip_tmpl, icmp_tmpl):
-    bufsize = 2 **16
+    bufsize = 2**16
     if max_size > bufsize:
         raise ValueError(f'max_size {max_size} over buffer size {bufsize}')
 

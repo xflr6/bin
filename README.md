@@ -181,7 +181,7 @@ optional arguments:
   --chroot DIR     directory to chroot into after binding (default: /tmp)
   --no-hardening   don't give up privileges (ignore --setuid and --chroot)
   --encoding NAME  try to decode data with this encoding (default: utf-8)
-  --max-size N     byte limit for packages to process (default: 1472)
+  --max-size N     payload byte limit for packages to process (default: 1472)
   --verbose        increase stdout logging level to DEBUG
   --version        show program's version number and exit
 ```
