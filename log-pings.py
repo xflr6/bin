@@ -45,6 +45,9 @@ BUFSIZE = 2**16
 
 TIMEZONE = pathlib.Path('/etc/timezone')
 
+DATETIME_MAX = (datetime.datetime.max
+                - datetime.datetime(1970, 1, 1)).total_seconds()
+
 
 def datefmt(s):
     try:
@@ -348,15 +351,17 @@ class ICMPPacket(DataMixin, ctypes.BigEndianStructure):
 
     @property
     def timeval(self):
-        try:
-            result = Timeval64.from_bytes(self.payload)
-            result.datetime
-        except (ValueError, OverflowError, OSError):
+        return self.get_timeval()
+
+    def get_timeval(self, min=0, max=DATETIME_MAX):
+        for cls in (Timeval64, Timeval32):
             try:
-                result = Timeval32.from_bytes(self.payload)
-                result.datetime
+                result = cls.from_bytes(self.payload)
+                result.get_datetime(min=min, max=max)
             except (ValueError, OverflowError, OSError):
                 result = None
+            else:
+                break
 
         return result
 
@@ -375,7 +380,13 @@ class TimevalMixin:
 
     @property
     def datetime(self):
-        return datetime.datetime.utcfromtimestamp(self.timestamp)
+        return self.get_datetime()
+
+    def get_datetime(self, *, min=None, max=None):
+        timestamp = self.timestamp
+        if (min is not None or max is not None) and not min <= timestamp <= max:
+            raise ValueError
+        return datetime.datetime.utcfromtimestamp(timestamp)
 
 
 class Timeval32(TimevalMixin, DataMixin, ctypes.LittleEndianStructure):
@@ -417,7 +428,7 @@ def serve_forever(s, *, bufsize, encoding, ip_tmpl, icmp_tmpl):
             continue
 
         if icmp.is_ping():
-            timeval = icmp.timeval
+            timeval = icmp.get_timeval()
             if timeval is not None:
                 logging.debug('%s', timeval, extra=EX)
 
