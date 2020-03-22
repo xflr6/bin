@@ -32,16 +32,18 @@ def mock_strftime(mocker):
 
 @pytest.fixture
 def proc(mocker, name='subprocess.Popen()'):
-    result = mocker.create_autospec(subprocess.Popen, instance=True, name=name,
+    result = mocker.NonCallableMock(subprocess.Popen, name=name,
                                     args=['nonarg'], pid=-1, returncode=0,
                                     stdin=mocker.NonCallableMock(),
                                     stdout=mocker.NonCallableMock(),
                                     stderr=mocker.NonCallableMock(),
                                     encoding=None, errors=None)
 
-    result.__enter__.return_value = result
+    result.attach_mock(mocker.Mock(return_value=result), '__enter__')
+    result.attach_mock(mocker.Mock(), '__exit__')
 
     result.communicate.return_value = ('', '')
+
     return result
 
 
