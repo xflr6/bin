@@ -104,7 +104,7 @@ def main(args=None):
     print(f'pull all public gist repos of {args.gh_username} into: {args.target_dir}/')
 
     gists = list(itergists(username=args.gh_username))
-    log(f'pull {len(gists)} repo(s) into: {args.target_dir}/')
+    print(f'pull {len(gists)} repo(s) into: {args.target_dir}/')
 
     n_reset = n_cloned = n_updated = 0
     for g in gists:
