@@ -49,8 +49,7 @@ def test_backup_tar(tmp_path, mocker):
                                   encoding='utf-8',
                                   env={'PATH': '/bin'})
 
-    assert proc.mock_calls == [mocker.call.__enter__(),
-                               mocker.call.communicate(),
-                               mocker.call.__exit__(None, None, None)]
+    proc.assert_has_calls([mocker.call.__enter__(),
+                           mocker.call.communicate()])
 
     chown.assert_called_once_with(d_path, user='nonuser', group='nongroup')

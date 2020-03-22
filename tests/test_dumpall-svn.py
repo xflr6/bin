@@ -65,10 +65,10 @@ def test_dumpall_svn(tmp_path, mocker):
 
     assert Popen.call_args_list == [dump, compress]
 
-    assert proc.mock_calls == [mocker.call.__enter__(proc),
-                               mocker.call.__enter__(proc),
-                               mocker.call.communicate(),
-                               mocker.call.stdout.close(),
-                               mocker.call.communicate(),
-                               mocker.call.__exit__(proc, None, None, None),
-                               mocker.call.__exit__(proc, None, None, None)]
+    proc.assert_has_calls([mocker.call.__enter__(proc),
+                           mocker.call.__enter__(proc),
+                           mocker.call.communicate(),
+                           mocker.call.stdout.close(),
+                           mocker.call.communicate(),
+                           mocker.call.__exit__(proc, None, None, None),
+                           mocker.call.__exit__(proc, None, None, None)])

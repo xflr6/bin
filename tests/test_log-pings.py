@@ -129,10 +129,10 @@ def test_log_pings(capsys, mocker, ip_header, icmp_packet, host='127.0.0.1'):
 
     s = mocker.call(_socket.AF_INET, _socket.SOCK_RAW, _socket.IPPROTO_ICMP)
 
-    assert socket.mock_calls == [s,
-                                 s.bind((host, _socket.IPPROTO_ICMP)),
-                                 s.recv_into(mocker.ANY),
-                                 s.recv_into(mocker.ANY),
-                                 s.recv_into(mocker.ANY),
-                                 s.recv_into(mocker.ANY),
-                                 s.close()]
+    socket.assert_has_calls([s,
+                             s.bind((host, _socket.IPPROTO_ICMP)),
+                             s.recv_into(mocker.ANY),
+                             s.recv_into(mocker.ANY),
+                             s.recv_into(mocker.ANY),
+                             s.recv_into(mocker.ANY),
+                             s.close()])

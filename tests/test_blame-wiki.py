@@ -1,5 +1,4 @@
 import gzip
-import http.client
 import importlib
 import io
 
@@ -26,25 +25,21 @@ EXPORT = '''\
 ENCODING = 'utf-8'
 
 
-def test_blame_wiki(capsys, mocker):
-    info = {'content-type':  f'application/xml; charset={ENCODING}',
-            'content-disposition': 'attachment;filename=spam.xml',
-            'content-encoding': 'gzip'}
+def test_blame_wiki(capsys, mocker, http_resp):
+    http_resp.info.return_value = {
+        'content-type':  f'application/xml; charset={ENCODING}',
+        'content-disposition': 'attachment;filename=spam.xml',
+        'content-encoding': 'gzip',
+    }
 
-    stream = io.BytesIO()
-    with gzip.open(stream, 'wt', encoding=ENCODING) as f:
+    with gzip.open(http_resp, 'wt', encoding=ENCODING) as f:
         f.write(EXPORT)
-    stream.seek(0)
 
-    resp = mocker.NonCallableMock(http.client.HTTPResponse,
-                                  name='urllib.request.urlopen()',
-                                  wraps=stream)
-    resp.attach_mock(mocker.Mock(return_value=resp), '__enter__')
-    resp.attach_mock(mocker.Mock(), '__exit__')
-    resp.attach_mock(mocker.Mock(return_value=info), 'info')
+    http_resp.seek(0)
+    http_resp.reset_mock()
 
     urlopen = mocker.patch('urllib.request.urlopen', autospec=True,
-                           return_value=resp)
+                           return_value=http_resp)
 
     page_title = 'Spam'
     search_string = 'spam'
@@ -62,6 +57,6 @@ def test_blame_wiki(capsys, mocker):
     assert req.data == f'pages={page_title}&wpDownload=1'.encode(ENCODING)
     assert req.headers == {'Accept-encoding': 'gzip'}
 
-    resp.info.assert_called_once_with()
-
-    resp.read.assert_called_with(mocker.ANY)
+    http_resp.assert_has_calls([mocker.call.__enter__(),
+                                mocker.call.info(),
+                                mocker.call.read(mocker.ANY)])

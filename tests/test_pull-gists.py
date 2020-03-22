@@ -1,11 +1,10 @@
-import http.client
 import importlib
 import json
 
 pull_gists = importlib.import_module('pull-gists')
 
 
-def test_pull_repos(tmp_path, mocker):
+def test_pull_repos(tmp_path, mocker, http_resp):
     present = tmp_path / 'present.git'
     present.mkdir()
 
@@ -13,17 +12,12 @@ def test_pull_repos(tmp_path, mocker):
     assert not absent.exists()
     absent_url = f'git@example.com:spam/{absent.name}'
 
-    gists = json.dumps([{'git_push_url': f'git@example.com:spam/{present.name}'},
-                        {'git_push_url': absent_url}])
-
-    resp = mocker.create_autospec(http.client.HTTPResponse, instance=True,
-                                  name='urllib.request.urlopen()')
-    resp.__enter__.return_value = resp
-    resp.read.return_value = gists
-    resp.info.return_value = {}
+    http_resp.read.return_value = json.dumps([
+        {'git_push_url': f'git@example.com:spam/{present.name}'},
+        {'git_push_url': absent_url}])
 
     urlopen = mocker.patch('urllib.request.urlopen', autospec=True,
-                           return_value=resp)
+                           return_value=http_resp)
 
     run = mocker.patch('subprocess.run', autospec=True)
 
@@ -31,10 +25,10 @@ def test_pull_repos(tmp_path, mocker):
 
     urlopen.assert_called_once_with('https://api.github.com/users/spam/gists')
 
-    assert resp.mock_calls == [mocker.call.__enter__(),
-                               mocker.call.read(),
-                               mocker.call.__exit__(None, None, None),
-                               mocker.call.info()]
+    http_resp.assert_has_calls([mocker.call.__enter__(),
+                                mocker.call.read(),
+                                mocker.call.__exit__(None, None, None),
+                                mocker.call.info()])
 
     clone = mocker.call(['git', 'clone', '--mirror', absent_url],
                         cwd=tmp_path, check=True)

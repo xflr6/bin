@@ -1,3 +1,5 @@
+import http.client
+import io
 import subprocess
 import sys
 import time
@@ -29,12 +31,25 @@ def mock_strftime(mocker):
 
 
 @pytest.fixture
-def completed_proc(mocker):
+def completed_proc(mocker, name='subprocess.run()'):
     return mocker.create_autospec(subprocess.CompletedProcess, instance=True,
-                                  name='subprocess.run()', returncode=0)
+                                  name=name, returncode=0)
 
 
 @pytest.fixture
 def mock_run(mocker, completed_proc):
     yield mocker.patch('subprocess.run', autospec=True,
                        return_value=completed_proc)
+
+
+@pytest.fixture
+def http_resp(mocker, name='urllib.request.urlopen()'):
+    result = mocker.NonCallableMock(http.client.HTTPResponse, name=name,
+                                    wraps=io.BytesIO())
+
+    result.attach_mock(mocker.Mock(return_value=result), '__enter__')
+    result.attach_mock(mocker.Mock(), '__exit__')
+
+    result.attach_mock(mocker.Mock(return_value={}), 'info')
+
+    return result
