@@ -4,7 +4,7 @@ import json
 pull_gists = importlib.import_module('pull-gists')
 
 
-def test_pull_repos(tmp_path, mocker, http_resp):
+def test_pull_repos(tmp_path, mocker, mock_run, http_resp):
     present = tmp_path / 'present.git'
     present.mkdir()
 
@@ -18,8 +18,6 @@ def test_pull_repos(tmp_path, mocker, http_resp):
 
     urlopen = mocker.patch('urllib.request.urlopen', autospec=True,
                            return_value=http_resp)
-
-    run = mocker.patch('subprocess.run', autospec=True)
 
     assert pull_gists.main([str(tmp_path), 'spam']) is None
 
@@ -36,4 +34,6 @@ def test_pull_repos(tmp_path, mocker, http_resp):
     update = mocker.call(['git', 'remote', 'update'],
                          cwd=present, check=True)
 
-    assert run.call_args_list == [update, clone]
+    assert mock_run.call_args_list == [update, clone]
+
+    assert not mock_run.return_value.mock_calls

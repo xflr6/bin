@@ -9,22 +9,12 @@ dumpall_svn = importlib.import_module('dumpall-svn')
 
 
 @pytest.mark.usefixtures('mock_strftime')
-def test_dumpall_svn(tmp_path, mocker):
+def test_dumpall_svn(tmp_path, mocker, proc):
     present = tmp_path / 'present'
     present.mkdir()
 
     result = tmp_path / 'present-19700101-0000.svndump.gz'
     assert not result.exists()
-
-    proc = mocker.create_autospec(subprocess.Popen, instance=True,
-                                  name='subprocess.Popen()',
-                                  args=['nonarg'], pid=-1, returncode=0,
-                                  stdin=mocker.NonCallableMock(),
-                                  stdout=mocker.NonCallableMock(),
-                                  stderr=mocker.NonCallableMock(),
-                                  encoding=None, errors=None)
-    proc.__enter__.return_value = proc
-    proc.communicate.return_value = ('', '')
 
     outfd = None
 

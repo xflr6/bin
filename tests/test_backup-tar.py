@@ -1,5 +1,4 @@
 import importlib
-import subprocess
 
 import pytest
 
@@ -7,7 +6,7 @@ backup_tar = importlib.import_module('backup-tar')
 
 
 @pytest.mark.usefixtures('mock_pwd_grp', 'mock_strftime')
-def test_backup_tar(tmp_path, mocker):
+def test_backup_tar(tmp_path, mocker, proc):
     s_dir = tmp_path / 'source'
     s_dir.mkdir()
 
@@ -15,11 +14,6 @@ def test_backup_tar(tmp_path, mocker):
 
     e_path = tmp_path / 'mock.excludes'
     e_path.write_bytes(b'\n')
-
-    proc = mocker.create_autospec(subprocess.Popen, instance=True,
-                                  name='subprocess.Popen()', returncode=0)
-    proc.__enter__.return_value = proc
-    proc.communicate.return_value = ('', '')
 
     def Popen(*args, **kwargs):
         d_path.write_bytes(b'\xde\xad\xbe\xef')

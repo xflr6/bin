@@ -31,6 +31,21 @@ def mock_strftime(mocker):
 
 
 @pytest.fixture
+def proc(mocker, name='subprocess.Popen()'):
+    result = mocker.create_autospec(subprocess.Popen, instance=True, name=name,
+                                    args=['nonarg'], pid=-1, returncode=0,
+                                    stdin=mocker.NonCallableMock(),
+                                    stdout=mocker.NonCallableMock(),
+                                    stderr=mocker.NonCallableMock(),
+                                    encoding=None, errors=None)
+
+    result.__enter__.return_value = result
+
+    result.communicate.return_value = ('', '')
+    return result
+
+
+@pytest.fixture
 def completed_proc(mocker, name='subprocess.run()'):
     return mocker.create_autospec(subprocess.CompletedProcess, instance=True,
                                   name=name, returncode=0)

@@ -1,6 +1,5 @@
 import argparse
 import importlib
-import subprocess
 
 import pytest
 
