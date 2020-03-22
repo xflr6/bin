@@ -1,3 +1,4 @@
+import subprocess
 import sys
 import time
 
@@ -25,3 +26,15 @@ def mock_strftime(mocker):
         return _strftime(format, t)
 
     yield mocker.patch('time.strftime', autospec=True, side_effect=strftime)
+
+
+@pytest.fixture
+def completed_proc(mocker):
+    return mocker.create_autospec(subprocess.CompletedProcess, instance=True,
+                                  name='subprocess.run()', returncode=0)
+
+
+@pytest.fixture
+def mock_run(mocker, completed_proc):
+    yield mocker.patch('subprocess.run', autospec=True,
+                       return_value=completed_proc)

@@ -8,7 +8,7 @@ make_nup = importlib.import_module('make-nup')
 
 
 @pytest.mark.parametrize('keep', [False, True], ids=lambda x: 'keep=%r' % x)
-def test_make_nup(tmp_path, mocker, keep, encoding='utf-8'):
+def test_make_nup(tmp_path, mocker, completed_proc, keep, encoding='utf-8'):
     pdf_path = tmp_path / 'spam.pdf'
     pdf_path.write_bytes(b'')
 
@@ -18,9 +18,6 @@ def test_make_nup(tmp_path, mocker, keep, encoding='utf-8'):
     dest_path = tmp_path / 'spam-2UP.pdf'
 
     doc = newlines = None
-
-    proc = mocker.create_autospec(subprocess.CompletedProcess, instance=True,
-                                  name='subprocess.run()', returncode=0)
 
     def run(*args, **kwargs):
         nonlocal doc, newlines
@@ -32,7 +29,7 @@ def test_make_nup(tmp_path, mocker, keep, encoding='utf-8'):
 
         dest_path.write_bytes(b'\xde\xad\xbe\xef')
 
-        return proc
+        return completed_proc
 
     run = mocker.patch('subprocess.run', autospec=True, side_effect=run)
 
@@ -70,4 +67,4 @@ def test_make_nup(tmp_path, mocker, keep, encoding='utf-8'):
     run.assert_called_once_with(['pdflatex', '-interaction=batchmode',
                                  tex_path.name], check=True, cwd=tmp_path)
 
-    assert not proc.mock_calls
+    assert not completed_proc.mock_calls

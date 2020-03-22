@@ -1,5 +1,4 @@
 import importlib
-import subprocess
 
 import pytest
 
@@ -7,7 +6,7 @@ backup_squashfs = importlib.import_module('backup-squashfs')
 
 
 @pytest.mark.usefixtures('mock_pwd_grp', 'mock_strftime')
-def test_backup_squashfs(tmp_path, mocker):
+def test_backup_squashfs(tmp_path, mocker, completed_proc):
     s_dir = tmp_path / 'source'
     s_dir.mkdir()
 
@@ -16,12 +15,9 @@ def test_backup_squashfs(tmp_path, mocker):
     e_path = tmp_path / 'mock.excludes'
     e_path.write_bytes(b'\n')
 
-    proc = mocker.create_autospec(subprocess.CompletedProcess, instance=True,
-                                  name='subprocess.run()', returncode=0)
-
     def run(*args, **kwargs):
         d_path.write_bytes(b'\xde\xad\xbe\xef')
-        return proc
+        return completed_proc
 
     umask = mocker.patch('os.umask', autospec=True)
     run = mocker.patch('subprocess.run', autospec=True, side_effect=run)
@@ -45,6 +41,6 @@ def test_backup_squashfs(tmp_path, mocker):
                                 check=True,
                                 env={'PATH': '/bin'})
 
-    assert not proc.mock_calls
+    assert not completed_proc.mock_calls
 
     chown.assert_called_once_with(d_path, user='nonuser', group='nongroup')

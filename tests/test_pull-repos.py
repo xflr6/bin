@@ -20,18 +20,13 @@ def test_parse_url(s, expected):
     assert pull_repos.parse_url(s) == expected
 
 
-def test_pull_repos(tmp_path, mocker):
+def test_pull_repos(tmp_path, mocker, mock_run):
     present = tmp_path / 'present.git'
     present.mkdir()
 
     absent = tmp_path / 'absent.git'
     assert not absent.exists()
     absent_url = f'git@example.com:spam/{absent.name}'
-
-    proc = mocker.create_autospec(subprocess.CompletedProcess, instance=True,
-                                  name='subprocess.run()', returncode=0)
-
-    run = mocker.patch('subprocess.run', autospec=True, return_value=proc)
 
     assert pull_repos.main([str(tmp_path),
                             f'git@example.com:spam/{present.name}',
@@ -43,6 +38,6 @@ def test_pull_repos(tmp_path, mocker):
     update = mocker.call(['git', 'remote', 'update'],
                          cwd=present, check=True)
 
-    assert run.call_args_list == [clone, update]
+    assert mock_run.call_args_list == [clone, update]
 
-    assert not proc.mock_calls
+    assert not mock_run.return_value.mock_calls
