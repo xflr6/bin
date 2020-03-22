@@ -1,4 +1,5 @@
 import importlib
+import subprocess
 
 import pytest
 
@@ -15,12 +16,17 @@ def test_backup_tar(tmp_path, mocker):
     e_path = tmp_path / 'mock.excludes'
     e_path.write_bytes(b'\n')
 
+    proc = mocker.create_autospec(subprocess.Popen, instance=True,
+                                  name='subprocess.Popen()', returncode=0)
+    proc.__enter__.return_value = proc
+    proc.communicate.return_value = ('', '')
+
     def Popen(*args, **kwargs):
         d_path.write_bytes(b'\xde\xad\xbe\xef')
-        return mocker.DEFAULT
+        return proc
 
     umask = mocker.patch('os.umask', autospec=True)
-    Popen = mocker.patch('subprocess.Popen', side_effect=Popen, autospec=True)
+    Popen = mocker.patch('subprocess.Popen', autospec=True, side_effect=Popen)
     chown = mocker.patch('shutil.chown', autospec=True)
 
     assert backup_tar.main([str(s_dir), str(d_path.parent),
@@ -42,5 +48,9 @@ def test_backup_tar(tmp_path, mocker):
                                   cwd=s_dir,
                                   encoding='utf-8',
                                   env={'PATH': '/bin'})
+
+    assert proc.mock_calls == [mocker.call.__enter__(),
+                               mocker.call.communicate(),
+                               mocker.call.__exit__(None, None, None)]
 
     chown.assert_called_once_with(d_path, user='nonuser', group='nongroup')

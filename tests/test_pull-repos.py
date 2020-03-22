@@ -1,5 +1,6 @@
 import argparse
 import importlib
+import subprocess
 
 import pytest
 
@@ -27,7 +28,10 @@ def test_pull_repos(tmp_path, mocker):
     assert not absent.exists()
     absent_url = f'git@example.com:spam/{absent.name}'
 
-    run = mocker.patch('subprocess.run', autospec=True)
+    proc = mocker.create_autospec(subprocess.CompletedProcess, instance=True,
+                                  name='subprocess.run()', returncode=0)
+
+    run = mocker.patch('subprocess.run', autospec=True, return_value=proc)
 
     assert pull_repos.main([str(tmp_path),
                             f'git@example.com:spam/{present.name}',
@@ -40,3 +44,5 @@ def test_pull_repos(tmp_path, mocker):
                          cwd=present, check=True)
 
     assert run.call_args_list == [clone, update]
+
+    assert not proc.mock_calls

@@ -75,7 +75,7 @@ parser.add_argument('--tag', default=PAGE_TAG,
 parser.add_argument('--stats', dest='simple_stats', action='store_false',
                     help='also compute and display page edit statistics')
 
-parser.add_argument('--stats-top', dest='most_common_n', 
+parser.add_argument('--stats-top', dest='most_common_n',
                     metavar='N', type=positive_int, default=MOST_COMMON_N,
                     help='show top N users edits and lines'
                          f' (default: {MOST_COMMON_N})')

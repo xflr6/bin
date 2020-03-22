@@ -19,6 +19,9 @@ def test_make_nup(tmp_path, mocker, keep, encoding='utf-8'):
 
     doc = newlines = None
 
+    proc = mocker.create_autospec(subprocess.CompletedProcess, instance=True,
+                                  name='subprocess.run()', returncode=0)
+
     def run(*args, **kwargs):
         nonlocal doc, newlines
 
@@ -29,9 +32,9 @@ def test_make_nup(tmp_path, mocker, keep, encoding='utf-8'):
 
         dest_path.write_bytes(b'\xde\xad\xbe\xef')
 
-        return mocker.create_autospec(subprocess.CompletedProcess, returncode=0)
+        return proc
 
-    run = mocker.patch('subprocess.run', side_effect=run, autospec=True)
+    run = mocker.patch('subprocess.run', autospec=True, side_effect=run)
 
     assert make_nup.main([str(pdf_path),
                           '--name', '{stem}-2UP.pdf',
@@ -66,3 +69,5 @@ def test_make_nup(tmp_path, mocker, keep, encoding='utf-8'):
 
     run.assert_called_once_with(['pdflatex', '-interaction=batchmode',
                                  tex_path.name], check=True, cwd=tmp_path)
+
+    assert not proc.mock_calls

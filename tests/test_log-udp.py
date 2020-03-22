@@ -8,8 +8,6 @@ log_udp = importlib.import_module('log-udp')
 
 @pytest.mark.usefixtures('mock_pwd_grp')
 def test_log_udp(capsys, mocker, host='127.0.0.1', port=9, encoding='utf-8'):
-    socket = mocker.patch('socket.socket', autospec=True)
-
     msg = 'spam lovely spam'
 
     packets = iter([msg.encode(encoding)])
@@ -23,6 +21,7 @@ def test_log_udp(capsys, mocker, host='127.0.0.1', port=9, encoding='utf-8'):
         buf[:len(p)] = p
         return len(p), (host, port)
 
+    socket = mocker.patch('socket.socket', autospec=True)
     socket.return_value.recvfrom_into.side_effect = recvfrom_into
 
     assert log_udp.main(['--host', host,

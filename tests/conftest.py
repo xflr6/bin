@@ -8,9 +8,12 @@ TEST_NOW = time.gmtime(0)
 
 @pytest.fixture
 def mock_pwd_grp(monkeypatch, mocker):
-    pwd = mocker.NonCallableMock(**{'getpwuid.return_value.pw_name': 'nonuser'})
-    grp = mocker.NonCallableMock(**{'getgrgid.return_value.pw_name': 'nongroup'})
+    pwd = mocker.NonCallableMock(name='pwd')
+    pwd.getpwuid.return_value.pw_name = 'nonuser'
     monkeypatch.setitem(sys.modules, 'pwd', pwd)
+
+    grp = mocker.NonCallableMock(name='grp')
+    grp.getgrgid.return_value.pw_name = 'nongroup'
     monkeypatch.setitem(sys.modules, 'grp', grp)
 
 
@@ -21,4 +24,4 @@ def mock_strftime(mocker):
     def strftime(format, t=TEST_NOW):
         return _strftime(format, t)
 
-    yield mocker.patch('time.strftime', side_effect=strftime, autospec=True)
+    yield mocker.patch('time.strftime', autospec=True, side_effect=strftime)

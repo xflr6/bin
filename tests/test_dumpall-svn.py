@@ -16,9 +16,15 @@ def test_dumpall_svn(tmp_path, mocker):
     result = tmp_path / 'present-19700101-0000.svndump.gz'
     assert not result.exists()
 
-    proc = mocker.MagicMock(args=['nonarg'], returncode=0,
-                            **{'communicate.return_value': ('', '')})
+    proc = mocker.create_autospec(subprocess.Popen, instance=True,
+                                  name='subprocess.Popen()',
+                                  args=['nonarg'], pid=-1, returncode=0,
+                                  stdin=mocker.NonCallableMock(),
+                                  stdout=mocker.NonCallableMock(),
+                                  stderr=mocker.NonCallableMock(),
+                                  encoding=None, errors=None)
     proc.__enter__.return_value = proc
+    proc.communicate.return_value = ('', '')
 
     outfd = None
 
@@ -26,12 +32,12 @@ def test_dumpall_svn(tmp_path, mocker):
         if stdout not in (None, subprocess.PIPE):
             nonlocal outfd
             outfd = stdout
-            stdout.write(b'\xde\xad\xbe\xef')
+            outfd.write(b'\xde\xad\xbe\xef')
         return proc
 
-    Popen = mocker.patch('subprocess.Popen', side_effect=Popen, autospec=True)
+    Popen = mocker.patch('subprocess.Popen', autospec=True, side_effect=Popen)
 
-    open_spy = mocker.patch('builtins.open', wraps=open, autospec=True)
+    open_spy = mocker.patch('builtins.open', autospec=True, wraps=open)
 
     path = '/bin'
 
@@ -58,3 +64,11 @@ def test_dumpall_svn(tmp_path, mocker):
                            stdin=proc.stdout, stdout=outfd, env=env)
 
     assert Popen.call_args_list == [dump, compress]
+
+    assert proc.mock_calls == [mocker.call.__enter__(proc),
+                               mocker.call.__enter__(proc),
+                               mocker.call.communicate(),
+                               mocker.call.stdout.close(),
+                               mocker.call.communicate(),
+                               mocker.call.__exit__(proc, None, None, None),
+                               mocker.call.__exit__(proc, None, None, None)]

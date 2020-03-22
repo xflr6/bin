@@ -57,8 +57,6 @@ def icmp_packet(encoding='utf-8'):
 
 @pytest.mark.usefixtures('mock_pwd_grp')
 def test_log_pings(capsys, mocker, ip_header, icmp_packet, host='127.0.0.1'):
-    socket = mocker.patch('socket.socket', autospec=True)
-
     packets = iter([
         ip_header.to_bytes() + icmp_packet.to_bytes(),
         ip_header.to_bytes() + icmp_packet.replace(payload=b'abcde', checksum=0xcd0f).to_bytes(),
@@ -74,6 +72,7 @@ def test_log_pings(capsys, mocker, ip_header, icmp_packet, host='127.0.0.1'):
         buf[:len(p)] = p
         return len(p)
 
+    socket = mocker.patch('socket.socket', autospec=True)
     socket.return_value.recv_into.side_effect = recv_into
 
     bufsize = 128

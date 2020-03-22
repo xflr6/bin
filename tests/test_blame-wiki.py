@@ -1,6 +1,7 @@
-import io
 import gzip
+import http.client
 import importlib
+import io
 
 blame_wiki = importlib.import_module('blame-wiki')
 
@@ -35,14 +36,15 @@ def test_blame_wiki(capsys, mocker):
         f.write(EXPORT)
     stream.seek(0)
 
-    resp = mocker.Mock(wraps=stream)
-    resp.info = mocker.Mock(name='info', return_value=info)
-    resp.__enter__ = mocker.Mock(return_value=resp)
-    resp.__exit__ = mocker.Mock()
+    resp = mocker.NonCallableMock(http.client.HTTPResponse,
+                                  name='urllib.request.urlopen()',
+                                  wraps=stream)
+    resp.attach_mock(mocker.Mock(return_value=resp), '__enter__')
+    resp.attach_mock(mocker.Mock(), '__exit__')
+    resp.attach_mock(mocker.Mock(return_value=info), 'info')
 
-    urlopen = mocker.patch('urllib.request.urlopen',
-                           return_value=resp,
-                           autospec=True)
+    urlopen = mocker.patch('urllib.request.urlopen', autospec=True,
+                           return_value=resp)
 
     page_title = 'Spam'
     search_string = 'spam'
@@ -59,3 +61,7 @@ def test_blame_wiki(capsys, mocker):
     assert req.full_url == export_url
     assert req.data == f'pages={page_title}&wpDownload=1'.encode(ENCODING)
     assert req.headers == {'Accept-encoding': 'gzip'}
+
+    resp.info.assert_called_once_with()
+
+    resp.read.assert_called_with(mocker.ANY)

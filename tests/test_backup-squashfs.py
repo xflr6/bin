@@ -16,12 +16,15 @@ def test_backup_squashfs(tmp_path, mocker):
     e_path = tmp_path / 'mock.excludes'
     e_path.write_bytes(b'\n')
 
+    proc = mocker.create_autospec(subprocess.CompletedProcess, instance=True,
+                                  name='subprocess.run()', returncode=0)
+
     def run(*args, **kwargs):
         d_path.write_bytes(b'\xde\xad\xbe\xef')
-        return mocker.create_autospec(subprocess.CompletedProcess, returncode=0)
+        return proc
 
     umask = mocker.patch('os.umask', autospec=True)
-    run = mocker.patch('subprocess.run', side_effect=run, autospec=True)
+    run = mocker.patch('subprocess.run', autospec=True, side_effect=run)
     chown = mocker.patch('shutil.chown', autospec=True)
 
     assert backup_squashfs.main([str(s_dir), str(d_path.parent),
@@ -41,5 +44,7 @@ def test_backup_squashfs(tmp_path, mocker):
                                  '-comp', 'gzip'],
                                 check=True,
                                 env={'PATH': '/bin'})
+
+    assert not proc.mock_calls
 
     chown.assert_called_once_with(d_path, user='nonuser', group='nongroup')
