@@ -180,7 +180,7 @@ def main(args=None):
 
         found_size = dest_path.stat().st_size if dest_path.exists() else None
         if found_size is not None:
-            log(f'delete present {dest_path} ({found_size} bytes)')
+            log(f'delete present {dest_path} ({found_size:_d} bytes)')
             dest_path.unlink()
             n_found += 1
 
