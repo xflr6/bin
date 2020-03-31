@@ -158,6 +158,20 @@ optional arguments:
 ```
 
 
+### fix-dropbox-overlays.py
+
+```sh
+$ fix-dropbox-overlays.py --help
+usage: fix-dropbox-overlays.py [-h] [--version]
+
+Fix Dropbox update messing up Toirtoise* overlay handlers in Windows registry.
+
+optional arguments:
+  -h, --help  show this help message and exit
+  --version   show program's version number and exit
+```
+
+
 ### log-pings.py
 
 ```sh
