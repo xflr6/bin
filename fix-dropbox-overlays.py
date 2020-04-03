@@ -99,17 +99,17 @@ def main(args=None):
                 if args.dry_run:
                     continue
 
-                log('winreg.QueryValue(..., {!r})'.format(src))
+                log('winreg.QueryValue(..., {src!r})'.format(src=src))
                 value = winreg.QueryValue(o, src)
 
-                log('winreg.DeleteKey(..., {!r})'.format(src))
+                log('winreg.DeleteKey(..., {src!r})'.format(src=src))
                 winreg.DeleteKey(o, src)
-                log('winreg.CreateKey(..., {!r})'.format(dst))
+                log('winreg.CreateKey(..., {dst!r})'.format(dst=dst))
                 winreg.CreateKey(o, dst)
 
-                args = dst, winreg.REG_SZ, value
-                log('winreg.SetValue(..., {!r}, {!r}, {!r})'.format(*args))
-                winreg.SetValue(o, *args)
+                log('winreg.SetValue(..., {dst!r}, {type!r},'
+                    ' {value!r})'.format(dst=dst, type=winreg.REG_SZ, value=value))
+                winreg.SetValue(o, dst, winreg.REG_SZ, value)
 
     print('done')
     return None
