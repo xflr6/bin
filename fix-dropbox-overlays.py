@@ -100,8 +100,8 @@ def main(args=None):
                 log('winreg.CreateKey(..., {!r})'.format(dst))
                 winreg.CreateKey(o, dst)
 
-                args = o, dst, winreg.REG_SZ, value
-                log('winreg.SetValue(..., {!r}, {!r}, {!r})'.format(*args[1:]))
+                args = dst, winreg.REG_SZ, value
+                log('winreg.SetValue(..., {!r}, {!r}, {!r})'.format(*args))
                 winreg.SetValue(o, *args)
 
     print('done')
