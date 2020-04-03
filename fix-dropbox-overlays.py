@@ -25,6 +25,9 @@ log = functools.partial(print, file=sys.stderr, sep='\n')
 
 parser = argparse.ArgumentParser(description=__doc__)
 
+parser.add_argument('--dry-run', action='store_true',
+                    help="show what would be changed (don't write to registry)")
+
 parser.add_argument('--version', action='version', version=__version__)
 
 
@@ -85,12 +88,16 @@ def main(args=None):
         for src, dst in iterchanges(keys):
             if dst is None:
                 print('delete {!r}'.format(src))
+                if args.dry_run:
+                    continue
 
                 log('winreg.DeleteKey(..., {!r})'.format(src))
                 winreg.DeleteKey(o, src)
 
             else:
                 print('move {!r} to {!r}'.format(src, dst))
+                if args.dry_run:
+                    continue
 
                 log('winreg.QueryValue(..., {!r})'.format(src))
                 value = winreg.QueryValue(o, src)
