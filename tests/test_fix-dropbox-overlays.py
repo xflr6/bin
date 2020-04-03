@@ -23,21 +23,25 @@ KEYS = ['   DropboxExt01', '   DropboxExt02', '   DropboxExt03',
 def winreg(mocker):
     name = '_winreg' if sys.version_info.major == 2 else 'winreg'
 
-    result = mocker.NonCallableMock(name=name)
-    result.HKEY_LOCAL_MACHINE = mocker.sentinel.HKEY_LOCAL_MACHINE
-    result.REG_SZ = mocker.sentinel.REG_SZ
-    result.attach_mock(mocker.MagicMock(), 'ConnectRegistry')
-    result.attach_mock(mocker.MagicMock(), 'OpenKey')
-    result.attach_mock(mocker.Mock(return_value=(len(KEYS), None, None)),
-                       'QueryInfoKey')
-    result.attach_mock(mocker.Mock(side_effect=iter(KEYS)), 'EnumKey')
-    result.attach_mock(mocker.Mock(), 'DeleteKey')
-    result.attach_mock(mocker.Mock(), 'QueryValue')
-    result.attach_mock(mocker.Mock(), 'CreateKey')
-    result.attach_mock(mocker.Mock(), 'SetValue')
+    module = mocker.NonCallableMock(name=name,
+                                    HKEY_LOCAL_MACHINE=mocker.sentinel.HKEY_LOCAL_MACHINE,
+                                    REG_SZ = mocker.sentinel.REG_SZ)
 
-    sys.modules[name] = result
-    yield result
+    module.attach_mock(mocker.MagicMock(), 'ConnectRegistry')
+    module.attach_mock(mocker.MagicMock(), 'OpenKey')
+
+    module.attach_mock(mocker.Mock(return_value=(len(KEYS), None, None)),
+                       'QueryInfoKey')
+    module.attach_mock(mocker.Mock(side_effect=iter(KEYS)),
+                       'EnumKey')
+
+    module.attach_mock(mocker.Mock(), 'DeleteKey')
+    module.attach_mock(mocker.Mock(), 'QueryValue')
+    module.attach_mock(mocker.Mock(), 'CreateKey')
+    module.attach_mock(mocker.Mock(), 'SetValue')
+
+    sys.modules[name] = module
+    yield module
     del sys.modules[name]
 
 
