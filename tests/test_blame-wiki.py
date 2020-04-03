@@ -1,6 +1,5 @@
 import gzip
 import importlib
-import io
 
 blame_wiki = importlib.import_module('blame-wiki')
 

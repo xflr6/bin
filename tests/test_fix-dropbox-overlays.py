@@ -1,6 +1,5 @@
 import importlib
 import sys
-import types
 
 import pytest
 
@@ -86,7 +85,7 @@ def test_fix_dropox_overlays(mocker, winreg):
                             + delete_keys
                             + set_values +
                             [open_key.__exit__(None, None, None),
-                               connect.__exit__(None, None, None)])
+                             connect.__exit__(None, None, None)])
 
 
 def test_fix_dropox_overlays_dry(mocker, winreg):
