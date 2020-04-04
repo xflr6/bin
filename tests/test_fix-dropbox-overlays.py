@@ -19,9 +19,7 @@ KEYS = ['   DropboxExt01', '   DropboxExt02', '   DropboxExt03',
 
 
 @pytest.fixture
-def winreg(mocker):
-    name = '_winreg' if sys.version_info.major == 2 else 'winreg'
-
+def winreg(mocker, name='winreg'):
     module = mocker.NonCallableMock(name=name,
                                     HKEY_LOCAL_MACHINE=mocker.sentinel.HKEY_LOCAL_MACHINE,
                                     REG_SZ = mocker.sentinel.REG_SZ)

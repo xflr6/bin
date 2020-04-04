@@ -1,6 +1,6 @@
-""" Fix Dropbox update messing up Toirtoise* overlay handlers in Windows registry."""
+#!python3
 
-from __future__ import print_function
+""" Fix Dropbox update messing up Toirtoise* overlay handlers in Windows registry."""
 
 __title__ = 'fix-dropbox-overlays.py'
 __version__ = '0.1.dev0'
@@ -32,7 +32,7 @@ parser.add_argument('--version', action='version', version=__version__)
 
 
 def lspace_name(s):
-    lspace, name = re.match(r'(\s*)(\w+)$', s).groups()
+    lspace, name = re.fullmatch(r'(\s*)(\w+)', s).groups()
     return len(lspace), name
 
 
@@ -63,52 +63,48 @@ def iterchanges(keys):
 
 
 def main(args=None):
-    if sys.version_info.major == 2:
-        import _winreg as winreg
-    else:
-        import winreg
+    import winreg
 
     args = parser.parse_args(args)
 
     handle = COMPUTER_NAME, winreg.HKEY_LOCAL_MACHINE
 
-    log('winreg.ConnectRegistry({!r}, {!r})'.format(*handle),
-        'winreg.OpenKey(..., {!r})'.format(SUB_KEY))
+    log(f'winreg.ConnectRegistry(*{handle})',
+        f'winreg.OpenKey(..., {SUB_KEY!r})')
     with winreg.ConnectRegistry(*handle) as h,\
          winreg.OpenKey(h, SUB_KEY) as o:
 
         nkeys, _, _ = winreg.QueryInfoKey(o)
-        log('for i in range({!r}): winreg.EnumKey(..., i)'.format(nkeys))
+        log(f'for i in range({nkeys!r}): winreg.EnumKey(..., i)')
         keys = [winreg.EnumKey(o, i) for i in range(nkeys)]
-        log('keys: {!r}'.format(keys))
+        log(f'keys: {keys!r}')
 
         changes = list(iterchanges(keys))
-        log('changes: {!r}'.format(changes))
+        log(f'changes: {changes!r}')
 
         for src, dst in iterchanges(keys):
             if dst is None:
-                print('delete {!r}'.format(src))
+                print(f'delete {src!r}')
                 if args.dry_run:
                     continue
 
-                log('winreg.DeleteKey(..., {!r})'.format(src))
+                log(f'winreg.DeleteKey(..., {src!r})')
                 winreg.DeleteKey(o, src)
 
             else:
-                print('move {!r} to {!r}'.format(src, dst))
+                print(f'move {src!r} to {dst!r}')
                 if args.dry_run:
                     continue
 
-                log('winreg.QueryValue(..., {src!r})'.format(src=src))
+                log(f'winreg.QueryValue(..., {src!r})')
                 value = winreg.QueryValue(o, src)
 
-                log('winreg.DeleteKey(..., {src!r})'.format(src=src))
+                log(f'winreg.DeleteKey(..., {src!r})')
                 winreg.DeleteKey(o, src)
-                log('winreg.CreateKey(..., {dst!r})'.format(dst=dst))
+                log(f'winreg.CreateKey(..., {dst!r})')
                 winreg.CreateKey(o, dst)
 
-                log('winreg.SetValue(..., {dst!r}, {type!r},'
-                    ' {value!r})'.format(dst=dst, type=winreg.REG_SZ, value=value))
+                log('winreg.SetValue(..., {dst!r}, {winreg.REG_SZ!r}, {value!r})')
                 winreg.SetValue(o, dst, winreg.REG_SZ, value)
 
     print('done')
