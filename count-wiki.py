@@ -9,11 +9,13 @@ __license__ = 'MIT, see LICENSE.txt'
 __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
+import builtins
 import bz2
 import collections
 import difflib
 import functools
 import gzip
+import lzma
 import pathlib
 import re
 import sys
@@ -44,7 +46,8 @@ MEDIAWIKI_EXPORT = r'\{%s/xml/export-\d+(?:\.\d+)*/\}mediawiki' % _MEDIAWIKI
 
 SUFFIX_OPEN_MODULE = {'.bz2':  bz2,
                       '.gz': gzip,
-                      '.xml': __builtins__}
+                      '.xml': builtins,
+                      '.xz': lzma}
 
 
 log = functools.partial(print, file=sys.stderr, sep='\n')
