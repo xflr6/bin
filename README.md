@@ -1,5 +1,8 @@
 # bin
 
+[![Build Status](https://travis-ci.org/xflr6/bin.svg?branch=master)](https://travis-ci.org/xflr6/bin)
+[![Coverage Status](https://codecov.io/gh/xflr6/bin/branch/master/graph/badge.svg)](https://codecov.io/gh/xflr6/bin)
+
 Command-line scripts (mostly \*nix).
 
 
