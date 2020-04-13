@@ -68,7 +68,7 @@ def parse_url(s):
     return re.search(r'(?P<url>.*/(?P<dir>[^/]+))$', s).groupdict()
 
 
-def prompt_for_deletion(path):
+def prompt_for_deletion(path):  # pragma: no cover
     line = None
     while line is None or (line and line not in ('y', 'yes')):
         line = input(f'delete {path}/? [(y)es=delete/ENTER=keep]: ')
@@ -85,7 +85,7 @@ def prompt_for_deletion(path):
 def removed_clone(path, reset=False):
     removed = clone = False
     if path.exists():
-        if not path.is_dir():
+        if not path.is_dir():  # pragma: no cover
             raise RuntimeError(f'path is not a directory: {path}')
         if reset and prompt_for_deletion(path):
             removed = clone = True

@@ -510,7 +510,7 @@ def main(args=None):
 
     try:
         serve_forever(s, **kwargs)
-    except socket.error:
+    except socket.error:  # pragma: no cover
         logging.exception('socket.error', extra=EX)
         return 'socket error'
     except SystemExit as e:

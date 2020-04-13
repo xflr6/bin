@@ -218,7 +218,7 @@ def main(args=None):
 
     try:
         serve_forever(s, encoding=args.encoding)
-    except socket.error:
+    except socket.error:  # pragma: no cover
         logging.exception('socket.error')
         return 'socket error'
     except SystemExit as e:

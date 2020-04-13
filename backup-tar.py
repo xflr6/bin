@@ -261,7 +261,7 @@ def format_permissions(stat_result):
     return f'file permissions: {mode} (owner={owner}, group={group})'
 
 
-def prompt_for_deletion(path):
+def prompt_for_deletion(path):  # pragma: no cover
     line = None
     while line is None or (line and line.strip().lower() not in ('q', 'quit')):
         if line is not None:
@@ -329,7 +329,7 @@ def main(args=None):
     log(format_permissions(dest_path.stat()))
 
     if args.ask_for_deletion:
-        prompt_for_deletion(dest_path)
+        prompt_for_deletion(dest_path)  # pragma: no cover
 
     return None
 

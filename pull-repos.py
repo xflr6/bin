@@ -55,7 +55,7 @@ def parse_url(s):
     return re.search(r'(?P<url>.*/(?P<dir>[^/]+))$', s).groupdict()
 
 
-def prompt_for_deletion(path):
+def prompt_for_deletion(path):  # pragma: no cover
     line = None
     while line is None or (line and line not in ('y', 'yes')):
         line = input(f'delete {path}/? [(y)es=delete/ENTER=keep]: ')
