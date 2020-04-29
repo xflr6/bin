@@ -303,6 +303,28 @@ optional arguments:
 ```
 
 
+### update-shasums.py
+
+```sh
+$ update-shasums.py --help
+usage: update-shasums.py [-h] [--target TEXT_FILE] [--encoding NAME]
+                         [--pattern REGEX] [--confirm]
+                         glob [glob ...]
+
+Update sha256sums in text file given a regex locating file and hash.
+
+positional arguments:
+  glob                glob pattern of files to checksum
+
+optional arguments:
+  -h, --help          show this help message and exit
+  --target TEXT_FILE  path to the text file to be updated
+  --encoding NAME     target text file read/write encoding (default: utf-8)
+  --pattern REGEX     re.sub() pattern with file and checksum group
+  --confirm           prompt for confirmation before exit when updated
+```
+
+
 ## License
 
 These scripts are distributed under the [MIT license][MIT]
