@@ -15,6 +15,7 @@ import logging
 import os
 import pathlib
 import re
+import shutil
 import signal
 import socket
 import sys
@@ -78,10 +79,9 @@ parser.add_argument('--version', action='version', version=__version__)
 def read_page_bytes(url=URL, *, cache_path=CACHE):
     if not cache_path.exists():
         logging.info('download %r into %r', url, cache_path)
-        with urllib.request.urlopen(url) as f:
-            raw = f.read()
-        with gzip.open(cache_path, 'wb') as f:
-            f.write(raw)
+        with urllib.request.urlopen(url) as src,\
+             gzip.open(cache_path, 'wb') as dst:
+            shutil.copyfileobj(src, dst)
 
     logging.info('read %r', cache_path)
     with gzip.open(cache_path, 'rb') as f:
