@@ -12,6 +12,7 @@ import argparse
 import asyncore
 import gzip
 import logging
+import operator
 import os
 import pathlib
 import re
@@ -35,6 +36,14 @@ SETUID = 'nobody'
 URL = 'http://www.asciimation.co.nz'
 
 CACHE = pathlib.Path(__file__).parent / 'asciimation.html.gz'
+
+FILM = re.compile(rb"var film = '(?P<film>.*)'\.split\('\\n'\);")
+
+FRAME = re.compile(r'(\d+)\n' + r'(.*)\n' * 13)
+
+FRAMES = None
+
+HOME, CLS = '\x1b[H', '\x1b[J'
 
 ENCODING = 'utf-8'
 
@@ -89,32 +98,46 @@ def read_page_bytes(url=URL, *, cache_path=CACHE):
     return result
 
 
-def iterframes(page):
-    film = re.search(rb"var film = '(.*)'\.split\('\\n'\);", page).group(1)
-    film = film.decode('unicode_escape')
-
-    duration = 1
-    lines = range(2, 15)
-    for ma in re.finditer(r'(\d+)\n' + 13 * r'(.*)\n', film):
-        yield int(ma.group(duration)), centerframe(ma.group(*lines))
+def extract_film(page_bytes, *, encoding='unicode_escape'):
+    raw = FILM.search(page_bytes).group(1)
+    return raw.decode(encoding)
 
 
-def apply(func):
-    return func()
+def generate_frames(film, screen_size=(80, 24), frame_size=(67, 13)):
+    duration = operator.methodcaller('group', 1)
+    lines = operator.methodcaller('group', *range(2, 15))
+    centerframe = get_centerframe_func(screen_size=screen_size,
+                                       frame_size=frame_size)
+    pos = 0
+    for ma in FRAME.finditer(film):
+        assert ma.start() == pos
+        yield int(duration(ma)), centerframe(lines(ma))
+        pos = ma.end()
+    assert film[pos:] == '\xff\n'
 
 
-@apply
-def centerframe(screen_size=(80, 24), frame_size=(67, 13)):
+def get_centerframe_func(*, screen_size, frame_size):
     hmargin, vmargin = (s - f for s, f in zip(screen_size, frame_size))
     screen = '\r\n' * (vmargin // 2) + '%s' + '\r\n' * (vmargin - vmargin // 2)
     content = '%%-%ds' % frame_size[0]
     row = ' ' * (hmargin // 2) + content + ' ' * (hmargin - hmargin // 2)
-    screen = '\x1b[H' + '\x1b[J' + screen  # home cls
+    screen = f'{HOME}{CLS}{screen}'
 
     def centerframe_func(lines):
         return screen % '\r\n'.join(row % l for l in lines)
 
     return centerframe_func
+
+
+def iterframes():
+    global FRAMES
+
+    if FRAMES is None:
+        page = read_page_bytes()
+        film = extract_film(page)
+        FRAMES = list(generate_frames(film))
+
+    return iter(FRAMES)
 
 
 class Server(asyncore.dispatcher):
@@ -145,21 +168,11 @@ class Server(asyncore.dispatcher):
 
 class Handler(asyncore.dispatcher):
 
-    _frames = None
-
-    @classmethod
-    def iterframes(cls):
-        if cls._frames is None:
-            page = read_page_bytes()
-            frames = list(iterframes(page))
-            cls._frames = frames
-        return iter(cls._frames)
-
     def __init__(self, conn, encoding=ENCODING):
         asyncore.dispatcher.__init__(self, conn)
         self.encoding = encoding
         logging.info('client connect %s port %s', *self.addr)
-        self.frames = self.iterframes()
+        self.frames = iterframes()
         self.duration = 0
 
     def handle_read(self, bufsize=1024):
@@ -246,7 +259,7 @@ def main(args=None):
                         format='%(asctime)s %(message)s',
                         datefmt='%b %d %H:%M:%S')
 
-    next(Handler.iterframes())  # pre-load frames
+    next(iterframes())  # pre-load frames
 
     s = Server(args.host, args.port)
 
