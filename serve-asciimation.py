@@ -217,19 +217,22 @@ async def handle_connect(reader, writer, *, sleep_delay, encoding=ENCODING):
     address = writer.get_extra_info('peername')
     logging.info('client connected from %s port %s', *address)
 
-    for duration, frame in iterframes():
-        writer.write(frame.encode(encoding))
-        try:
+    try:
+        for duration, frame in iterframes():
+            writer.write(frame.encode(encoding))
             await writer.drain()
-        except ConnectionResetError:
-            logging.info('client from %s port %s disconnected', *address)
-            return
-
-        await asyncio.sleep(sleep_delay * duration)
-
-    logging.info('disconnect client from %s port %s', *address)
-    writer.close()
-    await writer.wait_closed()
+            await asyncio.sleep(sleep_delay * duration)
+    except ConnectionResetError:
+        logging.info('client from %s port %s disconnected', *address)
+        writer.close()
+        return
+    except (SystemExit, Exception):
+        logging.info('disconnect client from %s port %s', *address)
+        writer.close()
+        await writer.wait_closed()
+        raise
+    else:
+        logging.info('last frame for %s port %s', *address)
 
 
 def main(args=None):
@@ -257,8 +260,10 @@ def main(args=None):
         chroot(username=args.setuid, directory=args.chroot)
 
     logging.debug('asyncio.run(serve_forever(sock=%r))', s)
+    loop = asyncio.events.new_event_loop()
     try:
-        asyncio.run(serve_forever(sock=s, fps=args.fps))
+        asyncio.events.set_event_loop(loop)
+        loop.run_until_complete(serve_forever(sock=s, fps=args.fps))
     except socket.error:  # pragma: no cover
         logging.exception('socket.error')
         return 'socket error'
@@ -266,11 +271,22 @@ def main(args=None):
         logging.info('%r exiting', e)
     finally:
         try:
-            s.shutdown(socket.SHUT_RDWR)
-        except (socket.error, OSError):
-            pass
-        s.close()
-        logging.info('asciimation server stopped')
+            to_cancel = asyncio.tasks.all_tasks(loop)
+            for t in to_cancel:
+                t.cancel()
+            loop.run_until_complete(asyncio.tasks.gather(*to_cancel,
+                                                         loop=loop,
+                                                         return_exceptions=True))
+            loop.run_until_complete(loop.shutdown_asyncgens())
+        finally:
+            asyncio.events.set_event_loop(None)
+            loop.close()
+            try:
+                s.shutdown(socket.SHUT_WR)
+            except (socket.error, OSError):
+                pass
+            s.close()
+            logging.info('asciimation server stopped')
 
     return None
 
