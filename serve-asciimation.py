@@ -8,8 +8,9 @@ __author__ = 'Sebastian Bank <sebastian.bank@uni-leipzig.de>'
 __license__ = 'MIT, see LICENSE.txt'
 __copyright__ = 'Copyright (c) 2017,2020 Sebastian Bank'
 
+import asyncio
 import argparse
-import asyncore
+import functools
 import gzip
 import logging
 import operator
@@ -140,66 +141,34 @@ def iterframes():
     return iter(FRAMES)
 
 
-class Server(asyncore.dispatcher):
+async def serve_forever(*, sock, fps):
+    handler = functools.partial(handle_connect, sleep_delay=1.0 / fps)
 
-    def __init__(self, host, port):
-        asyncore.dispatcher.__init__(self)
+    logging.debug('asyncio.start_server(..., sock=%r)', sock)
+    server = await asyncio.start_server(handler, sock=sock, start_serving=False)
 
-        if not isinstance(port, int):
-            port = socket.getservbyname(port)
-
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-        logging.info('server listening on %s port %s', host, port)
-        self.bind((host, port))
-        self.listen(5)
-
-    def handle_accept(self):
-        conn, address = self.accept()
-        logging.info('accept %r from %r', conn, address)
-        Handler(conn)
-
-    def shutdown(self):
-        asyncore.close_all()
-        self.close()
-        logging.info('server shut down')
+    async with server:
+        logging.debug('%r.serve_forever()', server)
+        await server.serve_forever()
 
 
-class Handler(asyncore.dispatcher):
+async def handle_connect(reader, writer, *, sleep_delay, encoding=ENCODING):
+    address = writer.get_extra_info('peername')
+    logging.info('client connected from %s port %s', *address)
 
-    def __init__(self, conn, encoding=ENCODING):
-        asyncore.dispatcher.__init__(self, conn)
-        self.encoding = encoding
-        logging.info('client connect %s port %s', *self.addr)
-        self.frames = iterframes()
-        self.duration = 0
+    for duration, frame in iterframes():
+        writer.write(frame.encode(encoding))
+        try:
+            await writer.drain()
+        except ConnectionResetError:
+            logging.info('client from %s port %s disconnected', *address)
+            return
 
-    def handle_read(self, bufsize=1024):
-        self.recv(bufsize)
+        await asyncio.sleep(sleep_delay * duration)
 
-    def handle_write(self):
-        if not self.duration:
-            try:
-                self.duration, frame = next(self.frames)
-            except StopIteration:
-                logging.info('close client %s port %s', *self.remote)
-                self.close()
-                return
-
-            self.send(frame.encode(self.encoding))
-        self.duration -= 1
-
-    def handle_close(self):
-        logging.info('client disconnect %s port %s', *self.addr)
-        self.close()
-
-
-def serve_forever(*, fps):
-    interval = 1.0 / fps
-    while True:
-        asyncore.loop(interval, count=1)
-        time.sleep(interval)
+    logging.info('disconnect client from %s port %s', *address)
+    writer.close()
+    await writer.wait_closed()
 
 
 def chroot(*, username, directory, fix_time=True):
@@ -255,6 +224,8 @@ def main(args=None):
                         format='%(asctime)s %(message)s',
                         datefmt='%b %d %H:%M:%S')
 
+    logging.info('start asciimation server on %s port %s', args.host, args.port)
+
     @register_signal_handler(signal.SIGINT, signal.SIGTERM)
     def handle_with_exit(signum, _):
         sys.exit(f'received signal.{signal.Signals(signum).name}')
@@ -262,22 +233,28 @@ def main(args=None):
     logging.debug('pre-load FRAMES')
     next(iterframes())
 
-
-    s = Server(args.host, args.port)
+    logging.debug('socket.create_server(%r)', (args.host, args.port))
+    s = socket.create_server((args.host, args.port), backlog=5)
+    logging.debug('%r', s)
 
     if args.hardening:
         chroot(username=args.setuid, directory=args.chroot)
 
+    logging.debug('asyncio.run(serve_forever(sock=%r))', s)
     try:
-        serve_forever(fps=args.fps)
+        asyncio.run(serve_forever(sock=s, fps=args.fps))
     except socket.error:  # pragma: no cover
         logging.exception('socket.error')
         return 'socket error'
     except SystemExit as e:
         logging.info('%r exiting', e)
     finally:
-        logging.debug('shutdown %r', s)
-        s.shutdown()
+        try:
+            s.shutdown(socket.SHUT_RDWR)
+        except (socket.error, OSError):
+            pass
+        s.close()
+        logging.info('asciimation server stopped')
 
     return None
 
