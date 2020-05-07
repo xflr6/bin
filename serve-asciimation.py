@@ -92,7 +92,7 @@ def read_page_bytes(url=URL, *, cache_path=CACHE):
              gzip.open(cache_path, 'wb') as dst:
             shutil.copyfileobj(src, dst)
 
-    logging.info('read %r', cache_path)
+    logging.debug('read %r', cache_path)
     with gzip.open(cache_path, 'rb') as f:
         result = f.read()
     return result
@@ -251,15 +251,17 @@ def register_signal_handler(*signums):
 def main(args=None):
     args = parser.parse_args(args)
 
+    logging.basicConfig(level=logging.DEBUG if True or args.verbose else logging.INFO,
+                        format='%(asctime)s %(message)s',
+                        datefmt='%b %d %H:%M:%S')
+
     @register_signal_handler(signal.SIGINT, signal.SIGTERM)
     def handle_with_exit(signum, _):
         sys.exit(f'received signal.{signal.Signals(signum).name}')
 
-    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
-                        format='%(asctime)s %(message)s',
-                        datefmt='%b %d %H:%M:%S')
+    logging.debug('pre-load FRAMES')
+    next(iterframes())
 
-    next(iterframes())  # pre-load frames
 
     s = Server(args.host, args.port)
 
