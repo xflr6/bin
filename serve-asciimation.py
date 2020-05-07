@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Run server displaying asciimation via telnet."""
+"""Run async server displaying asciimation via telnet."""
 
 __title__ = 'serve-asciimation.py'
 __version__ = '0.1.dev0'
@@ -36,7 +36,7 @@ SETUID = 'nobody'
 
 URL = 'http://www.asciimation.co.nz'
 
-CACHE = pathlib.Path(__file__).parent / 'asciimation.html.gz'
+CACHE = (pathlib.Path(__file__).parent / 'asciimation.html.gz').resolve()
 
 FILM = re.compile(rb"var film = '(?P<film>.*)'\.split\('\\n'\);")
 
@@ -57,17 +57,28 @@ def port(s):
     return port
 
 
+def fps(s):
+    try:
+        fps = int(s)
+    except ValueError:
+        fps = None
+
+    if fps is None or not (1 <= fps <= 100):
+        raise argparse.ArgumentTypeError(f'invalid fps: {s}')
+    return fps
+
+
 parser = argparse.ArgumentParser(description=__doc__)
 
 parser.add_argument('--host', metavar='IP', default=HOST,
                     help=f'address to listen on (default: {HOST})')
 
 parser.add_argument('--port', metavar='SERVICE', type=port, default=PORT,
-                    help='UDP port number or name to listen on'
+                    help='TCP port number or name to listen on'
                          f' (default: {PORT})')
 
-parser.add_argument('--fps', metavar='N', type=int, default=FPS,
-                    help=f'frames per second to generate (default: {FPS})')
+parser.add_argument('--fps', metavar='N', type=fps, default=FPS,
+                    help=f'frames (1-100) per second to generate (default: {FPS})')
 
 parser.add_argument('--setuid', metavar='USER', default=SETUID,
                     help='user to setuid to after binding'
@@ -237,7 +248,10 @@ def main(args=None):
     next(iterframes())  # pre-load FRAMES
 
     logging.debug('socket.create_server(%r)', (args.host, args.port))
-    s = socket.create_server((args.host, args.port), backlog=5)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind((args.host, args.port))
+    s.listen(5)
     logging.debug('%r', s)
 
     if args.hardening:

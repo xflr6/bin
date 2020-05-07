@@ -311,13 +311,13 @@ usage: serve-asciimation.py [-h] [--host IP] [--port SERVICE] [--fps N]
                             [--setuid USER] [--chroot DIR] [--no-hardening]
                             [--verbose] [--version]
 
-Run server displaying asciimation via telnet.
+Run async server displaying asciimation via telnet.
 
 optional arguments:
   -h, --help      show this help message and exit
   --host IP       address to listen on (default: 127.0.0.1)
-  --port SERVICE  UDP port number or name to listen on (default: telnet)
-  --fps N         frames per second to generate (default: 15)
+  --port SERVICE  TCP port number or name to listen on (default: telnet)
+  --fps N         frames (1-100) per second to generate (default: 15)
   --setuid USER   user to setuid to after binding (default: nobody)
   --chroot DIR    directory to chroot into after binding (default: /tmp)
   --no-hardening  don't give up privileges (ignore --setuid and --chroot)
