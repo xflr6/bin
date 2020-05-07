@@ -100,7 +100,9 @@ def read_page_bytes(url=URL, *, cache_path=CACHE):
 
 
 def extract_film(page_bytes, *, encoding='unicode_escape'):
-    raw = FILM.search(page_bytes).group(1)
+    raw = FILM.search(page_bytes).group('film')
+    if raw.endswith(b'\\n\xff\\n'):
+        raw = raw[:-3]
     return raw.decode(encoding)
 
 
@@ -114,7 +116,7 @@ def generate_frames(film, screen_size=(80, 24), frame_size=(67, 13)):
         assert ma.start() == pos
         yield int(duration(ma)), centerframe(lines(ma))
         pos = ma.end()
-    assert film[pos:] == '\xff\n'
+    assert pos == len(film)
 
 
 def get_centerframe_func(*, screen_size, frame_size):
@@ -134,6 +136,7 @@ def iterframes():
     global FRAMES
 
     if FRAMES is None:
+        logging.debug('load FRAMES')
         page = read_page_bytes()
         film = extract_film(page)
         FRAMES = list(generate_frames(film))
@@ -141,34 +144,16 @@ def iterframes():
     return iter(FRAMES)
 
 
-async def serve_forever(*, sock, fps):
-    handler = functools.partial(handle_connect, sleep_delay=1.0 / fps)
+def register_signal_handler(*signums):
+    assert signums
 
-    logging.debug('asyncio.start_server(..., sock=%r)', sock)
-    server = await asyncio.start_server(handler, sock=sock, start_serving=False)
+    def decorator(func):
+        for s in signums:
+            logging.debug('signal.signal(%s, ...)', s)
+            signal.signal(s, func)
+        return func
 
-    async with server:
-        logging.debug('%r.serve_forever()', server)
-        await server.serve_forever()
-
-
-async def handle_connect(reader, writer, *, sleep_delay, encoding=ENCODING):
-    address = writer.get_extra_info('peername')
-    logging.info('client connected from %s port %s', *address)
-
-    for duration, frame in iterframes():
-        writer.write(frame.encode(encoding))
-        try:
-            await writer.drain()
-        except ConnectionResetError:
-            logging.info('client from %s port %s disconnected', *address)
-            return
-
-        await asyncio.sleep(sleep_delay * duration)
-
-    logging.info('disconnect client from %s port %s', *address)
-    writer.close()
-    await writer.wait_closed()
+    return decorator
 
 
 def chroot(*, username, directory, fix_time=True):
@@ -206,21 +191,40 @@ def chroot(*, username, directory, fix_time=True):
     os.setuid(uid)
 
 
-def register_signal_handler(*signums):
-    assert signums
+async def serve_forever(*, sock, fps):
+    handler = functools.partial(handle_connect, sleep_delay=1.0 / fps)
 
-    def decorator(func):
-        for s in signums:
-            signal.signal(s, func)
-        return func
+    logging.debug('asyncio.start_server(..., sock=%r)', sock)
+    server = await asyncio.start_server(handler, sock=sock, start_serving=False)
 
-    return decorator
+    async with server:
+        logging.debug('%r.serve_forever()', server)
+        await server.serve_forever()
+
+
+async def handle_connect(reader, writer, *, sleep_delay, encoding=ENCODING):
+    address = writer.get_extra_info('peername')
+    logging.info('client connected from %s port %s', *address)
+
+    for duration, frame in iterframes():
+        writer.write(frame.encode(encoding))
+        try:
+            await writer.drain()
+        except ConnectionResetError:
+            logging.info('client from %s port %s disconnected', *address)
+            return
+
+        await asyncio.sleep(sleep_delay * duration)
+
+    logging.info('disconnect client from %s port %s', *address)
+    writer.close()
+    await writer.wait_closed()
 
 
 def main(args=None):
     args = parser.parse_args(args)
 
-    logging.basicConfig(level=logging.DEBUG if True or args.verbose else logging.INFO,
+    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format='%(asctime)s %(message)s',
                         datefmt='%b %d %H:%M:%S')
 
@@ -230,8 +234,7 @@ def main(args=None):
     def handle_with_exit(signum, _):
         sys.exit(f'received signal.{signal.Signals(signum).name}')
 
-    logging.debug('pre-load FRAMES')
-    next(iterframes())
+    next(iterframes())  # pre-load FRAMES
 
     logging.debug('socket.create_server(%r)', (args.host, args.port))
     s = socket.create_server((args.host, args.port), backlog=5)
