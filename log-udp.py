@@ -199,7 +199,6 @@ def main(args=None):
     logging.info(f'{cmd} listening on %r port %d udp', args.host, args.port)
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((args.host, args.port))
 
     if args.hardening:

@@ -36,9 +36,7 @@ def test_log_udp(capsys, mocker, host='127.0.0.1', port=9, encoding='utf-8'):
     assert not err
 
     s = mocker.call(_socket.AF_INET, _socket.SOCK_DGRAM)
-    setsockopt = s.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
-
-    socket.assert_has_calls([s, setsockopt,
+    socket.assert_has_calls([s,
                              s.bind((host, port)),
                              s.recvfrom_into(mocker.ANY),
                              s.recvfrom_into(mocker.ANY),
