@@ -212,4 +212,4 @@ def main(args=None):
 
 
 if __name__ == '__main__':  # pragma: no cover
-    sys.exit(main())
+    parser.exit(main())
