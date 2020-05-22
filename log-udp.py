@@ -14,6 +14,7 @@ import collections
 import logging
 import os
 import pathlib
+import platform
 import signal
 import socket
 import sys
@@ -54,23 +55,22 @@ def datefmt(s):
 
 
 def user(s):
-    import pwd
+    try:
+        import pwd
+    except ImportError:
+        return None
 
     try:
         return pwd.getpwnam(s)
     except KeyError:
-        raise argparse.ArgumentTypeError(f'unknown user: {s}')
+        return s
 
 
 def directory(s):
     try:
-        result = pathlib.Path(s)
+        return pathlib.Path(s)
     except ValueError:
-        result = None
-
-    if result is None or not result.is_dir():
-        raise argparse.ArgumentTypeError(f'not a present directory: {s}')
-    return result
+        return s
 
 
 def encoding(s):
@@ -179,6 +179,14 @@ def serve_forever(s, *, encoding, bufsize=2**10):
 
 def main(args=None):
     args = parser.parse_args(args)
+    if args.hardening:
+        if platform.system() == 'Windows':  # pragma: no cover
+            raise NotImplementedError('require --no-hardening under Windows')
+        if args.setuid is None or isinstance(args.setuid, str):
+            parser.error(f'unknown --setuid user: {args.setuid}')
+        if (args.chroot is None or isinstance(args.chroot, str)
+            or not args.chroot.is_dir()):
+            parser.error(f'not a present --chroot directory: {args.chroot}')
 
     @register_signal_handler(signal.SIGINT, signal.SIGTERM)
     def handle_with_exit(signum, _):
@@ -230,4 +238,4 @@ def main(args=None):
 
 
 if __name__ == '__main__':  # pragma: no cover
-    sys.exit(main())
+    parser.exit(main())
