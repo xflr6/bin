@@ -16,6 +16,7 @@ import logging
 import operator
 import os
 import pathlib
+import platform
 import re
 import shutil
 import signal
@@ -68,6 +69,25 @@ def fps(s):
     return fps
 
 
+def user(s):
+    try:
+        import pwd
+    except ImportError:
+        return None
+
+    try:
+        return pwd.getpwnam(s)
+    except KeyError:
+        return s
+
+
+def directory(s):
+    try:
+        return pathlib.Path(s)
+    except ValueError:
+        return s
+
+
 parser = argparse.ArgumentParser(description=__doc__)
 
 parser.add_argument('--host', metavar='IP', default=HOST,
@@ -80,11 +100,11 @@ parser.add_argument('--port', metavar='SERVICE', type=port, default=PORT,
 parser.add_argument('--fps', metavar='N', type=fps, default=FPS,
                     help=f'frames (1-100) per second to generate (default: {FPS})')
 
-parser.add_argument('--setuid', metavar='USER', default=SETUID,
+parser.add_argument('--setuid', metavar='USER', type=user, default=SETUID,
                     help='user to setuid to after binding'
                          f' (default: {SETUID})')
 
-parser.add_argument('--chroot', metavar='DIR', default=CHROOT,
+parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
                     help='directory to chroot into after binding'
                          f' (default: {CHROOT})')
 
@@ -167,41 +187,6 @@ def register_signal_handler(*signums):
     return decorator
 
 
-def chroot(*, username, directory, fix_time=True):
-    try:
-        import pwd
-    except ImportError:
-        return
-
-    try:
-        uid, gid = pwd.getpwnam(username)[2:4]
-    except KeyError:
-        raise ValueError(f'unknown user: {username}')
-
-    try:
-        path = pathlib.Path(directory)
-    except ValueError:
-        path = None
-
-    if path is None or not path.is_dir():
-        raise ValueError(f'not a present directory: {directory}')
-
-    if fix_time:
-        with pathlib.Path('/etc/timezone').open(encoding='utf-8') as f:
-            tz = f.readline().strip()
-        logging.debug('TZ=%r; time.tzset()', tz)
-        os.environ['TZ'] = tz
-        time.tzset()
-
-    logging.debug('os.chroot(%r)', path)
-    os.chroot(path)
-
-    logging.debug('os.setuid(%r)', uid)
-    os.setgid(gid)
-    os.setgroups([])
-    os.setuid(uid)
-
-
 async def serve_forever(*, sock, fps):
     handler = functools.partial(handle_connect, sleep_delay=1.0 / fps)
 
@@ -236,6 +221,14 @@ async def handle_connect(reader, writer, *, sleep_delay, encoding=ENCODING):
 
 def main(args=None):
     args = parser.parse_args(args)
+    if args.hardening:
+        if platform.system() == 'Windows':  # pragma: no cover
+            raise NotImplementedError('require --no-hardening under Windows')
+        if args.setuid is None or isinstance(args.setuid, str):
+            parser.error(f'unknown --setuid user: {args.setuid}')
+        if (args.chroot is None or isinstance(args.chroot, str)
+            or not args.chroot.is_dir()):
+            parser.error(f'not a present --chroot directory: {args.chroot}')
 
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format='%(asctime)s %(message)s',
@@ -256,7 +249,19 @@ def main(args=None):
     logging.debug('%r', s)
 
     if args.hardening:
-        chroot(username=args.setuid, directory=args.chroot)
+        with pathlib.Path('/etc/timezone').open(encoding='utf-8') as f:
+            tz = f.readline().strip()
+        logging.debug('TZ=%r; time.tzset()', tz)
+        os.environ['TZ'] = tz
+        time.tzset()
+
+        logging.debug('os.chroot(%r)', args.chroot)
+        os.chroot(args.chroot)
+
+        logging.debug('os.setuid(%r)', uid)
+        os.setgid(args.setuid.pw_gid)
+        os.setgroups([])
+        os.setuid(args.setuid.pw_uid)
 
     logging.debug('asyncio.run(serve_forever(sock=%r))', s)
     try:
