@@ -120,17 +120,6 @@ parser.add_argument('--verbose', action='store_true',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def register_signal_handler(*signums):
-    assert signums
-
-    def decorator(func):
-        for s in signums:
-            signal.signal(s, func)
-        return func
-
-    return decorator
-
-
 def configure_logging(filename=None, *, level, file_level, format_, datefmt):
     import logging.config
 
@@ -150,6 +139,17 @@ def configure_logging(filename=None, *, level, file_level, format_, datefmt):
                                    'class': 'logging.FileHandler'}
 
     return logging.config.dictConfig(cfg)
+
+
+def register_signal_handler(*signums):
+    assert signums
+
+    def decorator(func):
+        for s in signums:
+            signal.signal(s, func)
+        return func
+
+    return decorator
 
 
 def itertail(iterable, *, n):
@@ -188,14 +188,14 @@ def main(args=None):
             or not args.chroot.is_dir()):
             parser.error(f'not a present --chroot directory: {args.chroot}')
 
-    @register_signal_handler(signal.SIGINT, signal.SIGTERM)
-    def handle_with_exit(signum, _):
-        sys.exit(f'received signal.{signal.Signals(signum).name}')
-
     configure_logging(args.file,
                       level='DEBUG' if args.verbose else 'INFO',
                       file_level='INFO',
                       format_=args.format, datefmt=args.datefmt)
+
+    @register_signal_handler(signal.SIGINT, signal.SIGTERM)
+    def handle_with_exit(signum, _):
+        sys.exit(f'received signal.{signal.Signals(signum).name}')
 
     if args.file is not None and args.file.stat().st_size:
         logging.debug('replay tail of lof file: %r', args.file)
@@ -210,10 +210,13 @@ def main(args=None):
     s.bind((args.host, args.port))
 
     if args.hardening:
-        logging.debug('os.chroot(%r)', args.chroot)
         with TIMEZONE.open(encoding=ENCODING) as f:
-            os.environ['TZ'] = f.readline().strip()
+            tz = f.readline().strip()
+        logging.debug('TZ=%r; time.tzset()', tz)
+        os.environ['TZ'] = tz
         time.tzset()
+
+        logging.debug('os.chroot(%r)', args.chroot)
         os.chroot(args.chroot)
 
         logging.debug('os.setuid(%r)', args.setuid.pw_name)
@@ -222,7 +225,6 @@ def main(args=None):
         os.setuid(args.setuid.pw_uid)
 
     logging.debug('serve_forever(%r)', s)
-
     try:
         serve_forever(s, encoding=args.encoding)
     except socket.error:  # pragma: no cover
