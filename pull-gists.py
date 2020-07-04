@@ -17,6 +17,7 @@ import shutil
 import subprocess
 import sys
 import urllib.request
+import warnings
 
 GISTS = 'https://api.github.com/users/{username}/gists'
 
@@ -94,6 +95,16 @@ def removed_clone(path, reset=False):
     return removed, clone
 
 
+def prompt_for_continuation():  # pragma: no cover
+    line = None
+    while line is None or (line and line.strip().lower() not in ('q', 'quit')):
+        if line is not None:
+            print('  (enter q(uit) or use CTRL-C to exit)')
+        line = input('to continue, press enter [ENTER=continue]: ')
+
+    return not line
+
+
 def main(args=None):
     args = parser.parse_args(args)
 
@@ -133,9 +144,16 @@ def main(args=None):
 
         print(f'subprocess.run({cmd}, cwd={cwd})')
         log(f'{"[ start git ]":-^80}')
-        proc = subprocess.run(cmd, cwd=cwd, check=True)
-        log(f'{"[ end git ]":-^80}')
-        log(f'returncode: {proc.returncode}')
+        try:
+            proc = subprocess.run(cmd, cwd=cwd, check=True)
+        except subprocess.CalledProcessError as e:
+            log(f'{"[ end git ]":-^80}')
+            warnings.warn(str(e))
+            if not prompt_for_continuation():
+                return 'exiting'
+        else:
+            log(f'{"[ end git ]":-^80}')
+            log(f'returncode: {proc.returncode}')
 
     print(f'\ndone (reset={n_reset}, cloned={n_cloned}, updated={n_updated}).')
     return None
