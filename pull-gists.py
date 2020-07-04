@@ -146,7 +146,7 @@ def main(args=None):
         log(f'{"[ start git ]":-^80}')
         try:
             proc = subprocess.run(cmd, cwd=cwd, check=True)
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError as e:  # pragma: no cover
             log(f'{"[ end git ]":-^80}')
             warnings.warn(str(e))
             if not prompt_for_continuation():
