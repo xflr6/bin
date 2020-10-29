@@ -31,6 +31,31 @@ parser.add_argument('--dry-run', action='store_true',
 parser.add_argument('--version', action='version', version=__version__)
 
 
+def get_enum_keys(key):
+    nkeys, _, _ = winreg.QueryInfoKey(key)
+    log(f'for i in range({nkeys!r}): winreg.EnumKey(..., i)')
+    return [winreg.EnumKey(key, i) for i in range(nkeys)]
+
+
+def delete_key(key, sub_key):
+    log(f'winreg.DeleteKey(..., {sub_key!r})')
+    winreg.DeleteKey(key, sub_key)
+
+
+def move_key(key, src, dst):
+    log(f'winreg.QueryValue(..., {src!r})')
+    value = winreg.QueryValue(key, src)
+
+    log(f'winreg.DeleteKey(..., {src!r})')
+    winreg.DeleteKey(key, src)
+
+    log(f'winreg.CreateKey(..., {dst!r})')
+    winreg.CreateKey(key, dst)
+
+    log('winreg.SetValue(..., {dst!r}, {winreg.REG_SZ!r}, {value!r})')
+    winreg.SetValue(key, dst, winreg.REG_SZ, value)
+
+
 def lspace_name(s):
     lspace, name = re.fullmatch(r'(\s*)(\w+)', s).groups()
     return len(lspace), name
@@ -63,6 +88,7 @@ def iterchanges(keys):
 
 
 def main(args=None):
+    global winreg
     import winreg
 
     args = parser.parse_args(args)
@@ -74,9 +100,7 @@ def main(args=None):
     with winreg.ConnectRegistry(*handle) as h,\
          winreg.OpenKey(h, SUB_KEY) as o:
 
-        nkeys, _, _ = winreg.QueryInfoKey(o)
-        log(f'for i in range({nkeys!r}): winreg.EnumKey(..., i)')
-        keys = [winreg.EnumKey(o, i) for i in range(nkeys)]
+        keys = get_enum_keys(o)
         log(f'keys: {keys!r}')
 
         changes = list(iterchanges(keys))
@@ -87,25 +111,12 @@ def main(args=None):
                 print(f'delete {src!r}')
                 if args.dry_run:
                     continue
-
-                log(f'winreg.DeleteKey(..., {src!r})')
-                winreg.DeleteKey(o, src)
-
+                delete_key(o, src)
             else:
                 print(f'move {src!r} to {dst!r}')
                 if args.dry_run:
                     continue
-
-                log(f'winreg.QueryValue(..., {src!r})')
-                value = winreg.QueryValue(o, src)
-
-                log(f'winreg.DeleteKey(..., {src!r})')
-                winreg.DeleteKey(o, src)
-                log(f'winreg.CreateKey(..., {dst!r})')
-                winreg.CreateKey(o, dst)
-
-                log('winreg.SetValue(..., {dst!r}, {winreg.REG_SZ!r}, {value!r})')
-                winreg.SetValue(o, dst, winreg.REG_SZ, value)
+                move_key(o, src, dst)
 
     print('done')
     return None
