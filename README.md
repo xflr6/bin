@@ -22,7 +22,7 @@ $ git clone git@github.com:xflr6/bin.git
 ```sh
 $ backup-squashfs.py --help
 usage: backup-squashfs.py [-h] [--name TEMPLATE] [--exclude-file PATH]
-                          [--comp {gzip,lzo,xz}] [--owner OWNER]
+                          [--comp {gzip,lzo,xz,zstd}] [--owner OWNER]
                           [--group GROUP] [--chmod MODE] [--set-path LINE]
                           [--set-umask MASK] [--quiet] [--ask-for-deletion]
                           [--version]
@@ -39,7 +39,8 @@ optional arguments:
   --name TEMPLATE       image filename time.strftime() format string template
                         (default: %Y%m%d-%H%M.sfs)
   --exclude-file PATH   path to file with one line per blacklist item
-  --comp {gzip,lzo,xz}  compression (use mksquashfs default if omitted)
+  --comp {gzip,lzo,xz,zstd}
+                        compression (use mksquashfs default if omitted)
   --owner OWNER         image file owner
   --group GROUP         image file group
   --chmod MODE          image file chmod (default: 400)
