@@ -192,12 +192,25 @@ def download_podcast_episodes(podcast, *, verbose=True):
         if podcast.ignore_file(episode.filename):
             print('    matches ignore_file pattern, ignored.')
             continue
-        elif path.exists() and (podcast.ignore_size(episode.filename)
-                                or episode.length is None
-                                or episode.length == path.stat().st_size):
-            if verbose:
-                print('    already present, skipped.')
-            continue
+        elif path.exists():
+            if podcast.ignore_size(episode.filename):
+                if verbose:
+                    print('    filename maches ignore_size,'
+                          f' assume present ({path.stat().st_size:_d} bytes)'
+                          ' is correct , skipped.')
+                continue
+            elif episode.length is None:
+                if verbose:
+                    print('    unknown file size,'
+                          f' assume present ({path.stat().st_size:_d} bytes)'
+                          ' is correct , skipped.')
+                continue
+            elif episode.length == path.stat().st_size:
+                if verbose:
+                    print('    already present, skipped.')
+                continue
+            elif verbose:
+                print(f'    overwriting {path}.')
 
         print('    downloading...  0%', end='')
         start = time.monotonic()
