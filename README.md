@@ -136,13 +136,14 @@ optional arguments:
 
 ```sh
 $ download-podcasts.py --help
-usage: download-podcasts.py [-h] [--config FILENAME]
+usage: download-podcasts.py [-h] [--config PATH]
 
-Download podcast episodes from INI-file configuraton.
+Download podcast episodes from subscriptions in config file sections.
 
 optional arguments:
-  -h, --help         show this help message and exit
-  --config FILENAME  INI file defining podcasts to download
+  -h, --help     show this help message and exit
+  --config PATH  INI file with one section per podcast subscription, result
+                 paths relative to its directory (default: podcasts.ini)
 ```
 
 

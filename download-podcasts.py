@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Download podcast episodes from INI-file configuraton."""
+"""Download podcast episodes from subscriptions in config file sections."""
 
 __title__ = 'download-podcasts.py'
 __version__ = '0.1.dev0'
@@ -36,9 +36,11 @@ def present_file(s):
 
 parser = argparse.ArgumentParser(description=__doc__)
 
-parser.add_argument('--config', metavar='FILENAME',
+parser.add_argument('--config', metavar='PATH',
                     type=present_file, default=str(CONFIG_FILE),
-                    help='INI file defining podcasts to download')
+                    help='INI file with one section per podcast subscription,'
+                         ' result paths relative to its directory'
+                         f' (default: {CONFIG_FILE})')
 
 
 def itersections(config_path=CONFIG_FILE, *, encoding='utf-8'):
@@ -73,7 +75,7 @@ def parse_rss(url, *, require_root_tag='rss', verbose=True):
         root_tag = tree.getroot().tag
         if root_tag != require_root_tag:
             raise RuntimeError(f'bad xml root tag {root_tag!r}'
-                               f' (required: {require_root_tag!r}')
+                               f' (required: {require_root_tag!r})')
 
     return tree
 
