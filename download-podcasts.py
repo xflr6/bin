@@ -100,12 +100,15 @@ def parse_rss(url, *, require_root_tag='rss', verbose=True):
     return tree
 
 
-def get_channel_episodes(url, *, limit):
-    episodes = []
-    while limit is None or len(episodes) < limit:
+def get_channel_items(url, *, limit):
+    if limit < 1:
+        raise ValueError(f'limit {limit!r} (required: 1 or higher)')
+
+    items = []
+    while limit is None or len(items) < limit:
         tree = parse_rss(url)
         channel = tree.find('channel')
-        episodes.extend(Episode(i) for i in channel.iterfind('item'))
+        items.extend(channel.iterfind('item'))
 
         next_link = channel.find('atom:link[@rel="next"]', _NS)
         if next_link is None:
@@ -113,7 +116,7 @@ def get_channel_episodes(url, *, limit):
 
         url = next_link.attrib['href']
 
-    return channel, episodes
+    return channel, items
 
 
 class Podcast(list):
@@ -123,7 +126,8 @@ class Podcast(list):
     ignore_file = staticmethod(lambda filename: False)
 
     def __init__(self, url, *, directory, number=2, ignore_size=r'', ignore_file=r''):
-        channel, episodes = get_channel_episodes(url, limit=number)
+        channel, items = get_channel_items(url, limit=number)
+        super().__init__(map(Episode, items))
 
         self.title = channel.findtext('title')
         self.url = url
@@ -133,7 +137,6 @@ class Podcast(list):
             self.ignore_size = re.compile(ignore_size).search
         if ignore_file:
             self.ignore_file = re.compile(ignore_file).search
-        super().__init__(episodes)
 
     def __repr__(self):
         return f'<{self.__class__.__name__} {self.title!r}, url={self.url!r}>'
