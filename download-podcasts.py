@@ -9,6 +9,7 @@ __license__ = 'MIT, see LICENSE.txt'
 __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
+import codecs
 import configparser
 import pathlib
 import re
@@ -19,6 +20,8 @@ import urllib.parse
 import xml.etree.ElementTree as etree
 
 CONFIG_FILE = pathlib.Path('podcasts.ini')
+
+ENCODING = 'utf-8'
 
 _UNSET = object()
 
@@ -34,6 +37,13 @@ def present_file(s):
     return result
 
 
+def encoding(s):
+    try:
+        return codecs.lookup(s).name
+    except LookupError:
+        raise argparse.ArgumentTypeError(f'unknown encoding: {s}')
+
+
 parser = argparse.ArgumentParser(description=__doc__)
 
 parser.add_argument('--config', metavar='PATH',
@@ -42,8 +52,12 @@ parser.add_argument('--config', metavar='PATH',
                          ' result paths relative to its directory'
                          f' (default: {CONFIG_FILE})')
 
+parser.add_argument('--encoding', metavar='NAME',
+                    type=encoding, default=ENCODING,
+                    help=f'config file encoding (default: {ENCODING})')
 
-def itersections(config_path=CONFIG_FILE, *, encoding='utf-8'):
+
+def itersections(config_path=CONFIG_FILE, *, encoding):
     cfg = configparser.ConfigParser()
     with config_path.open(encoding=encoding) as f:
         cfg.read_file(f)
@@ -207,15 +221,16 @@ def urlretrieve(url, filename):
 def main(args=None):
     args = parser.parse_args(args)
 
-    done = []
-    for kwargs in itersections(args.config):
+    downloaded = []
+    for kwargs in itersections(args.config, encoding=args.encoding):
         podcast = Podcast(**kwargs)
         print(podcast)
-        done.extend((podcast, e) for e in download_podcast_episodes(podcast))
+        episodes = download_podcast_episodes(podcast)
+        downloaded.extend((podcast, e) for e in episodes)
         print()
     print()
 
-    for podcast, episode in done:
+    for podcast, episode in downloaded:
         print(podcast.title, episode.title)
 
     input('Press any key to end...')
