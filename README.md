@@ -132,6 +132,20 @@ optional arguments:
 ```
 
 
+### download-podcasts.py
+
+```sh
+$ download-podcasts.py --help
+usage: download-podcasts.py [-h] [--config FILENAME]
+
+Download podcast episodes from INI-file configuraton.
+
+optional arguments:
+  -h, --help         show this help message and exit
+  --config FILENAME  INI file defining podcasts to download
+```
+
+
 ### dumpall-svn.py
 
 ```sh
