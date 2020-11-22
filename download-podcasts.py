@@ -188,7 +188,7 @@ def human_size(n_bytes):
 
 def download_podcast_episodes(podcast, *, verbose=True):
     for episode, path in podcast.downloads(makedirs=True):
-        print('  %s' % episode)
+        print(f'  {episode}')
         if podcast.ignore_file(episode.filename):
             print('    matches ignore_file pattern, ignored.')
             continue
