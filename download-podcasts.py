@@ -221,17 +221,23 @@ def urlretrieve(url, filename):
 def main(args=None):
     args = parser.parse_args(args)
 
+    print(f'Config file: {args.config} ({args.config.stat().st_size} bytes)')
+    sections = list(itersections(args.config, encoding=args.encoding))
+
+    print(f'Download RSS feeds for {len(sections)} active subscriptions...')
+    podcasts = [Podcast(**kwargs) for kwargs in sections]
+    print(f'parsed {sum(map(len, podcasts))} episode descriptions.\n')
+
     downloaded = []
-    for kwargs in itersections(args.config, encoding=args.encoding):
-        podcast = Podcast(**kwargs)
-        print(podcast)
-        episodes = download_podcast_episodes(podcast)
-        downloaded.extend((podcast, e) for e in episodes)
+    for p in podcasts:
+        print(p)
+        episodes = download_podcast_episodes(p)
+        downloaded.extend((p, e) for e in episodes)
         print()
     print()
 
-    for podcast, episode in downloaded:
-        print(podcast.title, episode.title)
+    for p, e in downloaded:
+        print(f'{p.title} -- {e.title}')
 
     input('Press any key to end...')
 
