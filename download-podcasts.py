@@ -25,6 +25,9 @@ ENCODING = 'utf-8'
 
 _UNSET = object()
 
+_NS = {'atom': 'http://www.w3.org/2005/Atom',
+       'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd'}
+
 
 def present_file(s):
     try:
@@ -97,42 +100,39 @@ def parse_rss(url, *, require_root_tag='rss', verbose=True):
     return tree
 
 
-class Podcast(list):
+def get_channel_episodes(url, *, limit):
+    episodes = []
+    while limit is None or len(episodes) < limit:
+        tree = parse_rss(url)
+        channel = tree.find('channel')
+        episodes.extend(Episode(i) for i in channel.iterfind('item'))
 
-    _ns = {'atom': 'http://www.w3.org/2005/Atom'}
+        next_link = channel.find('atom:link[@rel="next"]', _NS)
+        if next_link is None:
+            break
+
+        url = next_link.attrib['href']
+
+    return channel, episodes
+
+
+class Podcast(list):
 
     ignore_size = staticmethod(lambda filename: False)
 
     ignore_file = staticmethod(lambda filename: False)
 
     def __init__(self, url, *, directory, number=2, ignore_size=r'', ignore_file=r''):
-        if ignore_size:
-            ignore_size = re.compile(ignore_size).search
-        if ignore_file:
-            ignore_file = re.compile(ignore_file).search
+        channel, episodes = get_channel_episodes(url, limit=number)
 
-        tree = parse_rss(url)
-        channel = tree.find('channel')
-        title = channel.findtext('title')
-
-        episodes = [Episode(i) for i in channel.iterfind('item')]
-
-        while number is None or len(episodes) < number:
-            try:
-                url = channel.find('atom:link[@rel="next"]', self._ns).attrib['href']
-            except AttributeError:
-                break
-            channel = parse_rss(url).find('channel')
-            episodes += [Episode(i) for i in channel.iterfind('item')]
-
-        self.title = title
+        self.title = channel.findtext('title')
         self.url = url
         self.directory = directory
         self.number = number
         if ignore_size:
-            self.ignore_size = ignore_size
+            self.ignore_size = re.compile(ignore_size).search
         if ignore_file:
-            self.ignore_file = ignore_file
+            self.ignore_file = re.compile(ignore_file).search
         super().__init__(episodes)
 
     def __repr__(self):
@@ -151,12 +151,10 @@ class Podcast(list):
 
 class Episode:
 
-    _ns = {'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd'}
-
     def __init__(self, item):
         self.title = item.findtext('title')
         self.description = item.findtext('description', '')
-        self.duration = item.findtext('itunes:duration', None, self._ns)
+        self.duration = item.findtext('itunes:duration', None, _NS)
 
         enclosure = item.find('enclosure')
 
