@@ -56,6 +56,9 @@ parser.add_argument('--encoding', metavar='NAME',
                     type=encoding, default=ENCODING,
                     help=f'config file encoding (default: {ENCODING})')
 
+parser.add_argument('--verbose', action='store_true',
+                    help='log skipping of downloads that match present files')
+
 
 def itersections(config_path=CONFIG_FILE, *, encoding):
     cfg = configparser.ConfigParser()
@@ -182,7 +185,7 @@ def human_size(n_bytes):
             n_bytes /= 1024
 
 
-def download_podcast_episodes(podcast):
+def download_podcast_episodes(podcast, *, verbose=True):
     for episode, path in podcast.downloads(makedirs=True):
         print('  %s' % episode)
         if podcast.ignore_file(episode.filename):
@@ -191,7 +194,8 @@ def download_podcast_episodes(podcast):
         elif path.exists() and (podcast.ignore_size(episode.filename)
                                 or episode.length is None
                                 or episode.length == path.stat().st_size):
-            print('    already present, skipped.')
+            if verbose:
+                print('    already present, skipped.')
             continue
 
         print('    downloading...  0%', end='')
@@ -231,7 +235,7 @@ def main(args=None):
     downloaded = []
     for p in podcasts:
         print(p)
-        episodes = download_podcast_episodes(p)
+        episodes = download_podcast_episodes(p, verbose=args.verbose)
         downloaded.extend((p, e) for e in episodes)
         print()
     print()
