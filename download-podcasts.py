@@ -193,6 +193,7 @@ def urlretrieve(url, filename):
 
     def progress_func(gotblocks, blocksize, totalsize):
         nonlocal pos
+
         newpos = gotblocks * blocksize * 100 // totalsize
         if newpos > pos:
             print(f'\b\b\b\b{newpos:3d}%',  end='', file=sys.stdout, flush=True)
@@ -214,7 +215,9 @@ def main(args=None):
 
     for podcast, episode in done:
         print(podcast.title, episode.title)
+
     input('Press any key to end...')
+
     return None
 
 
