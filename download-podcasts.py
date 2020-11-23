@@ -151,6 +151,7 @@ class Podcast(list):
         print(self)
         for e in self[:number] if number is not None else self:
             print(f'  {e}')
+            skip = None
             if self.ignore_file(e.filename):
                 skip = f'{e.filename} matches ignore_file, ignored.'
             elif e.path.exists():
@@ -166,7 +167,6 @@ class Podcast(list):
                 elif e.length == size:
                     skip = 'already present, skipped.'
                 else:
-                    skip = None
                     print(f'    overwriting {e.path} ({size:_d} bytes).')
 
             if skip:
