@@ -127,7 +127,7 @@ class Podcast(list):
 
     def __init__(self, url, *, directory, number=2, ignore_size=r'', ignore_file=r''):
         channel, items = get_channel_items(url, limit=number)
-        super().__init__(map(Episode, items))
+        super().__init__((Episode(self, i) for i in items))
 
         self.title = channel.findtext('title')
         self.url = url
@@ -141,20 +141,47 @@ class Podcast(list):
     def __repr__(self):
         return f'<{self.__class__.__name__} {self.title!r}, url={self.url!r}>'
 
-    def iterepisodes(self, *, number=_UNSET):
+    def download_episodes(self, *, number=_UNSET, makedirs=True, verbose=True):
         if number is _UNSET:
             number = self.number
-        return iter(self[:number] if number is not None else self)
 
-    def downloads(self, *, makedirs=False, number=_UNSET):
         if makedirs:
             self.directory.mkdir(parents=True, exist_ok=True)
-        return [(e, self.directory / e.filename) for e in self.iterepisodes(number=number)]
+
+        print(self)
+        for e in self[:number] if number is not None else self:
+            print(f'  {e}')
+            if self.ignore_file(e.filename):
+                skip = f'{e.filename} matches ignore_file, ignored.'
+            elif e.path.exists():
+                size = e.path.stat().st_size
+                if self.ignore_size(e.filename):
+                    skip = (f'{e.filename} matches ignore_size,'
+                            f' assume present ({size:_d} bytes) is correct'
+                            f' (expected: {e.length!r}) , skipped.')
+                elif e.length is None:
+                    skip = (f'unknown file size,'
+                            f' assume present ({size:_d} bytes) is correct,'
+                            f' skipped.')
+                elif e.length == size:
+                    skip = 'already present, skipped.'
+                else:
+                    skip = None
+                    print(f'    overwriting {e.path} ({size:_d} bytes).')
+
+            if skip:
+                if verbose:
+                    print(f'    {skip}')
+                continue
+
+            e.download()
+            yield e
 
 
 class Episode:
 
-    def __init__(self, item):
+    def __init__(self, podcast, item):
+        self.podcast = podcast
         self.title = item.findtext('title')
         self.description = item.findtext('description', '')
         self.duration = item.findtext('itunes:duration', None, _NS)
@@ -170,12 +197,24 @@ class Episode:
         self.filename = path.name
 
     def __repr__(self):
-        detail = self.duration or self.size
+        detail = self.duration or human_size(self.length)
         return f'<{self.__class__.__name__} {self.title!r} ({detail})>'
 
     @property
-    def size(self):
-        return human_size(self.length)
+    def path(self):
+        return self.podcast.directory / self.filename
+
+    def download(self):
+        target = self.path
+        
+        print('    downloading...  0%', end='')
+        start = time.monotonic()
+        urlretrieve(self.url, target)
+        stop = time.monotonic()
+        speed = target.stat().st_size / (stop - start)
+        print(f', done. ({human_size(speed)}/sec)')
+
+        return target
 
 
 def human_size(n_bytes):
@@ -184,42 +223,6 @@ def human_size(n_bytes):
             return f'{n_bytes:.1f} {x}'
         else:
             n_bytes /= 1024
-
-
-def download_podcast_episodes(podcast, *, verbose=True):
-    for episode, path in podcast.downloads(makedirs=True):
-        print(f'  {episode}')
-        if podcast.ignore_file(episode.filename):
-            print('    matches ignore_file pattern, ignored.')
-            continue
-        elif path.exists():
-            if podcast.ignore_size(episode.filename):
-                if verbose:
-                    print('    filename maches ignore_size,'
-                          f' assume present ({path.stat().st_size:_d} bytes)'
-                          ' is correct , skipped.')
-                continue
-            elif episode.length is None:
-                if verbose:
-                    print('    unknown file size,'
-                          f' assume present ({path.stat().st_size:_d} bytes)'
-                          ' is correct , skipped.')
-                continue
-            elif episode.length == path.stat().st_size:
-                if verbose:
-                    print('    already present, skipped.')
-                continue
-            elif verbose:
-                print(f'    overwriting {path}.')
-
-        print('    downloading...  0%', end='')
-        start = time.monotonic()
-        urlretrieve(episode.url, path)
-        stop = time.monotonic()
-        speed = path.stat().st_size / (stop - start)
-        print(f', done. ({human_size(speed)}/sec)')
-
-        yield episode
 
 
 def urlretrieve(url, filename):
@@ -248,8 +251,7 @@ def main(args=None):
 
     downloaded = []
     for p in podcasts:
-        print(p)
-        episodes = download_podcast_episodes(p, verbose=args.verbose)
+        episodes = p.download_episodes(verbose=args.verbose)
         downloaded.extend((p, e) for e in episodes)
         print()
     print()
