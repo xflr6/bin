@@ -136,7 +136,8 @@ optional arguments:
 
 ```sh
 $ download-podcasts.py --help
-usage: download-podcasts.py [-h] [--config PATH] [--encoding NAME] [--verbose]
+usage: download-podcasts.py [-h] [--config PATH] [--encoding NAME] [--limit N]
+                            [--verbose]
 
 Download podcast episodes from subscriptions in config file sections.
 
@@ -145,6 +146,7 @@ optional arguments:
   --config PATH    INI file with one section per podcast subscription, result
                    paths relative to its directory (default: podcasts.ini)
   --encoding NAME  config file encoding (default: utf-8)
+  --limit N        number of episodes to download (overrides --config file)
   --verbose        log skipping of downloads that match present files
 ```
 

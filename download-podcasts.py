@@ -25,6 +25,8 @@ ENCODING = 'utf-8'
 
 _UNSET = object()
 
+_LIMIT = 'limit'
+
 _NS = {'atom': 'http://www.w3.org/2005/Atom',
        'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd'}
 
@@ -59,6 +61,10 @@ parser.add_argument('--encoding', metavar='NAME',
                     type=encoding, default=ENCODING,
                     help=f'config file encoding (default: {ENCODING})')
 
+parser.add_argument('--limit', metavar='N', type=int, default=None,
+                    help='number of episodes to download'
+                         ' (overrides --config file)')
+
 parser.add_argument('--verbose', action='store_true',
                     help='log skipping of downloads that match present files')
 
@@ -79,7 +85,7 @@ def itersections(config_path=CONFIG_FILE, *, encoding):
                                 / section.pop('base_directory')
                                 / section.pop('directory', s))
 
-        section['number'] = int(section.pop('number'))
+        section[_LIMIT] = int(section.pop(_LIMIT))
 
         yield section
 
@@ -125,14 +131,14 @@ class Podcast(list):
 
     ignore_file = staticmethod(lambda filename: False)
 
-    def __init__(self, url, *, directory, number=2, ignore_size=r'', ignore_file=r''):
-        channel, items = get_channel_items(url, limit=number)
+    def __init__(self, url, *, directory, limit=2, ignore_size=r'', ignore_file=r''):
+        channel, items = get_channel_items(url, limit=limit)
         super().__init__((Episode(self, i) for i in items))
 
         self.title = channel.findtext('title')
         self.url = url
         self.directory = directory
-        self.number = number
+        self.limit = limit
         if ignore_size:
             self.ignore_size = re.compile(ignore_size).search
         if ignore_file:
@@ -141,15 +147,15 @@ class Podcast(list):
     def __repr__(self):
         return f'<{self.__class__.__name__} {self.title!r}, url={self.url!r}>'
 
-    def download_episodes(self, *, number=_UNSET, makedirs=True, verbose=True):
-        if number is _UNSET:
-            number = self.number
+    def download_episodes(self, *, limit=_UNSET, makedirs=True, verbose=True):
+        if limit is _UNSET:
+            limit = self.limit
 
         if makedirs:
             self.directory.mkdir(parents=True, exist_ok=True)
 
         print(self)
-        for e in self[:number] if number is not None else self:
+        for e in self[:limit] if limit is not None else self:
             print(f'  {e}')
             skip = None
             if self.ignore_file(e.filename):
