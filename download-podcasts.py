@@ -135,21 +135,20 @@ def parse_xml(url, *, require_root_tag='rss', verbose=True):
     with urllib.request.urlopen(url) as f:
         tree = etree.parse(f)
 
-    if require_root_tag is not None:
-        root_tag = tree.getroot().tag
-        if root_tag != require_root_tag:
-            raise RuntimeError(f'bad xml root tag {root_tag!r}'
-                               f' (required: {require_root_tag!r})')
-
+    _verify_tree(tree, require_root_tag=require_root_tag)
     return tree
 
 
-def get_channel_items(url, *, limit):
-    if limit is None:
-        limit = float('inf')
-    elif limit < 1:
-        raise ValueError(f'limit {limit!r} (required: 1 or higher)')
+def _verify_tree(tree, *, require_root_tag):
+    if require_root_tag is not None:
+        root = tree.getroot()
+        if root.tag != require_root_tag:
+            raise RuntimeError(f'bad xml root tag {root.tag!r}'
+                               f' (required: {require_root_tag!r})')
 
+
+def get_channel_items(url, *, limit):
+    limit = _verify_limit(limit)
     items = []
     while limit is None or len(items) < limit:
         tree = parse_xml(url)
@@ -163,6 +162,14 @@ def get_channel_items(url, *, limit):
         url = next_link.attrib['href']
 
     return channel, items
+
+
+def _verify_limit(limit):
+    if limit is None:
+        limit = float('inf')
+    elif limit < 1:
+        raise ValueError(f'limit {limit!r} (required: 1 or higher)')
+    return  limit
 
 
 class Podcast(list):
