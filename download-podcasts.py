@@ -93,33 +93,29 @@ class Subscriptions:
 
     def __repr__(self):
         return (f'<{self.__class__.__name__} from {str(self._config_path)!r}:'
-                f' active={self.count()},'
-                f' inactive={self.count(active=False)}>')
+                f' active={len(self)}, inactive={self.count(active=False)}>')
+
+    def _config_items(self, *, active):
+        active = bool(active) if active is not None else active
+        for name, section in self._config.items(): 
+            if (name == self._config.DEFAULTSECT
+                or active == section.getboolean(self._skip)):
+                continue
+            yield name, section
         
     def count(self, *, active=True):
-        sections = (section for s, section in self._config.items()
-                    if s != self._config.DEFAULTSECT)
-        if active is None:
-            pass
-        elif active:
-            sections = (s for s in sections if not s.getboolean(self._skip))
-        else:
-            sections = (s for s in sections if s.getboolean(self._skip))
-        return sum(1 for _ in sections)
+        return sum(1 for _ in self._config_items(active=active))
 
     __len__ = count
 
-    def podcasts(self, *, raw=False):
-        for s, section in self._config.items(): 
-            if s == self._config.DEFAULTSECT or section.getboolean(self._skip):
-                continue
-
+    def podcasts(self, *, active=True, raw=False):
+        for name, section in self._config_items(active=active): 
             kwargs = dict(section)
             del kwargs[self._skip]
 
             kwargs[self._directory] = (self._config_path.parent
                                        / kwargs.pop('base_directory')
-                                       / kwargs.pop(self._directory, s))
+                                       / kwargs.pop(self._directory, name))
 
             kwargs[self._limit] = int(kwargs.pop(self._limit))
 
