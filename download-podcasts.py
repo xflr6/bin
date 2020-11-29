@@ -128,7 +128,7 @@ class Subscriptions:
     __iter__ = podcasts
 
 
-def parse_rss(url, *, require_root_tag='rss', verbose=True):
+def parse_xml(url, *, require_root_tag='rss', verbose=True):
     if verbose:
         print(url)
 
@@ -152,7 +152,7 @@ def get_channel_items(url, *, limit):
 
     items = []
     while limit is None or len(items) < limit:
-        tree = parse_rss(url)
+        tree = parse_xml(url)
         channel = tree.find('channel')
         items.extend(channel.iterfind('item'))
 
