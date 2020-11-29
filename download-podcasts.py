@@ -25,8 +25,6 @@ ENCODING = 'utf-8'
 
 _UNSET = object()
 
-_LIMIT = 'limit'
-
 _NS = {'atom': 'http://www.w3.org/2005/Atom',
        'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd'}
 
@@ -69,25 +67,66 @@ parser.add_argument('--verbose', action='store_true',
                     help='log skipping of downloads that match present files')
 
 
-def itersections(config_path=CONFIG_FILE, *, encoding):
-    cfg = configparser.ConfigParser()
-    with config_path.open(encoding=encoding) as f:
-        cfg.read_file(f)
+class ConfigParser(configparser.ConfigParser):
 
-    for s, section in cfg.items():
-        if s == 'DEFAULT' or section.getboolean('skip'):
-            continue
+    DEFAULTSECT = configparser.DEFAULTSECT
 
-        section = dict(section)
-        del section['skip']
+    @classmethod
+    def from_path(cls, path, *, encoding=ENCODING):
+        inst = cls()
+        with path.open(encoding=encoding) as f:
+            inst.read_file(f)
+        return inst
 
-        section['directory'] = (config_path.parent
-                                / section.pop('base_directory')
-                                / section.pop('directory', s))
 
-        section[_LIMIT] = int(section.pop(_LIMIT))
+class Subscriptions:
 
-        yield section
+    _skip = 'skip'
+
+    _directory = 'directory'
+
+    _limit = 'limit'
+
+    def __init__(self, config_path=CONFIG_FILE, encoding=ENCODING):
+        self._config_path = config_path
+        self._config = ConfigParser.from_path(config_path)
+
+    def __repr__(self):
+        return (f'<{self.__class__.__name__} from {str(self._config_path)!r}:'
+                f' active={self.count()},'
+                f' inactive={self.count(active=False)}>')
+        
+    def count(self, *, active=True):
+        sections = (section for s, section in self._config.items()
+                    if s != self._config.DEFAULTSECT)
+        if active is None:
+            pass
+        elif active:
+            sections = (s for s in sections if not s.getboolean(self._skip))
+        else:
+            sections = (s for s in sections if s.getboolean(self._skip))
+        return sum(1 for _ in sections)
+
+    __len__ = count
+
+    def podcasts(self, *, raw=False):
+        for s, section in self._config.items(): 
+            if s == self._config.DEFAULTSECT or section.getboolean(self._skip):
+                continue
+
+            kwargs = dict(section)
+            del kwargs[self._skip]
+
+            kwargs[self._directory] = (self._config_path.parent
+                                       / kwargs.pop('base_directory')
+                                       / kwargs.pop(self._directory, s))
+
+            kwargs[self._limit] = int(kwargs.pop(self._limit))
+
+            yield Podcast(**kwargs) if not raw else kwargs
+
+
+    __iter__ = podcasts
 
 
 def parse_rss(url, *, require_root_tag='rss', verbose=True):
@@ -248,11 +287,12 @@ def urlretrieve(url, filename):
 def main(args=None):
     args = parser.parse_args(args)
 
-    print(f'Config file: {args.config} ({args.config.stat().st_size} bytes)')
-    sections = list(itersections(args.config, encoding=args.encoding))
+    print(f'Config: {args.config} ({args.config.stat().st_size:_d} bytes)')
+    subscribed = Subscriptions(args.config, encoding=args.encoding)
+    print(subscribed)
 
-    print(f'Download RSS feeds for {len(sections)} active subscriptions...')
-    podcasts = [Podcast(**kwargs) for kwargs in sections]
+    print(f'Download RSS feed XML for {len(subscribed)} active subscriptions...')
+    podcasts = list(subscribed.podcasts())
     print(f'parsed {sum(map(len, podcasts))} episode descriptions.\n')
 
     downloaded = []
