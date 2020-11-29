@@ -102,25 +102,28 @@ class Subscriptions:
                 or active == section.getboolean(self._skip)):
                 continue
             yield name, section
-        
+
+    def _podcast_kwargs(self, name, section):
+        kwargs = dict(section)
+        del kwargs[self._skip]
+
+        kwargs[self._directory] = (self._config_path.parent
+                                   / kwargs.pop('base_directory')
+                                   / kwargs.pop(self._directory, name))
+
+        kwargs[self._limit] = int(kwargs.pop(self._limit))
+
+        return kwargs
+
     def count(self, *, active=True):
         return sum(1 for _ in self._config_items(active=active))
 
     __len__ = count
 
     def podcasts(self, *, active=True, raw=False):
-        for name, section in self._config_items(active=active): 
-            kwargs = dict(section)
-            del kwargs[self._skip]
-
-            kwargs[self._directory] = (self._config_path.parent
-                                       / kwargs.pop('base_directory')
-                                       / kwargs.pop(self._directory, name))
-
-            kwargs[self._limit] = int(kwargs.pop(self._limit))
-
-            yield Podcast(**kwargs) if not raw else kwargs
-
+        for name, section in self._config_items(active=active):
+            kwargs = self._podcast_kwargs(name, section)
+            yield Podcast.from_url(**kwargs) if not raw else kwargs
 
     __iter__ = podcasts
 
@@ -142,7 +145,9 @@ def parse_rss(url, *, require_root_tag='rss', verbose=True):
 
 
 def get_channel_items(url, *, limit):
-    if limit < 1:
+    if limit is None:
+        limit = float('inf')
+    elif limit < 1:
         raise ValueError(f'limit {limit!r} (required: 1 or higher)')
 
     items = []
@@ -166,8 +171,14 @@ class Podcast(list):
 
     ignore_file = staticmethod(lambda filename: False)
 
-    def __init__(self, url, *, directory, limit=2, ignore_size=r'', ignore_file=r''):
+    @classmethod
+    def from_url(cls, url, *, directory, limit=2, ignore_size=r'', ignore_file=r''):
         channel, items = get_channel_items(url, limit=limit)
+        return cls(url, channel, items, directory=directory, limit=limit,
+                   ignore_size=ignore_size, ignore_file=ignore_file)
+
+    def __init__(self, url, channel, items, *, directory, limit=2,
+                 ignore_size=r'', ignore_file=r''):
         super().__init__((Episode(self, i) for i in items))
 
         self.title = channel.findtext('title')
