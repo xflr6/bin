@@ -9,8 +9,10 @@ __license__ = 'MIT, see LICENSE.txt'
 __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
+import asyncio
 import codecs
 import configparser
+import io
 import pathlib
 import re
 import sys
@@ -120,7 +122,23 @@ class Subscriptions:
 
     __len__ = count
 
-    def podcasts(self, *, active=True, raw=False):
+    def podcasts(self, *, active=True, raw=False, use_async=False):
+        if not raw and use_async:
+            tasks = [get_channel_items_async(s['url'], limit=s.getint('limit'))
+                     for _, s in self._config_items(active=active)]
+
+            async def gather(tasks):
+                return await asyncio.gather(*tasks)
+
+            channel_items = asyncio.run(gather(tasks))
+
+            pairs = zip(self._config_items(active=active), channel_items)
+            for (name, section), (channel, items) in pairs:
+                kwargs = self._podcast_kwargs(name, section)
+                yield Podcast(channel=channel, items=items, **kwargs)
+
+            return
+
         for name, section in self._config_items(active=active):
             kwargs = self._podcast_kwargs(name, section)
             yield Podcast.from_url(**kwargs) if not raw else kwargs
@@ -139,6 +157,23 @@ def parse_xml(url, *, require_root_tag='rss', verbose=True):
     return tree
 
 
+async def parse_xml_async(url, *, require_root_tag='rss', verbose=True):
+    import aiohttp
+
+    async with aiohttp.ClientSession() as session, session.get(url) as resp:
+        raw = await resp.content.read()
+
+    loop = asyncio.get_event_loop()
+    tree  = await loop.run_in_executor(None,
+                                       lambda raw: etree.parse(io.BytesIO(raw)),
+                                       raw)
+
+    if verbose:
+        print(url)
+    _verify_tree(tree, require_root_tag=require_root_tag)
+    return tree
+
+
 def _verify_tree(tree, *, require_root_tag):
     if require_root_tag is not None:
         root = tree.getroot()
@@ -152,6 +187,23 @@ def get_channel_items(url, *, limit):
     items = []
     while limit is None or len(items) < limit:
         tree = parse_xml(url)
+        channel = tree.find('channel')
+        items.extend(channel.iterfind('item'))
+
+        next_link = channel.find('atom:link[@rel="next"]', _NS)
+        if next_link is None:
+            break
+
+        url = next_link.attrib['href']
+
+    return channel, items
+
+
+async def get_channel_items_async(url, *, limit):
+    limit = _verify_limit(limit)
+    items = []
+    while limit is None or len(items) < limit:
+        tree = await parse_xml_async(url)
         channel = tree.find('channel')
         items.extend(channel.iterfind('item'))
 
@@ -298,7 +350,7 @@ def urlretrieve(url, filename):
     return urllib.request.urlretrieve(url, filename, progress_func)
 
 
-def main(args=None):
+def main(args=None, use_async=True):
     args = parser.parse_args(args)
 
     print(f'Config: {args.config} ({args.config.stat().st_size:_d} bytes)')
@@ -306,14 +358,27 @@ def main(args=None):
     print(subscribed)
 
     print(f'Download RSS feed XML for {len(subscribed)} active subscriptions...')
-    podcasts = list(subscribed.podcasts())
+    podcasts = list(subscribed.podcasts(use_async=use_async))
     print(f'parsed {sum(map(len, podcasts))} episode descriptions.\n')
 
     downloaded = []
-    for p in podcasts:
-        episodes = p.download_episodes(verbose=args.verbose)
-        downloaded.extend((p, e) for e in episodes)
-        print()
+    if use_async:
+        async def download_async(p):
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(None,
+                                              lambda p: list(p.download_episodes()),
+                                              p)
+        async def download(podcasts):
+            tasks = [download_async(p) for p in podcasts]
+            return await asyncio.gather(*tasks)
+
+        result = asyncio.run(download(podcasts))
+        downloaded.extend(e for p, r in zip(podcasts, result) for e in r)
+    else:
+        for p in podcasts:
+            episodes = p.download_episodes(verbose=args.verbose)
+            downloaded.extend((p, e) for e in episodes)
+            print()
     print()
 
     for p, e in downloaded:
