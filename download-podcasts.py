@@ -65,6 +65,9 @@ parser.add_argument('--limit', metavar='N', type=int, default=None,
                     help='number of episodes to download'
                          ' (overrides --config file)')
 
+parser.add_argument('--serial', dest='parallel', action='store_false',
+                    help="don't parallelize downloads from different sections")
+
 parser.add_argument('--verbose', action='store_true',
                     help='log skipping of downloads that match present files')
 
@@ -350,7 +353,7 @@ def urlretrieve(url, filename):
     return urllib.request.urlretrieve(url, filename, progress_func)
 
 
-def main(args=None, use_async=True):
+def main(args=None):
     args = parser.parse_args(args)
 
     print(f'Config: {args.config} ({args.config.stat().st_size:_d} bytes)')
@@ -358,11 +361,11 @@ def main(args=None, use_async=True):
     print(subscribed)
 
     print(f'Download RSS feed XML for {len(subscribed)} active subscriptions...')
-    podcasts = list(subscribed.podcasts(use_async=use_async))
+    podcasts = list(subscribed.podcasts(use_async=args.parallel))
     print(f'parsed {sum(map(len, podcasts))} episode descriptions.\n')
 
     downloaded = []
-    if use_async:
+    if args.parallel:
         async def download_async(p):
             loop = asyncio.get_event_loop()
             return await loop.run_in_executor(None,
