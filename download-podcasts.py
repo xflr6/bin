@@ -234,7 +234,7 @@ class Podcast(list):
     ignore_file = staticmethod(lambda filename: False)
 
     @classmethod
-    def from_url(cls, url, *, directory, limit=2, ignore_size=r'', ignore_file=r''):
+    def from_url(cls, url, *, directory, limit=None, ignore_size=r'', ignore_file=r''):
         channel, items = get_channel_items(url, limit=limit)
         return cls(url, channel, items, directory=directory, limit=limit,
                    ignore_size=ignore_size, ignore_file=ignore_file)
