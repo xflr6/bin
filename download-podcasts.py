@@ -376,7 +376,7 @@ def main(args=None):
             return await asyncio.gather(*tasks)
 
         result = asyncio.run(download(podcasts))
-        downloaded.extend(e for p, r in zip(podcasts, result) for e in r)
+        downloaded.extend((p, e) for p, r in zip(podcasts, result) for e in r)
     else:
         for p in podcasts:
             episodes = p.download_episodes(verbose=args.verbose)
