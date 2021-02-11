@@ -6,7 +6,7 @@ __title__ = 'fix-dropbox-overlays.py'
 __version__ = '0.1.dev0'
 __author__ = 'Sebastian Bank <sebastian.bank@uni-leipzig.de>'
 __license__ = 'MIT, see LICENSE.txt'
-__copyright__ = 'Copyright (c) 2020 Sebastian Bank'
+__copyright__ = 'Copyright (c) 2020-2021 Sebastian Bank'
 
 import argparse
 import functools
@@ -52,7 +52,7 @@ def move_key(key, src, dst):
     log(f'winreg.CreateKey(..., {dst!r})')
     winreg.CreateKey(key, dst)
 
-    log('winreg.SetValue(..., {dst!r}, {winreg.REG_SZ!r}, {value!r})')
+    log(f'winreg.SetValue(..., {dst!r}, {winreg.REG_SZ!r}, {value!r})')
     winreg.SetValue(key, dst, winreg.REG_SZ, value)
 
 
