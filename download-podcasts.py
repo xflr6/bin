@@ -6,17 +6,21 @@ __title__ = 'download-podcasts.py'
 __version__ = '0.1.dev0'
 __author__ = 'Sebastian Bank <sebastian.bank@uni-leipzig.de>'
 __license__ = 'MIT, see LICENSE.txt'
-__copyright__ = 'Copyright (c) 2020 Sebastian Bank'
+__copyright__ = 'Copyright (c) 2020-2021 Sebastian Bank'
 
 import argparse
 import asyncio
 import codecs
 import configparser
+import datetime
+import email.utils
 import io
 import pathlib
 import re
+import string
 import sys
 import time
+import typing
 import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as etree
@@ -50,6 +54,9 @@ def encoding(s):
 
 
 parser = argparse.ArgumentParser(description=__doc__)
+
+parser.add_argument('podcasts', metavar='section', nargs='*',
+                    help='config section name of podcast to download')
 
 parser.add_argument('--config', metavar='PATH',
                     type=present_file, default=str(CONFIG_FILE),
@@ -100,11 +107,18 @@ class Subscriptions:
         return (f'<{self.__class__.__name__} from {str(self._config_path)!r}:'
                 f' active={len(self)}, inactive={self.count(active=False)}>')
 
-    def _config_items(self, *, active):
+    def _config_items(self, *, active: typing.Optional[bool],
+                      select_sections: typing.Optional[typing.Collection[str]] = None):
         active = bool(active) if active is not None else active
+
+        if select_sections is not None:
+            select_sections = set(select_sections)
+
         for name, section in self._config.items(): 
             if (name == self._config.DEFAULTSECT
                 or active == section.getboolean(self._skip)):
+                continue
+            if select_sections is not None and name not in select_sections:
                 continue
             yield name, section
 
@@ -120,15 +134,22 @@ class Subscriptions:
 
         return kwargs
 
-    def count(self, *, active=True):
-        return sum(1 for _ in self._config_items(active=active))
+    def count(self, *, active: typing.Optional[bool] = True,
+              select_sections: typing.Optional[typing.Collection[str]] = None):
+        config_items = self._config_items(active=active,
+                                          select_sections=select_sections)
+        return sum(1 for _ in config_items)
 
     __len__ = count
 
-    def podcasts(self, *, active=True, raw=False, use_async=False):
+    def podcasts(self, *, active: typing.Optional[bool] = True,
+                 select_sections: typing.Optional[typing.Collection[str]] = None,
+                 raw: bool = False, use_async: bool = False):
+        config_items = self._config_items(active=active,
+                                          select_sections=select_sections)
         if not raw and use_async:
             tasks = [get_channel_items_async(s['url'], limit=s.getint('limit'))
-                     for _, s in self._config_items(active=active)]
+                     for _, s in config_items]
 
             async def gather(tasks):
                 return await asyncio.gather(*tasks)
@@ -142,7 +163,7 @@ class Subscriptions:
 
             return
 
-        for name, section in self._config_items(active=active):
+        for name, section in config_items:
             kwargs = self._podcast_kwargs(name, section)
             yield Podcast.from_url(**kwargs) if not raw else kwargs
 
@@ -234,14 +255,18 @@ class Podcast(list):
     ignore_file = staticmethod(lambda filename: False)
 
     @classmethod
-    def from_url(cls, url, *, directory, limit=None, ignore_size=r'', ignore_file=r''):
+    def from_url(cls, url, *, directory, limit=None,
+                 ignore_size=r'', ignore_file=r'',
+                 override_filename: typing.Optional[str] = None):
         channel, items = get_channel_items(url, limit=limit)
         return cls(url, channel, items, directory=directory, limit=limit,
-                   ignore_size=ignore_size, ignore_file=ignore_file)
+                   ignore_size=ignore_size, ignore_file=ignore_file,
+                   override_filename=override_filename)
 
     def __init__(self, url, channel, items, *, directory, limit=2,
-                 ignore_size=r'', ignore_file=r''):
-        super().__init__((Episode(self, i) for i in items))
+                 ignore_size=r'', ignore_file=r'', override_filename=False):
+        super().__init__((Episode(self, i, override_filename=override_filename)
+                          for i in items))
 
         self.title = channel.findtext('title')
         self.url = url
@@ -294,11 +319,18 @@ class Podcast(list):
 
 class Episode:
 
-    def __init__(self, podcast, item):
+    def __init__(self, podcast, item,
+                 *, override_filename: typing.Optional[str] = None):
         self.podcast = podcast
         self.title = item.findtext('title')
         self.description = item.findtext('description', '')
         self.duration = item.findtext('itunes:duration', None, _NS)
+
+        pub_date = item.findtext('pubDate')
+        if pub_date is not None:
+            pub_date = email.utils.parsedate_to_datetime(pub_date).date()
+        self.pub_date = pub_date
+        
 
         enclosure = item.find('enclosure')
 
@@ -307,8 +339,13 @@ class Episode:
         self.length = int(length) if length is not None else None
         self.url = enclosure.attrib['url']
 
-        path = pathlib.Path(urllib.parse.urlparse(self.url).path)
-        self.filename = path.name
+        if override_filename:
+            template = string.Template(override_filename)
+            context = {'title': self.title, 'date': self.pub_date}
+            self.filename = template.substitute(context)
+        else:
+            path = pathlib.Path(urllib.parse.urlparse(self.url).path)
+            self.filename = path.name
 
     def __repr__(self):
         detail = self.duration or human_size(self.length)
@@ -360,8 +397,9 @@ def main(args=None):
     subscribed = Subscriptions(args.config, encoding=args.encoding)
     print(subscribed)
 
-    print(f'Download RSS feed XML for {len(subscribed)} active subscriptions...')
-    podcasts = list(subscribed.podcasts(use_async=args.parallel))
+    kwargs = {'select_sections': args.podcasts} if args.podcasts else {}
+    print(f'Download RSS feed XML for {subscribed.count(**kwargs)} active subscriptions...')
+    podcasts = list(subscribed.podcasts(use_async=args.parallel, **kwargs))
     print(f'parsed {sum(map(len, podcasts))} episode descriptions.\n')
 
     downloaded = []

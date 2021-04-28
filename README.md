@@ -138,8 +138,12 @@ optional arguments:
 $ download-podcasts.py --help
 usage: download-podcasts.py [-h] [--config PATH] [--encoding NAME] [--limit N]
                             [--serial] [--verbose]
+                            [section ...]
 
 Download podcast episodes from subscriptions in config file sections.
+
+positional arguments:
+  section          config section name of podcast to download
 
 optional arguments:
   -h, --help       show this help message and exit
