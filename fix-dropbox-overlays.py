@@ -1,4 +1,4 @@
-#!python3
+#!/usr/bin/env python3
 
 """ Fix Dropbox update messing up Toirtoise* overlay handlers in Windows registry."""
 
