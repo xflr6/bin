@@ -5,9 +5,12 @@ import sys
 
 import pytest
 
-ARGS = [
-    #'--exitfirst',
-]
+ARGS = [#'--collect-only',
+        #'--verbose',
+        #'--pdb',
+        #'--exitfirst',  # a.k.a. '-x'
+        #'-W', 'error',
+        ]
 
 if platform.system() == 'Windows':
     ARGS.append('--pdb')
