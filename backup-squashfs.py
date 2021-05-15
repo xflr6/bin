@@ -226,7 +226,7 @@ def main(args=None):
         return 'error: result file not found'
 
     dest_stat = dest_path.stat()
-    log(f'mksquashfs result: {dest_path} ({dest_stat.st_size} bytes)')
+    log(f'mksquashfs result: {dest_path} ({dest_stat.st_size:_d} bytes)')
     if not dest_stat.st_size:
         return 'error: result file is empty'
     log(format_permissions(dest_stat))

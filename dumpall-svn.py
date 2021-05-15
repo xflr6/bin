@@ -195,7 +195,7 @@ def main(args=None):
             return 'error: result file not found'
 
         dest_size = dest_path.stat().st_size
-        print(f'{caption} > {dest_path} ({dest_size} bytes)')
+        print(f'{caption} > {dest_path} ({dest_size:_d} bytes)')
         if not dest_size:
             return 'error: result file is empty'
         n_bytes += dest_size
@@ -206,7 +206,7 @@ def main(args=None):
 
     stop = time.monotonic()
     print('', f'total time: {datetime.timedelta(seconds=stop - start)}',
-          f'done (removed={n_found}, dumped={n_dumped}) (total {n_bytes} bytes).',
+          f'done (removed={n_found}, dumped={n_dumped}) (total {n_bytes:_d} bytes).',
           sep='\n')
     return None
 

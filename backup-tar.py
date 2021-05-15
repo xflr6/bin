@@ -293,7 +293,7 @@ def main(args=None):
     log('traversed source: (', end='')
     counts = 'dirs', 'files', 'symlinks', 'other', 'excluded'
     log(*(f"{infos['n_' + c]} {c}" for c in counts), sep=', ', end=')\n')
-    log(f"file size sum: {infos['n_bytes']} bytes")
+    log(f"file size sum: {infos['n_bytes']:_d} bytes")
 
     cmd, kwargs = run_args_kwargs(args.source_dir, dest_path,
                                   auto_compress=args.auto_compress,
@@ -316,7 +316,7 @@ def main(args=None):
         return 'error: result file not found'
 
     dest_stat = dest_path.stat()
-    log(f'tar result: {dest_path} ({dest_stat.st_size} bytes)')
+    log(f'tar result: {dest_path} ({dest_stat.st_size:_d} bytes)')
     if not dest_stat.st_size:
         return 'error: result file is empty'
     log(format_permissions(dest_stat))
