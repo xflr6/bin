@@ -1,6 +1,6 @@
 # bin
 
-[![Build](https://github.com/xflr6/bin/actions/workflows/build.yaml/badge.svg)](https://github.com/xflr6/bin/actions/workflows/build.yaml?query=branch%3Amaster)
+[![Build](https://github.com/xflr6/bin/actions/workflows/build.yaml/badge.svg?branch=master)](https://github.com/xflr6/bin/actions/workflows/build.yaml?query=branch%3Amaster)
 [![Coverage](https://codecov.io/gh/xflr6/bin/branch/master/graph/badge.svg)](https://codecov.io/gh/xflr6/bin)
 
 Command-line scripts (mostly \*nix).
