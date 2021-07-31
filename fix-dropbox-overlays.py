@@ -57,7 +57,7 @@ def move_key(key, src, dst):
 
 
 def lspace_name(s):
-    lspace, name = re.fullmatch(r'(\s*)(\w+)', s).groups()
+    lspace, name = re.fullmatch(r'(\s*)(\w+)(?: \w+)?', s).groups()
     return len(lspace), name
 
 
@@ -123,4 +123,4 @@ def main(args=None):
 
 
 if __name__ == '__main__':  # pragma: no cover
-    parser.exit(main())
+    parser.exit(main([]))
