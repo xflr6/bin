@@ -123,4 +123,4 @@ def main(args=None):
 
 
 if __name__ == '__main__':  # pragma: no cover
-    parser.exit(main([]))
+    parser.exit(main())
