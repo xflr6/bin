@@ -30,11 +30,15 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Upgrade pip
-        run: python -m pip install --upgrade pip setuptools wheel
-      - name: Install dependencies
-        run: pip install "pytest>=5.1" "mock>=4" "pytest-mock>=2" pytest-cov codecov
+      - name: Pip install dependencies
+        run: |
+          echo "::group::Run python -m pip install --upgrade pip setuptools wheel"
+          python -m pip install --upgrade pip setuptools wheel
+          echo ::endgroup::
+          echo "::group::Run pip install pytest>=5.1 mock>=4 pytest-mock>=2 pytest-cov"
+          pip install "pytest>=5.1" "mock>=4" "pytest-mock>=2" pytest-cov
+          echo ::endgroup::
       - name: Run tests
         run: python _run-tests.py
-      - name: Upload coverage
+      - name: Upload test coverage
         uses: codecov/codecov-action@v1
