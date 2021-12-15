@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-# see also https://github.com/DavidFirth/pdfjam
 
-"""Compile a 2up version of a PDF file using LaTeX pdfpages' \\includepdfmerge."""
+"""Compile a 2up version of a PDF file using LaTeX pdfpages' \\includepdfmerge.
+
+See also https://github.com/DavidFirth/pdfjam
+"""
 
 __title__ = 'make-nup.py'
 __version__ = '0.1.dev0'
