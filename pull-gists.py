@@ -117,7 +117,7 @@ def main(args=None):
     gists = list(itergists(username=args.gh_username))
     print(f'pull {len(gists)} repo(s) into: {args.target_dir}/')
 
-    n_reset = n_cloned = n_updated = 0
+    n_reset = n_cloned = n_updated = n_failed = 0
     for g in gists:
         print()
         url = g['git_push_url']
@@ -147,6 +147,7 @@ def main(args=None):
         try:
             proc = subprocess.run(cmd, cwd=cwd, check=True)
         except subprocess.CalledProcessError as e:  # pragma: no cover
+            n_failed += 1
             log(f'{"[ end git ]":-^80}')
             warnings.warn(str(e))
             if not prompt_for_continuation():
@@ -155,7 +156,11 @@ def main(args=None):
             log(f'{"[ end git ]":-^80}')
             log(f'returncode: {proc.returncode}')
 
-    print(f'\ndone (reset={n_reset}, cloned={n_cloned}, updated={n_updated}).')
+    print(f'\ndone'
+          '(reset={n_reset},'
+          ' cloned={n_cloned},'
+          ' updated={n_updated}'
+          ' failed={n_failed}).')
     return None
 
 
