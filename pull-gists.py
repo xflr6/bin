@@ -148,6 +148,10 @@ def main(args=None):
             proc = subprocess.run(cmd, cwd=cwd, check=True)
         except subprocess.CalledProcessError as e:  # pragma: no cover
             n_failed += 1
+            if clone:
+                n_cloned -= 1
+            else:
+                n_updated -= 1
             log(f'{"[ end git ]":-^80}')
             warnings.warn(str(e))
             if not prompt_for_continuation():
@@ -159,7 +163,7 @@ def main(args=None):
     print('\ndone'
           f'(reset={n_reset},'
           f' cloned={n_cloned},'
-          f' updated={n_updated}'
+          f' updated={n_updated},'
           f' failed={n_failed}).')
     return None
 
