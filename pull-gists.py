@@ -156,11 +156,11 @@ def main(args=None):
             log(f'{"[ end git ]":-^80}')
             log(f'returncode: {proc.returncode}')
 
-    print(f'\ndone'
-          '(reset={n_reset},'
-          ' cloned={n_cloned},'
-          ' updated={n_updated}'
-          ' failed={n_failed}).')
+    print('\ndone'
+          f'(reset={n_reset},'
+          f' cloned={n_cloned},'
+          f' updated={n_updated}'
+          f' failed={n_failed}).')
     return None
 
 
