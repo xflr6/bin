@@ -34,10 +34,10 @@ jobs:
         run: |
           echo "::group::Run python -m pip install --upgrade pip setuptools wheel"
           python -m pip install --upgrade pip setuptools wheel
-          echo ::endgroup::
+          echo "::endgroup::"
           echo "::group::Run pip install pytest>=5.1 mock>=4 pytest-mock>=2 pytest-cov"
           pip install "pytest>=5.1" "mock>=4" "pytest-mock>=2" pytest-cov
-          echo ::endgroup::
+          echo "::endgroup::"
       - name: Run tests
         run: python _run-tests.py
       - name: Upload test coverage
