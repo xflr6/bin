@@ -104,9 +104,6 @@ def test_log_pings(capsys, mocker, ip_header, icmp_packet, host='127.0.0.1'):
     assert not err
     lines = out.splitlines()
 
-    if sys.version_info < (3, 7):
-        pytest.skip('FIXME: test broken on 3.6')
-
     expected = ["... listening on '127.0.0.1'",
                 '... serve_forever(...)',
                 '... 60 = s.recv_into(<buffer>)',
