@@ -34,7 +34,7 @@ positional arguments:
   source_dir            image source directory
   dest_dir              image target directory
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --name TEMPLATE       image filename time.strftime() format string template
                         (default: %Y%m%d-%H%M.sfs)
@@ -68,7 +68,7 @@ positional arguments:
   source_dir           archive source directory
   dest_dir             directory for tar archive
 
-optional arguments:
+options:
   -h, --help           show this help message and exit
   --name TEMPLATE      archive filename time.strftime() format string template
                        (default: %Y%m%d-%H%M.tar.gz)
@@ -97,7 +97,7 @@ positional arguments:
   page_title        title of the page on MediaWiki
   search_string     string to match page wikitext
 
-optional arguments:
+options:
   -h, --help        show this help message and exit
   --export-url URL  MediaWiki instance export url (default:
                     https://en.wikipedia.org/wiki/Special:Export)
@@ -119,7 +119,7 @@ Count page tags in MediaWiki XML export.
 positional arguments:
   filename           path to MediaWiki XML export (format: .xml.bz2)
 
-optional arguments:
+options:
   -h, --help         show this help message and exit
   --tag TAG          end tag to count (default: mediawiki:page)
   --stats            also compute and display page edit statistics
@@ -145,7 +145,7 @@ Download podcast episodes from subscriptions in config file sections.
 positional arguments:
   section          config section name of podcast to download
 
-optional arguments:
+options:
   -h, --help       show this help message and exit
   --config PATH    INI file with one section per podcast subscription, result
                    paths relative to its directory (default: podcasts.ini)
@@ -171,7 +171,7 @@ positional arguments:
   target_dir          output directory for dump files
   repo_dir            subversion repository directory
 
-optional arguments:
+options:
   -h, --help          show this help message and exit
   --name TEMPLATE     dump filename time.strftime() format string template
                       (default: {name}.svndump.gz)
@@ -194,7 +194,7 @@ usage: fix-dropbox-overlays.py [-h] [--dry-run] [--version]
 
 Fix Dropbox update messing up Toirtoise* overlay handlers in Windows registry.
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
   --dry-run   show what would be changed (don't write to registry)
   --version   show program's version number and exit
@@ -212,7 +212,7 @@ usage: log-pings.py [-h] [--host IP] [--file LOGFILE] [--format TMPL]
 
 Log incoming ICMP echo request messages to stdout and optionally into file.
 
-optional arguments:
+options:
   -h, --help       show this help message and exit
   --host IP        address to listen on (default: 0.0.0.0)
   --file LOGFILE   file to write log to (log only to stdout by default)
@@ -241,7 +241,7 @@ usage: log-udp.py [-h] [--host IP] [--port SERVICE] [--file LOGFILE]
 
 Log incoming UDP messages to stdout and optionally into file.
 
-optional arguments:
+options:
   -h, --help       show this help message and exit
   --host IP        address to listen on (default: 0.0.0.0)
   --port SERVICE   UDP port number or name to listen on (default: discard)
@@ -267,11 +267,12 @@ usage: make-nup.py [-h] [--name TMPL] [--paper SIZE] [--nup XxY]
                    pdf_file
 
 Compile a 2up version of a PDF file using LaTeX pdfpages' \includepdfmerge.
+See also https://github.com/DavidFirth/pdfjam
 
 positional arguments:
   pdf_file          name of the source PDF file for \includepdfmerge
 
-optional arguments:
+options:
   -h, --help        show this help message and exit
   --name TMPL       template for nup PDF file (default: {stem}_2up.pdf)
   --paper SIZE      output LaTeX paper size (default: a4)
@@ -299,7 +300,7 @@ positional arguments:
   target_dir   output directory for bare git clones
   gh_username  GitHub username
 
-optional arguments:
+options:
   -h, --help   show this help message and exit
   --reset      delete present git clones first
   --detail     show detailed info for each clone/update
@@ -320,7 +321,7 @@ positional arguments:
   target_dir  output directory for bare git clones
   repo_url    git repository url
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
   --reset     delete present git clones first
   --detail    show detailed info for each clone/update
@@ -338,7 +339,7 @@ usage: serve-asciimation.py [-h] [--host IP] [--port SERVICE] [--fps N]
 
 Run async server displaying asciimation via telnet.
 
-optional arguments:
+options:
   -h, --help      show this help message and exit
   --host IP       address to listen on (default: 127.0.0.1)
   --port SERVICE  TCP port number or name to listen on (default: telnet)
@@ -364,7 +365,7 @@ Update sha256sums in text file given a regex locating file and hash.
 positional arguments:
   glob                glob pattern of files to checksum
 
-optional arguments:
+options:
   -h, --help          show this help message and exit
   --target TEXT_FILE  path to the text file to be updated
   --encoding NAME     target text file read/write encoding (default: utf-8)
