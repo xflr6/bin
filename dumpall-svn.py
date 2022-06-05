@@ -18,6 +18,7 @@ import stat
 import subprocess
 import sys
 import time
+from typing import Optional
 
 NAME_TEMPLATE = '{name}.svndump.gz'
 
@@ -33,7 +34,7 @@ SUBPROCESS_PATH = '/usr/bin:/bin'
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def directory(s):
+def directory(s: str) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
     except ValueError:
@@ -44,7 +45,7 @@ def directory(s):
     return result
 
 
-def template(s):
+def template(s: str) -> str:
     try:
         result = time.strftime(s)
     except ValueError:
@@ -57,7 +58,8 @@ def template(s):
     return result
 
 
-def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
+def mode(s: str, *,
+         _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO) -> int:
     try:
         result = int(s, 8)
     except ValueError:
@@ -105,7 +107,11 @@ parser.add_argument('--verbose', dest='quiet', action='store_false',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def pipe_args_kwargs(name, *, deltas, auto_compress, quiet, set_path):
+def pipe_args_kwargs(name, *,
+                     deltas: bool,
+                     auto_compress: bool,
+                     quiet: bool,
+                     set_path):
     cmd = ['svnadmin', 'dump']
     if deltas:
         cmd.append('--deltas')
@@ -121,12 +127,12 @@ def pipe_args_kwargs(name, *, deltas, auto_compress, quiet, set_path):
     return cmd, filter_cmds, {'env': {'PATH': set_path}}
 
 
-def run_pipe(cmd, *filter_cmds, check=False, **kwargs):
+def run_pipe(cmd, *filter_cmds, check: bool = False, **kwargs):
     procs = map_popen([cmd] + list(filter_cmds), **kwargs)
     with contextlib.ExitStack() as s:
         procs = [s.enter_context(p) for p in procs]
 
-        log(f'returncode(s): ', end='')
+        log('returncode(s): ', end='')
         for has_next, p in enumerate(procs, 1 - len(procs)):
             out, err = p.communicate()
             if has_next:  # Allow p to receive a SIGPIPE if next proc exits.
@@ -149,7 +155,7 @@ def map_popen(commands, *, stdin=None, stdout=None, **kwargs):
         stdin = proc.stdout
 
 
-def main(args=None):
+def main(args=None) -> Optional[str]:
     args = parser.parse_args(args)
 
     if not args.detail:

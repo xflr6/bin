@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-"""Update sha256sums in text file given a regex locating file and hash."""
+"""Update SHA256 checksums in text file given a regex locating file and hash."""
+
+from __future__ import annotations
 
 __title__ = 'update-shasums.py'
 __version__ = '0.1.dev0'
@@ -22,7 +24,7 @@ ENCODING = 'utf-8'
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def present_file(s):
+def present_file(s: str) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
     except ValueError:
@@ -33,14 +35,14 @@ def present_file(s):
     return result
 
 
-def encoding(s):
+def encoding(s: str) -> str:
     try:
         return codecs.lookup(s).name
     except LookupError:
         raise argparse.ArgumentTypeError(f'unknown encoding: {s}')
 
 
-def file_checksum_pattern(s):
+def file_checksum_pattern(s: str):
     try:
         result = re.compile(s, flags=re.DOTALL)
     except re.error as e:
@@ -51,7 +53,7 @@ def file_checksum_pattern(s):
     return result
 
 
-def present_file_glob(s):
+def present_file_glob(s: str) -> list[pathlib.Path]:
     paths = list(pathlib.Path().glob(s))
     if not paths:
         raise argparse.ArgumentTypeError(f'no file(s) matched: {s}')
@@ -87,7 +89,7 @@ parser.add_argument('glob', nargs='+', type=present_file_glob,
                     help='glob pattern of files to checksum')
 
 
-def sha256sum(filename, *, bufsize=32768):
+def sha256sum(filename, *, bufsize=32_768) -> str:
     s = hashlib.sha256()
     with open(filename, 'rb') as f:
         for data in iter(functools.partial(f.read, bufsize), b''):
@@ -95,7 +97,7 @@ def sha256sum(filename, *, bufsize=32768):
     return s.hexdigest()
 
 
-def interpolate(filename, pattern, sums, *, encoding):
+def interpolate(filename, pattern, sums, *, encoding: str):
     updated = []
 
     def repl(ma):
@@ -120,7 +122,7 @@ def interpolate(filename, pattern, sums, *, encoding):
     return updated
 
 
-def main(args=None):
+def main(args=None) -> None:
     args = parser.parse_args(args)
     if any(args.target in paths for paths in args.glob):
         ValueError(f'target {args.target} also in files: {args.glob}')

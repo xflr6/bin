@@ -20,6 +20,7 @@ import pathlib
 import re
 import sys
 import time
+from typing import Optional
 import xml.etree.ElementTree as etree
 
 PREFIX = 'mediawiki'
@@ -44,7 +45,7 @@ _MEDIAWIKI = re.escape('http://www.mediawiki.org')
 
 MEDIAWIKI_EXPORT = r'\{%s/xml/export-\d+(?:\.\d+)*/\}mediawiki' % _MEDIAWIKI
 
-SUFFIX_OPEN_MODULE = {'.bz2':  bz2,
+SUFFIX_OPEN_MODULE = {'.bz2': bz2,
                       '.gz': gzip,
                       '.xml': builtins,
                       '.xz': lzma}
@@ -53,7 +54,7 @@ SUFFIX_OPEN_MODULE = {'.bz2':  bz2,
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def positive_int(s):
+def positive_int(s: str) -> Optional[int]:
     if s is None or not s.strip():
         return None
 
@@ -98,13 +99,13 @@ parser.add_argument('--stop-after', metavar='N', type=positive_int,
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def extract_ns(tag):
+def extract_ns(tag: str) -> str:
     ns = tag.partition('{')[2].partition('}')[0]
     assert tag.startswith('{%s}' % ns)
     return ns
 
 
-def make_epath(s, namespace_map, optional=False):
+def make_epath(s: str, namespace_map, *, optional: bool = False):
     s = s.strip()
     if optional and not s:
         return None
@@ -121,7 +122,7 @@ def make_epath(s, namespace_map, optional=False):
     return re.sub(r'(?P<boundary>^|/)(?P<ns>\w+):', repl, s)
 
 
-def iterelements(pairs, tag, exclude_with):
+def iterelements(pairs, tag, *, exclude_with):
     for event, elem in pairs:
         if elem.tag == tag and event == 'end' and elem.find(exclude_with) is None:
             yield elem
@@ -134,7 +135,8 @@ def make_display_func(display_epath):
         return lambda n, elem: log(f'{n:,}\t{elem.findtext(display_epath)}')
 
 
-def count_elements(root, elements, *, display_after, display_epath, stop_after):
+def count_elements(root, elements, *,
+                   display_after, display_epath, stop_after) -> int:
     if display_after in (None, 0):
         if stop_after is not None:
             raise NotImplementedError
@@ -156,8 +158,9 @@ def count_elements(root, elements, *, display_after, display_epath, stop_after):
     return count
 
 
-def count_edits(root, pages, *, display_after, display_epath, stop_after,
-                rev_epath, user_epath, text_epath):
+def count_edits(root, pages, *,
+                display_after, display_epath, stop_after,
+                rev_epath, user_epath, text_epath) -> int:
     display_func = make_display_func(display_epath)
 
     n_edits, n_lines = (collections.Counter() for _ in range(2))
@@ -188,8 +191,9 @@ def count_edits(root, pages, *, display_after, display_epath, stop_after,
     return count, n_edits, n_lines
 
 
-def lines_changed(a, b, _n_lines_factor={'insert': 2, 'replace': 1,
-                                        'delete': 0, 'equal': 0}):
+def lines_changed(a: str, b: str, *,
+                  _n_lines_factor={'insert': 2, 'replace': 1,
+                                   'delete': 0, 'equal': 0}) -> int:
     matcher = difflib.SequenceMatcher(None, a.splitlines(), b.splitlines())
 
     total = 0
@@ -205,7 +209,7 @@ def lines_changed(a, b, _n_lines_factor={'insert': 2, 'replace': 1,
     return total
 
 
-def main(args=None):
+def main(args=None) -> Optional[str]:
     args = parser.parse_args(args)
     log(f'filename: {args.filename}', '')
 

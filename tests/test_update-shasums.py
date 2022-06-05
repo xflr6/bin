@@ -4,8 +4,6 @@ import importlib
 import os
 import pathlib
 
-import pytest
-
 update_shasums = importlib.import_module('update-shasums')
 
 ENCODING = 'utf-8'

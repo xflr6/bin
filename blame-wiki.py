@@ -13,6 +13,7 @@ import functools
 import gzip
 import re
 import sys
+from typing import Optional
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as etree
@@ -43,30 +44,31 @@ parser.add_argument('--export-url', metavar='URL', default=EXPORT_URL,
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def make_request(url, title, encoding=ENCODING):
+def make_request(url: str, title: str, *,
+                 encoding: str = ENCODING) -> urllib.request.Request:
     post = {'pages': title, 'wpDownload': 1}
     data = urllib.parse.urlencode(post).encode(encoding)
     kwargs = {'headers': {'accept-encoding': GZIP}}
     return urllib.request.Request(url, data=data, **kwargs)
 
 
-def parse_response(resp, encoding=ENCODING):
+def parse_response(resp, *, encoding: str = ENCODING) -> etree.ElementTree:
     info = resp.info()
-    c_headers = 'type', 'disposition', 'encoding'
-    c_values = tuple(info.get(f'content-{h}') for h in c_headers)
-    for h, v in zip(c_headers, c_values):
-        log(f'content-{h}: {v}')
-    ct, cd, ce = c_values
+    headers = {h: info.get(h) for h in ('content-type',
+                                        'content-disposition',
+                                        'content-encoding')}
+    for key, value in headers.items():
+        log(f'{key}: {value}')
 
-    assert ct == f'application/xml; charset={encoding}'
-    assert cd.startswith('attachment;filename=')
-    assert ce == GZIP
+    assert headers['content-type'] == f'application/xml; charset={encoding}'
+    assert headers['content-disposition'].startswith('attachment;filename=')
+    assert headers['content-encoding'] == GZIP
 
     with gzip.open(resp) as f:
         return etree.parse(f)
 
 
-def extract_ns(tag):
+def extract_ns(tag: str) -> str:
     ns = tag.partition('{')[2].partition('}')[0]
     assert tag.startswith('{%s}' % ns)
     return ns
@@ -78,7 +80,7 @@ def elem_findtext(elem, *tags, prefix=None, **kwargs):
     return dict(zip(tags, values))
 
 
-def main(args=None):
+def main(args=None) -> Optional[str]:
     args = parser.parse_args(args)
     log(f'export url: {args.export_url}',
         f'title: {args.page_title}', '')

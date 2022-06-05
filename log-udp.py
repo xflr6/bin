@@ -19,6 +19,7 @@ import signal
 import socket
 import sys
 import time
+from typing import Optional
 
 HOST = '0.0.0.0'
 
@@ -37,7 +38,7 @@ ENCODING = 'utf-8'
 TIMEZONE = pathlib.Path('/etc/timezone')
 
 
-def port(s):
+def port(s: str) -> int:
     port = int(s) if s.isdigit() else socket.getservbyname(s)
 
     if not 1 <= port <= 2**16:
@@ -45,7 +46,7 @@ def port(s):
     return port
 
 
-def datefmt(s):
+def datefmt(s: str) -> str:
     try:
         time.strftime(s)
     except ValueError:
@@ -54,7 +55,7 @@ def datefmt(s):
         return s
 
 
-def user(s):
+def user(s: str) -> str:
     try:
         import pwd
     except ImportError:
@@ -66,14 +67,14 @@ def user(s):
         return s
 
 
-def directory(s):
+def directory(s: str):
     try:
         return pathlib.Path(s)
     except ValueError:
         return s
 
 
-def encoding(s):
+def encoding(s: str) -> str:
     try:
         return codecs.lookup(s).name
     except LookupError:
@@ -120,7 +121,8 @@ parser.add_argument('--verbose', action='store_true',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def configure_logging(filename=None, *, level, file_level, format_, datefmt):
+def configure_logging(filename=None, *,
+                      level, file_level, format_, datefmt):
     import logging.config
 
     cfg = {'version': 1,
@@ -152,13 +154,13 @@ def register_signal_handler(*signums):
     return decorator
 
 
-def itertail(iterable, *, n):
+def itertail(iterable, *, n: int):
     if n is not None:
         iterable = collections.deque(iterable, n)
     return iterable
 
 
-def serve_forever(s, *, encoding, bufsize=2**10):
+def serve_forever(s, *, encoding: str, bufsize: int = 1_024):
     buf = bytearray(bufsize)
 
     while True:
@@ -177,7 +179,7 @@ def serve_forever(s, *, encoding, bufsize=2**10):
         logging.info('%s:%d %s', host, port, msg)
 
 
-def main(args=None):
+def main(args=None) -> Optional[str]:
     args = parser.parse_args(args)
     if args.hardening:
         if platform.system() == 'Windows':  # pragma: no cover

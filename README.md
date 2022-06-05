@@ -360,7 +360,7 @@ usage: update-shasums.py [-h] [--target TEXT_FILE] [--encoding NAME]
                          [--pattern REGEX] [--confirm]
                          glob [glob ...]
 
-Update sha256sums in text file given a regex locating file and hash.
+Update SHA256 checksums in text file given a regex locating file and hash.
 
 positional arguments:
   glob                glob pattern of files to checksum

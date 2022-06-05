@@ -17,6 +17,7 @@ import pathlib
 import string
 import subprocess
 import sys
+from typing import Optional
 
 NAME_TEMPLATE = '{stem}_2up.pdf'
 
@@ -53,7 +54,7 @@ OPEN_KWARGS = {'encoding': 'utf-8', 'newline': '\n'}
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def nup(s):
+def nup(s: str):
     nups = None, None
     fields = tuple(f.strip() or None for f in s.strip().lower().partition('x'))
     if all(fields):
@@ -69,7 +70,7 @@ def nup(s):
     return argparse.Namespace(x=x, y=y)
 
 
-def present_pdf_file(s):
+def present_pdf_file(s: str) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
     except ValueError:
@@ -82,7 +83,7 @@ def present_pdf_file(s):
     return result
 
 
-def template(s):
+def template(s: str) -> str:
     try:
         value = s.format(stem='')
     except (KeyError, IndexError):
@@ -95,7 +96,7 @@ def template(s):
     return s
 
 
-def factor(s):
+def factor(s: str) -> str:
     try:
         value = float(s)
     except ValueError:
@@ -142,8 +143,9 @@ parser.add_argument('--keep', dest='clean_up', action='store_false',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def render_template(xnup, ynup, *,
-                    paper, landscape, filename, pages, openright, scale, frame):
+def render_template(xnup: int, ynup: int, *,
+                    paper, landscape, filename, pages,
+                    openright, scale, frame) -> str:
     if landscape is None:
         landscape = xnup > ynup
 
@@ -159,7 +161,7 @@ def render_template(xnup, ynup, *,
     return template.substitute(context)
 
 
-def main(args=None):
+def main(args=None) -> Optional[str]:
     args = parser.parse_args(args)
 
     dest_path = args.name.format(stem=args.pdf_file.stem)
@@ -201,6 +203,8 @@ def main(args=None):
         for p in sorted(delete_paths):
             log(f'{p!r}.unlink()')
             p.unlink()
+
+    return None
 
 
 if __name__ == '__main__':  # pragma: no cover

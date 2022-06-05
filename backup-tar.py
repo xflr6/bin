@@ -19,6 +19,7 @@ import stat
 import subprocess
 import sys
 import time
+from typing import Optional
 
 NAME_TEMPLATE = '%Y%m%d-%H%M.tar.gz'
 
@@ -34,7 +35,7 @@ ENCODING = 'utf-8'
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def directory(s):
+def directory(s: str) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
     except ValueError:
@@ -45,7 +46,7 @@ def directory(s):
     return result
 
 
-def template(s):
+def template(s: str) -> str:
     try:
         result = time.strftime(s)
     except ValueError:
@@ -56,7 +57,7 @@ def template(s):
     return result
 
 
-def exclude_file(s):
+def exclude_file(s: str) -> pathlib.Path:
     if not s:
         return None
     try:
@@ -69,7 +70,7 @@ def exclude_file(s):
     return path
 
 
-def user(s):
+def user(s: str) -> str:
     import pwd
 
     try:
@@ -79,7 +80,7 @@ def user(s):
     return s
 
 
-def group(s):
+def group(s: str) -> str:
     import grp
 
     try:
@@ -89,7 +90,8 @@ def group(s):
     return s
 
 
-def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
+def mode(s: str, *,
+         _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO) -> int:
     try:
         result = int(s, 8)
     except ValueError:
@@ -137,7 +139,7 @@ parser.add_argument('--ask-for-deletion', action='store_true',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def make_exclude_match(path, encoding='utf-8'):
+def make_exclude_match(path, *, encoding: str = 'utf-8'):
     if path is None:
         return lambda x: False
 
@@ -164,7 +166,7 @@ def make_exclude_match(path, encoding='utf-8'):
                 root[p] = {} if has_next else None
             root = root[p]
 
-    def make_regex(tree, indent=' ' * 4):
+    def make_regex(tree, *, indent: str = ' ' * 4):
         for name, root in tree.items():
             rest = ''
             if root is not None:
@@ -183,7 +185,7 @@ def make_exclude_match(path, encoding='utf-8'):
     return match
 
 
-def iterfiles(root, exclude_match, infos=None, sep=os.sep):
+def iterfiles(root, exclude_match, *, infos=None, sep: str = os.sep):
     n_dirs = n_files = n_symlinks = n_other = n_bytes = n_excluded = 0
 
     stack = [('', root)]
@@ -227,7 +229,9 @@ def iterfiles(root, exclude_match, infos=None, sep=os.sep):
                      n_excluded=n_excluded)
 
 
-def run_args_kwargs(source_dir, dest_path, *, auto_compress, set_path, encoding=ENCODING):
+def run_args_kwargs(source_dir, dest_path, *,
+                    auto_compress: bool, set_path,
+                    encoding: str = ENCODING):
     cmd = ['tar',
            '--create',
            '--file', dest_path,
@@ -243,7 +247,7 @@ def run_args_kwargs(source_dir, dest_path, *, auto_compress, set_path, encoding=
     return cmd, kwargs
 
 
-def format_permissions(stat_result):
+def format_permissions(stat_result) -> str:
     import grp
     import itertools
     import pwd
@@ -261,7 +265,7 @@ def format_permissions(stat_result):
     return f'file permissions: {mode} (owner={owner}, group={group})'
 
 
-def prompt_for_deletion(path):  # pragma: no cover
+def prompt_for_deletion(path: pathlib.Path) -> bool:  # pragma: no cover
     line = None
     while line is None or (line and line.strip().lower() not in ('q', 'quit')):
         if line is not None:
@@ -275,7 +279,7 @@ def prompt_for_deletion(path):  # pragma: no cover
         log(f'{path} deleted.')
 
 
-def main(args=None):
+def main(args=None) -> Optional[str]:
     args = parser.parse_args(args)
 
     dest_path = args.dest_dir / args.name
@@ -284,7 +288,7 @@ def main(args=None):
         f'tar destination: {dest_path}')
 
     if dest_path.exists():
-        return f'error: result file already exists'
+        return f'error: result file {dest_path} already exists'
 
     match = make_exclude_match(args.exclude_file)
 

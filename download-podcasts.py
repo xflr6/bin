@@ -2,6 +2,8 @@
 
 """Download podcast episodes from subscriptions in config file sections."""
 
+from __future__ import annotations
+
 __title__ = 'download-podcasts.py'
 __version__ = '0.1.dev0'
 __author__ = 'Sebastian Bank <sebastian.bank@uni-leipzig.de>'
@@ -12,7 +14,6 @@ import argparse
 import asyncio
 import codecs
 import configparser
-import datetime
 import email.utils
 import io
 import pathlib
@@ -20,7 +21,7 @@ import re
 import string
 import sys
 import time
-import typing
+from typing import Collection, Optional
 import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as etree
@@ -35,7 +36,7 @@ _NS = {'atom': 'http://www.w3.org/2005/Atom',
        'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd'}
 
 
-def present_file(s):
+def present_file(s: str) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
     except ValueError:
@@ -46,7 +47,7 @@ def present_file(s):
     return result
 
 
-def encoding(s):
+def encoding(s: str) -> str:
     try:
         return codecs.lookup(s).name
     except LookupError:
@@ -81,10 +82,11 @@ parser.add_argument('--verbose', action='store_true',
 
 class ConfigParser(configparser.ConfigParser):
 
-    DEFAULTSECT = configparser.DEFAULTSECT
+    DEFAULTSECT: str = configparser.DEFAULTSECT
 
     @classmethod
-    def from_path(cls, path, *, encoding=ENCODING):
+    def from_path(cls, path: pathlib.Path, *,
+                  encoding: str = ENCODING) -> ConfigParser:
         inst = cls()
         with path.open(encoding=encoding) as f:
             inst.read_file(f)
@@ -99,22 +101,24 @@ class Subscriptions:
 
     _limit = 'limit'
 
-    def __init__(self, config_path=CONFIG_FILE, encoding=ENCODING):
+    def __init__(self, config_path: pathlib.Path = CONFIG_FILE, *,
+                 encoding: str = ENCODING) -> None:
         self._config_path = config_path
         self._config = ConfigParser.from_path(config_path)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (f'<{self.__class__.__name__} from {str(self._config_path)!r}:'
                 f' active={len(self)}, inactive={self.count(active=False)}>')
 
-    def _config_items(self, *, active: typing.Optional[bool],
-                      select_sections: typing.Optional[typing.Collection[str]] = None):
+    def _config_items(self, *,
+                      active: Optional[bool],
+                      select_sections: Optional[Collection[str]] = None):
         active = bool(active) if active is not None else active
 
         if select_sections is not None:
             select_sections = set(select_sections)
 
-        for name, section in self._config.items(): 
+        for name, section in self._config.items():
             if (name == self._config.DEFAULTSECT
                 or active == section.getboolean(self._skip)):
                 continue
@@ -122,7 +126,7 @@ class Subscriptions:
                 continue
             yield name, section
 
-    def _podcast_kwargs(self, name, section):
+    def _podcast_kwargs(self, name: str, section: str):
         kwargs = dict(section)
         del kwargs[self._skip]
 
@@ -134,16 +138,16 @@ class Subscriptions:
 
         return kwargs
 
-    def count(self, *, active: typing.Optional[bool] = True,
-              select_sections: typing.Optional[typing.Collection[str]] = None):
+    def count(self, *, active: Optional[bool] = True,
+              select_sections: Optional[Collection[str]] = None) -> int:
         config_items = self._config_items(active=active,
                                           select_sections=select_sections)
         return sum(1 for _ in config_items)
 
     __len__ = count
 
-    def podcasts(self, *, active: typing.Optional[bool] = True,
-                 select_sections: typing.Optional[typing.Collection[str]] = None,
+    def podcasts(self, *, active: Optional[bool] = True,
+                 select_sections: Optional[Collection[str]] = None,
                  raw: bool = False, use_async: bool = False):
         config_items = self._config_items(active=active,
                                           select_sections=select_sections)
@@ -170,7 +174,9 @@ class Subscriptions:
     __iter__ = podcasts
 
 
-def parse_xml(url, *, require_root_tag='rss', verbose=True):
+def parse_xml(url: str, *,
+              require_root_tag: Optional[str] = 'rss',
+              verbose: bool = True):
     if verbose:
         print(url)
 
@@ -181,16 +187,18 @@ def parse_xml(url, *, require_root_tag='rss', verbose=True):
     return tree
 
 
-async def parse_xml_async(url, *, require_root_tag='rss', verbose=True):
+async def parse_xml_async(url: str, *,
+                          require_root_tag: Optional[str] = 'rss',
+                          verbose: bool = True):
     import aiohttp
 
     async with aiohttp.ClientSession() as session, session.get(url) as resp:
         raw = await resp.content.read()
 
     loop = asyncio.get_event_loop()
-    tree  = await loop.run_in_executor(None,
-                                       lambda raw: etree.parse(io.BytesIO(raw)),
-                                       raw)
+    tree = await loop.run_in_executor(None,
+                                      lambda raw: etree.parse(io.BytesIO(raw)),
+                                      raw)
 
     if verbose:
         print(url)
@@ -198,7 +206,7 @@ async def parse_xml_async(url, *, require_root_tag='rss', verbose=True):
     return tree
 
 
-def _verify_tree(tree, *, require_root_tag):
+def _verify_tree(tree, *, require_root_tag: Optional[str]) -> None:
     if require_root_tag is not None:
         root = tree.getroot()
         if root.tag != require_root_tag:
@@ -206,7 +214,7 @@ def _verify_tree(tree, *, require_root_tag):
                                f' (required: {require_root_tag!r})')
 
 
-def get_channel_items(url, *, limit):
+def get_channel_items(url: str, *, limit: Optional[int]):
     limit = _verify_limit(limit)
     items = []
     while limit is None or len(items) < limit:
@@ -223,7 +231,7 @@ def get_channel_items(url, *, limit):
     return channel, items
 
 
-async def get_channel_items_async(url, *, limit):
+async def get_channel_items_async(url: str, *, limit: Optional[int]):
     limit = _verify_limit(limit)
     items = []
     while limit is None or len(items) < limit:
@@ -240,12 +248,12 @@ async def get_channel_items_async(url, *, limit):
     return channel, items
 
 
-def _verify_limit(limit):
+def _verify_limit(limit: Optional[int]):
     if limit is None:
         limit = float('inf')
     elif limit < 1:
         raise ValueError(f'limit {limit!r} (required: 1 or higher)')
-    return  limit
+    return limit
 
 
 class Podcast(list):
@@ -255,16 +263,19 @@ class Podcast(list):
     ignore_file = staticmethod(lambda filename: False)
 
     @classmethod
-    def from_url(cls, url, *, directory, limit=None,
+    def from_url(cls, url: str, *,
+                 directory, limit: Optional[int] = None,
                  ignore_size=r'', ignore_file=r'',
-                 override_filename: typing.Optional[str] = None):
+                 override_filename: Optional[str] = None) -> Podcast:
         channel, items = get_channel_items(url, limit=limit)
         return cls(url, channel, items, directory=directory, limit=limit,
                    ignore_size=ignore_size, ignore_file=ignore_file,
                    override_filename=override_filename)
 
-    def __init__(self, url, channel, items, *, directory, limit=2,
-                 ignore_size=r'', ignore_file=r'', override_filename=False):
+    def __init__(self, url: str, channel, items, *,
+                 directory, limit: Optional[int] = 2,
+                 ignore_size=r'', ignore_file=r'',
+                 override_filename: Optional[str] = None) -> None:
         super().__init__((Episode(self, i, override_filename=override_filename)
                           for i in items))
 
@@ -277,10 +288,13 @@ class Podcast(list):
         if ignore_file:
             self.ignore_file = re.compile(ignore_file).search
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<{self.__class__.__name__} {self.title!r}, url={self.url!r}>'
 
-    def download_episodes(self, *, limit=_UNSET, makedirs=True, verbose=True):
+    def download_episodes(self, *,
+                          limit=_UNSET,
+                          makedirs: bool = True,
+                          verbose: bool = True):
         if limit is _UNSET:
             limit = self.limit
 
@@ -319,8 +333,8 @@ class Podcast(list):
 
 class Episode:
 
-    def __init__(self, podcast, item,
-                 *, override_filename: typing.Optional[str] = None):
+    def __init__(self, podcast: Podcast, item,
+                 *, override_filename: Optional[str] = None) -> None:
         self.podcast = podcast
         self.title = item.findtext('title')
         self.description = item.findtext('description', '')
@@ -330,10 +344,8 @@ class Episode:
         if pub_date is not None:
             pub_date = email.utils.parsedate_to_datetime(pub_date).date()
         self.pub_date = pub_date
-        
 
         enclosure = item.find('enclosure')
-
         self.mime_type = enclosure.attrib['type']
         length = enclosure.attrib.get('length')
         self.length = int(length) if length is not None else None
@@ -347,17 +359,17 @@ class Episode:
             path = pathlib.Path(urllib.parse.urlparse(self.url).path)
             self.filename = path.name
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         detail = self.duration or human_size(self.length)
         return f'<{self.__class__.__name__} {self.title!r} ({detail})>'
 
     @property
-    def path(self):
+    def path(self) -> pathlib.Path:
         return self.podcast.directory / self.filename
 
-    def download(self):
+    def download(self) -> pathlib.Path:
         target = self.path
-        
+
         print('    downloading...  0%', end='')
         start = time.monotonic()
         urlretrieve(self.url, target)
@@ -368,7 +380,7 @@ class Episode:
         return target
 
 
-def human_size(n_bytes):
+def human_size(n_bytes: int) -> str:
     for x in ('bytes', 'KiB', 'MiB', 'GiB', 'TiB'):
         if n_bytes < 1024:
             return f'{n_bytes:.1f} {x}'
@@ -376,7 +388,7 @@ def human_size(n_bytes):
             n_bytes /= 1024
 
 
-def urlretrieve(url, filename):
+def urlretrieve(url: str, filename):
     pos = 0
 
     def progress_func(gotblocks, blocksize, totalsize):
@@ -390,7 +402,7 @@ def urlretrieve(url, filename):
     return urllib.request.urlretrieve(url, filename, progress_func)
 
 
-def main(args=None):
+def main(args=None) -> None:
     args = parser.parse_args(args)
 
     print(f'Config: {args.config} ({args.config.stat().st_size:_d} bytes)')
@@ -409,6 +421,7 @@ def main(args=None):
             return await loop.run_in_executor(None,
                                               lambda p: list(p.download_episodes()),
                                               p)
+
         async def download(podcasts):
             tasks = [download_async(p) for p in podcasts]
             return await asyncio.gather(*tasks)
@@ -426,7 +439,6 @@ def main(args=None):
         print(f'{p.title} -- {e.title}')
 
     input('Press any key to end...')
-
     return None
 
 

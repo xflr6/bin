@@ -18,6 +18,7 @@ import stat
 import subprocess
 import sys
 import time
+from typing import Optional
 
 NAME_TEMPLATE = '%Y%m%d-%H%M.sfs'
 
@@ -31,7 +32,7 @@ SET_UMASK = stat.S_IXUSR | stat.S_IRWXG | stat.S_IRWXO
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def directory(s):
+def directory(s: str) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
     except ValueError:
@@ -42,7 +43,7 @@ def directory(s):
     return result
 
 
-def template(s):
+def template(s: str) -> str:
     try:
         result = time.strftime(s)
     except ValueError:
@@ -53,7 +54,7 @@ def template(s):
     return result
 
 
-def present_file(s):
+def present_file(s: str) -> pathlib.Path:
     if not s:
         return None
     try:
@@ -66,7 +67,7 @@ def present_file(s):
     return result
 
 
-def user(s):
+def user(s: str) -> str:
     import pwd
 
     try:
@@ -76,7 +77,7 @@ def user(s):
     return s
 
 
-def group(s):
+def group(s: str) -> str:
     import grp
 
     try:
@@ -86,7 +87,8 @@ def group(s):
     return s
 
 
-def mode(s, _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO):
+def mode(s: str, *,
+         _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO) -> int:
     try:
         result = int(s, 8)
     except ValueError:
@@ -139,7 +141,8 @@ parser.add_argument('--ask-for-deletion', action='store_true',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def run_args_kwargs(source_dir, dest_path, *, exclude_file, comp, set_path, quiet):
+def run_args_kwargs(source_dir, dest_path, *,
+                    exclude_file, comp, set_path, quiet):
     cmd = ['mksquashfs',
            source_dir, dest_path,
            '-noappend']
@@ -177,7 +180,7 @@ def format_permissions(stat_result):
     return f'file permissions: {mode} (owner={owner}, group={group})'
 
 
-def prompt_for_deletion(path):  #  pragma: no cover
+def prompt_for_deletion(path: pathlib.Path) -> bool:  # pragma: no cover
     line = None
     while line is None or (line and line.strip().lower() not in ('q', 'quit')):
         if line is not None:
@@ -191,7 +194,7 @@ def prompt_for_deletion(path):  #  pragma: no cover
         log(f'{path} deleted.')
 
 
-def main(args=None):
+def main(args=None) -> Optional[str]:
     args = parser.parse_args(args)
 
     dest_path = args.dest_dir / args.name
@@ -200,7 +203,7 @@ def main(args=None):
         f'mksquashfs destination: {dest_path}')
 
     if dest_path.exists():
-        return f'error: result file already exists'
+        return f'error: result file {dest_path} already exists'
 
     cmd, kwargs = run_args_kwargs(args.source_dir, dest_path,
                                   exclude_file=args.exclude_file,

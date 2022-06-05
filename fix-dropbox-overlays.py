@@ -56,12 +56,12 @@ def move_key(key, src, dst):
     winreg.SetValue(key, dst, winreg.REG_SZ, value)
 
 
-def lspace_name(s):
+def lspace_name(s: str):
     lspace, name = re.fullmatch(r'(\s*)(\w+)(?: \w+)?', s).groups()
     return len(lspace), name
 
 
-def plain_name(lspace, name):
+def plain_name(lspace: int, name: str) -> str:
     return ' ' * lspace + name
 
 
@@ -87,7 +87,7 @@ def iterchanges(keys):
         yield plain_name(ls, name), plain_name(rs, name)  # move
 
 
-def main(args=None):
+def main(args=None) -> None:
     global winreg
     import winreg
 

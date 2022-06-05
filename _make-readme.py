@@ -6,7 +6,9 @@ import pathlib
 import platform
 import subprocess
 
-README_PATH = pathlib.Path('README.md')
+DIRECTORY = pathlib.Path()
+
+README_PATH = DIRECTORY / 'README.md'
 
 REPLACE_AFTER = '\n## Usage\n'
 
@@ -17,14 +19,14 @@ ENCODING = 'utf-8'
 PYTHON = 'py' if platform.system() == 'Windows' else 'python3'
 
 
-def iterhelp(directory=pathlib.Path(), pattern='*.py'):
-    for p in sorted(directory.glob(pattern)):
-        if not p.name.startswith('_'):
-            cmd = [PYTHON, p, '--help']
-            kwargs = {'encoding': ENCODING}
-            proc = subprocess.run(cmd, stdout=subprocess.PIPE, **kwargs)
-            stdout = proc.stdout if not proc.returncode else None
-            yield list(map(str, cmd[1:])), stdout
+def iterhelp(pattern='*.py'):
+    for p in sorted(DIRECTORY.glob(pattern)):
+        if p.name.startswith('_'):
+            continue
+        cmd = [PYTHON, p, '--help']
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, encoding=ENCODING)
+        stdout = proc.stdout if not proc.returncode else None
+        yield list(map(str, cmd[1:])), stdout
 
 
 usage = '\n\n\n'.join(f"### {cmd[0]}\n\n```sh\n$ {' '.join(cmd)}\n{stdout}```"

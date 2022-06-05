@@ -23,6 +23,7 @@ import signal
 import socket
 import sys
 import time
+from typing import Optional
 
 HOST = '0.0.0.0'
 
@@ -52,7 +53,7 @@ DATETIME_MAX = (datetime.datetime.max
 TIMEZONE = pathlib.Path('/etc/timezone')
 
 
-def datefmt(s):
+def datefmt(s: str) -> str:
     try:
         time.strftime(s)
     except ValueError:
@@ -61,7 +62,7 @@ def datefmt(s):
         return s
 
 
-def user(s):
+def user(s: str) -> str:
     try:
         import pwd
     except ImportError:
@@ -73,21 +74,21 @@ def user(s):
         return s
 
 
-def directory(s):
+def directory(s: str):
     try:
         return pathlib.Path(s)
     except ValueError:
         return s
 
 
-def encoding(s):
+def encoding(s: str) -> str:
     try:
         return codecs.lookup(s).name
     except LookupError:
         raise argparse.ArgumentTypeError(f'unknown encoding: {s}')
 
 
-def positive_int(s):
+def positive_int(s: str) -> int:
     try:
         result = int(s)
     except ValueError:
@@ -144,7 +145,8 @@ parser.add_argument('--verbose', action='store_true',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def configure_logging(filename=None, *, level, file_level, format_, datefmt):
+def configure_logging(filename=None, *,
+                      level, file_level, format_, datefmt):
     import logging.config
 
     cfg = {'version': 1,
@@ -181,14 +183,14 @@ class DataMixin:
     __slots__ = ()
 
     @classmethod
-    def from_bytes(cls, b):
+    def from_bytes(cls, b: bytes):
         return cls.from_buffer_copy(b)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         kwargs = ', '.join(f'{f}=%({f})r' for f, *_ in self._fields_)
         return self.format(f'{self.__class__.__name__}({kwargs})')
 
-    def format(self, template):
+    def format(self, template: str) -> str:
         return template % MappingProxy(self)
 
     def replace(self, **kwargs):
@@ -197,13 +199,13 @@ class DataMixin:
             setattr(inst, k, v)
         return inst
 
-    def to_bytes(self):
+    def to_bytes(self) -> bytes:
         return bytes(self)
 
 
 class MappingProxy:
 
-    def __init__(self, delegate):
+    def __init__(self, delegate) -> None:
         self._delegate = delegate
 
     def __getitem__(self, key):
@@ -471,7 +473,7 @@ def serve_forever(s, *, max_size, encoding, ip_tmpl, icmp_tmpl):
                                      'icmp': icmp.format(icmp_tmpl)})
 
 
-def main(args=None):
+def main(args=None) -> Optional[str]:
     args = parser.parse_args(args)
     if args.hardening:
         if platform.system() == 'Windows':  # pragma: no cover

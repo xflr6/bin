@@ -20,7 +20,7 @@ import sys
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def directory(s):
+def directory(s: str) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
     except (TypeError, ValueError):
@@ -47,7 +47,7 @@ parser.add_argument('--detail', dest='quiet', action='store_false',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def parse_url(s):
+def parse_url(s: str):
     if s.startswith('github.com:'):
         s = f'git@{s}'
     if not s.endswith('.git'):
@@ -55,7 +55,7 @@ def parse_url(s):
     return re.search(r'(?P<url>.*/(?P<dir>[^/]+))$', s).groupdict()
 
 
-def prompt_for_deletion(path):  # pragma: no cover
+def prompt_for_deletion(path: pathlib.Path) -> bool:  # pragma: no cover
     line = None
     while line is None or (line and line not in ('y', 'yes')):
         line = input(f'delete {path}/? [(y)es=delete/ENTER=keep]: ')
@@ -69,7 +69,7 @@ def prompt_for_deletion(path):  # pragma: no cover
         return False
 
 
-def removed_clone(path, reset=False):
+def removed_clone(path: pathlib.Path, *, reset: bool = False):
     removed = clone = False
     if path.exists():
         if not path.is_dir():
@@ -81,7 +81,7 @@ def removed_clone(path, reset=False):
     return removed, clone
 
 
-def main(args=None):
+def main(args=None) -> None:
     args = parser.parse_args(args)
 
     if args.quiet:

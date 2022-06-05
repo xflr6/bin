@@ -16,6 +16,7 @@ import re
 import shutil
 import subprocess
 import sys
+from typing import Optional
 import urllib.request
 import warnings
 
@@ -25,7 +26,7 @@ GISTS = 'https://api.github.com/users/{username}/gists'
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def directory(s):
+def directory(s: str) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
     except ValueError:
@@ -52,7 +53,7 @@ parser.add_argument('--detail', dest='quiet', action='store_false',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def itergists(username):
+def itergists(username: str):
     url = GISTS.format(username=username)
     while url is not None:
         log(f'urllib.request.urlopen({url})')
@@ -65,11 +66,11 @@ def itergists(username):
         yield from gists
 
 
-def parse_url(s):
+def parse_url(s: str):
     return re.search(r'(?P<url>.*/(?P<dir>[^/]+))$', s).groupdict()
 
 
-def prompt_for_deletion(path):  # pragma: no cover
+def prompt_for_deletion(path: pathlib.Path) -> bool:  # pragma: no cover
     line = None
     while line is None or (line and line not in ('y', 'yes')):
         line = input(f'delete {path}/? [(y)es=delete/ENTER=keep]: ')
@@ -83,7 +84,7 @@ def prompt_for_deletion(path):  # pragma: no cover
         return False
 
 
-def removed_clone(path, reset=False):
+def removed_clone(path: pathlib.Path, *, reset: bool = False):
     removed = clone = False
     if path.exists():
         if not path.is_dir():  # pragma: no cover
@@ -105,7 +106,7 @@ def prompt_for_continuation():  # pragma: no cover
     return not line
 
 
-def main(args=None):
+def main(args=None) -> Optional[str]:
     args = parser.parse_args(args)
 
     if args.quiet:

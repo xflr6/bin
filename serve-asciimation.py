@@ -23,6 +23,7 @@ import signal
 import socket
 import sys
 import time
+from typing import Optional
 import urllib.request
 
 HOST = '127.0.0.1'
@@ -50,7 +51,7 @@ HOME, CLS = '\x1b[H', '\x1b[J'
 ENCODING = 'utf-8'
 
 
-def port(s):
+def port(s: str) -> int:
     port = int(s) if s.isdigit() else socket.getservbyname(s)
 
     if not 1 <= port <= 2**16:
@@ -58,7 +59,7 @@ def port(s):
     return port
 
 
-def fps(s):
+def fps(s: str) -> int:
     try:
         fps = int(s)
     except ValueError:
@@ -69,7 +70,7 @@ def fps(s):
     return fps
 
 
-def user(s):
+def user(s: str) -> str:
     try:
         import pwd
     except ImportError:
@@ -81,7 +82,7 @@ def user(s):
         return s
 
 
-def directory(s):
+def directory(s: str):
     try:
         return pathlib.Path(s)
     except ValueError:
@@ -117,7 +118,8 @@ parser.add_argument('--verbose', action='store_true',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def read_page_bytes(url=URL, *, cache_path=CACHE):
+def read_page_bytes(url: str = URL, *,
+                    cache_path: pathlib.Path = CACHE) -> bytes:
     if not cache_path.exists():
         logging.info('download %r into %r', url, cache_path)
         with urllib.request.urlopen(url) as src,\
@@ -130,14 +132,14 @@ def read_page_bytes(url=URL, *, cache_path=CACHE):
     return result
 
 
-def extract_film(page_bytes, *, encoding='unicode_escape'):
+def extract_film(page_bytes, *, encoding: str = 'unicode_escape'):
     raw = FILM.search(page_bytes).group('film')
     if raw.endswith(b'\\n\xff\\n'):
         raw = raw[:-3]
     return raw.decode(encoding)
 
 
-def generate_frames(film, screen_size=(80, 24), frame_size=(67, 13)):
+def generate_frames(film, *, screen_size=(80, 24), frame_size=(67, 13)):
     duration = operator.methodcaller('group', 1)
     lines = operator.methodcaller('group', *range(2, 15))
     centerframe = get_centerframe_func(screen_size=screen_size,
@@ -198,7 +200,8 @@ async def serve_forever(*, sock, fps):
         await server.serve_forever()
 
 
-async def handle_connect(reader, writer, *, sleep_delay, encoding=ENCODING):
+async def handle_connect(reader, writer, *, sleep_delay,
+                         encoding: str = ENCODING):
     address = writer.get_extra_info('peername')
     logging.info('client connected from %s port %s', *address)
 
@@ -219,7 +222,7 @@ async def handle_connect(reader, writer, *, sleep_delay, encoding=ENCODING):
         raise
 
 
-def main(args=None):
+def main(args=None) -> Optional[str]:
     args = parser.parse_args(args)
     if args.hardening:
         if platform.system() == 'Windows':  # pragma: no cover
@@ -258,7 +261,7 @@ def main(args=None):
         logging.debug('os.chroot(%r)', args.chroot)
         os.chroot(args.chroot)
 
-        logging.debug('os.setuid(%r)', uid)
+        logging.debug('os.setuid(%r)', args.setuid)
         os.setgid(args.setuid.pw_gid)
         os.setgroups([])
         os.setuid(args.setuid.pw_uid)
