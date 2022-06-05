@@ -89,7 +89,7 @@ parser.add_argument('glob', nargs='+', type=present_file_glob,
                     help='glob pattern of files to checksum')
 
 
-def sha256sum(filename, *, bufsize=32_768) -> str:
+def sha256sum(filename, *, bufsize: int = 32_768) -> str:
     s = hashlib.sha256()
     with open(filename, 'rb') as f:
         for data in iter(functools.partial(f.read, bufsize), b''):
@@ -138,7 +138,6 @@ def main(args=None) -> None:
     log('\n%d updated%s' % (len(updated), (' %r' % updated) if updated else ''))
     if args.confirm and updated:
         input('enter any string to end: ')
-
     return None
 
 

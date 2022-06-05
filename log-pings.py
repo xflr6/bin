@@ -283,7 +283,7 @@ class IPHeader(DataMixin, ctypes.BigEndianStructure):
                 self.dst_addr >> 16, self.dst_addr & 0xffff]
         validate_checksum(ints, index=5)
 
-    def is_icmp(self):
+    def is_icmp(self) -> bool:
         return self.proto == self.IPPROTO_ICMP
 
     @property
@@ -316,7 +316,7 @@ class IPFlags(collections.namedtuple('_IPFlags', ['res', 'df', 'mf'])):
     __slots__ = ()
 
     @classmethod
-    def from_int(cls, i):
+    def from_int(cls, i: int):
 
         def iterbools(i, mask):
             while mask:
@@ -325,7 +325,7 @@ class IPFlags(collections.namedtuple('_IPFlags', ['res', 'df', 'mf'])):
 
         return cls._make(iterbools(i, 0b100))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return ''.join('1' if f else 'x' for f in self)
 
 
@@ -359,14 +359,14 @@ class ICMPPacket(DataMixin, ctypes.BigEndianStructure):
         return (self.type == self.ICMP_ECHO_REQUEST
                 and self.code == self.ICMP_NO_CODE)
 
-    def to_bytes(self):
+    def to_bytes(self) -> bytes:
         return bytes(self) + self.payload
 
     @property
     def timeval(self):
         return self.get_timeval(min=None, max=None)
 
-    def get_timeval(self, min=0, max=DATETIME_MAX):
+    def get_timeval(self, min: int = 0, max: int = DATETIME_MAX):
         payload = self.payload
         for cls in (Timeval64, Timeval32):
             try:
@@ -384,7 +384,7 @@ class TimevalMixin:
 
     __slots__ = ()
 
-    def __str__(self):
+    def __str__(self) -> str:
         int_size = self.__class__.sec.size
         return self.format(f'<Timeval %(datetime)s [{int_size * 8}]>')
 
@@ -393,7 +393,7 @@ class TimevalMixin:
         return self.sec + (self.usec / 1_000_000)
 
     @property
-    def datetime(self):
+    def datetime(self) -> datetime.datetime:
         return self.get_datetime()
 
     def get_datetime(self, *, min=None, max=None):
