@@ -342,7 +342,10 @@ class Episode:
 
         pub_date = item.findtext('pubDate')
         if pub_date is not None:
-            pub_date = email.utils.parsedate_to_datetime(pub_date).date()
+            published = email.utils.parsedate_to_datetime(pub_date)
+            if published.tzinfo is None:
+                published = published.replace(tzinfo=datetime.timezone.utc)
+            pub_date = published.date()
         self.pub_date = pub_date
 
         enclosure = item.find('enclosure')
