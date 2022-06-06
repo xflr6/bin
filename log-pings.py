@@ -50,8 +50,6 @@ MAX_SIZE = 1_500 - OVERHEAD
 DATETIME_MAX = (datetime.datetime.max
                 - datetime.datetime(1970, 1, 1)).total_seconds()
 
-TIMEZONE = pathlib.Path('/etc/timezone')
-
 
 def datefmt(s: str) -> str:
     try:
@@ -400,7 +398,7 @@ class TimevalMixin:
         timestamp = self.timestamp
         if (min is not None or max is not None) and not min <= timestamp <= max:
             raise ValueError
-        return datetime.datetime.utcfromtimestamp(timestamp)
+        return datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc)
 
 
 class Timeval32(TimevalMixin, DataMixin, ctypes.LittleEndianStructure):
@@ -500,12 +498,6 @@ def main(args=None) -> Optional[str]:
     s.bind((args.host, socket.IPPROTO_ICMP))
 
     if args.hardening:
-        with TIMEZONE.open(encoding=ENCODING) as f:
-            tz = f.readline().strip()
-        logging.debug('TZ=%r; time.tzset()', tz)
-        os.environ['TZ'] = tz
-        time.tzset()
-
         logging.debug('os.chroot(%r)', args.chroot, extra=EX)
         os.chroot(args.chroot)
 
