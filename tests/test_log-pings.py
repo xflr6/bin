@@ -10,16 +10,6 @@ log_pings = importlib.import_module('log-pings')
 MSG = 'abcdefghijklmnopqrstuvwabcdefghi'
 
 
-if sys.version_info < (3, 8):
-    def f_hex(b):
-        result = b.hex()
-        return re.sub(r'(\w\w)(?=.)', r'\1 ', result)
-
-else:
-    import operator
-    f_hex = operator.methodcaller('hex', ' ')
-
-
 @pytest.fixture
 def ip_header():
     ip = log_pings.IPHeader(version=4, ihl=5, tos=0,
@@ -31,14 +21,14 @@ def ip_header():
                             src='127.0.0.2',
                             dst='127.0.0.1')
 
-    assert f_hex(ip.to_bytes()) == ('45 00 '
-                                    '00 3c '
-                                    '00 0f '
-                                    '00 00 '
-                                    '2a 01 '
-                                    '92 af '
-                                    '7f 00 00 02 '
-                                    '7f 00 00 01')
+    assert ip.to_bytes().hex(' ') == ('45 00 '
+                                      '00 3c '
+                                      '00 0f '
+                                      '00 00 '
+                                      '2a 01 '
+                                      '92 af '
+                                      '7f 00 00 02 '
+                                      '7f 00 00 01')
 
     ip.validate_checksum()
 
@@ -55,11 +45,11 @@ def icmp_packet(encoding='utf-8'):
                                 seq_num=42,
                                 payload=msg)
 
-    assert f_hex(icmp.to_bytes()) == ('08 00 '
-                                      '4c 33 '
-                                      '00 ff '
-                                      '00 2a '
-                                      + f_hex(msg))
+    assert icmp.to_bytes().hex(' ') == ('08 00 '
+                                        '4c 33 '
+                                        '00 ff '
+                                        '00 2a '
+                                        + msg.hex(' '))
 
     icmp.validate_checksum()
 
