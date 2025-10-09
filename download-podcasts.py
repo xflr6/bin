@@ -13,6 +13,7 @@ __copyright__ = 'Copyright (c) 2020-2021 Sebastian Bank'
 import argparse
 import asyncio
 import codecs
+from collections.abc import Collection
 import configparser
 import email.utils
 import io
@@ -21,7 +22,6 @@ import re
 import string
 import sys
 import time
-from typing import Collection, Optional
 import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as etree
@@ -111,8 +111,8 @@ class Subscriptions:
                 f' active={len(self)}, inactive={self.count(active=False)}>')
 
     def _config_items(self, *,
-                      active: Optional[bool],
-                      select_sections: Optional[Collection[str]] = None):
+                      active: bool | None,
+                      select_sections: Collection[str] | None = None):
         active = bool(active) if active is not None else active
 
         if select_sections is not None:
@@ -138,16 +138,16 @@ class Subscriptions:
 
         return kwargs
 
-    def count(self, *, active: Optional[bool] = True,
-              select_sections: Optional[Collection[str]] = None) -> int:
+    def count(self, *, active: bool | None = True,
+              select_sections: Collection[str] | None = None) -> int:
         config_items = self._config_items(active=active,
                                           select_sections=select_sections)
         return sum(1 for _ in config_items)
 
     __len__ = count
 
-    def podcasts(self, *, active: Optional[bool] = True,
-                 select_sections: Optional[Collection[str]] = None,
+    def podcasts(self, *, active: bool | None = True,
+                 select_sections: Collection[str] | None = None,
                  raw: bool = False, use_async: bool = False):
         config_items = self._config_items(active=active,
                                           select_sections=select_sections)
@@ -175,7 +175,7 @@ class Subscriptions:
 
 
 def parse_xml(url: str, *,
-              require_root_tag: Optional[str] = 'rss',
+              require_root_tag: str | None = 'rss',
               verbose: bool = True):
     if verbose:
         print(url)
@@ -188,7 +188,7 @@ def parse_xml(url: str, *,
 
 
 async def parse_xml_async(url: str, *,
-                          require_root_tag: Optional[str] = 'rss',
+                          require_root_tag: str | None = 'rss',
                           verbose: bool = True):
     import aiohttp
 
@@ -206,7 +206,7 @@ async def parse_xml_async(url: str, *,
     return tree
 
 
-def _verify_tree(tree, *, require_root_tag: Optional[str]) -> None:
+def _verify_tree(tree, *, require_root_tag: str | None) -> None:
     if require_root_tag is not None:
         root = tree.getroot()
         if root.tag != require_root_tag:
@@ -214,7 +214,7 @@ def _verify_tree(tree, *, require_root_tag: Optional[str]) -> None:
                                f' (required: {require_root_tag!r})')
 
 
-def get_channel_items(url: str, *, limit: Optional[int]):
+def get_channel_items(url: str, *, limit: int | None):
     limit = _verify_limit(limit)
     items = []
     while limit is None or len(items) < limit:
@@ -231,7 +231,7 @@ def get_channel_items(url: str, *, limit: Optional[int]):
     return channel, items
 
 
-async def get_channel_items_async(url: str, *, limit: Optional[int]):
+async def get_channel_items_async(url: str, *, limit: int | None):
     limit = _verify_limit(limit)
     items = []
     while limit is None or len(items) < limit:
@@ -248,7 +248,7 @@ async def get_channel_items_async(url: str, *, limit: Optional[int]):
     return channel, items
 
 
-def _verify_limit(limit: Optional[int]):
+def _verify_limit(limit: int | None):
     if limit is None:
         limit = float('inf')
     elif limit < 1:
@@ -264,18 +264,18 @@ class Podcast(list):
 
     @classmethod
     def from_url(cls, url: str, *,
-                 directory, limit: Optional[int] = None,
+                 directory, limit: int | None = None,
                  ignore_size=r'', ignore_file=r'',
-                 override_filename: Optional[str] = None) -> Podcast:
+                 override_filename: str | None = None) -> Podcast:
         channel, items = get_channel_items(url, limit=limit)
         return cls(url, channel, items, directory=directory, limit=limit,
                    ignore_size=ignore_size, ignore_file=ignore_file,
                    override_filename=override_filename)
 
     def __init__(self, url: str, channel, items, *,
-                 directory, limit: Optional[int] = 2,
+                 directory, limit: int | None = 2,
                  ignore_size=r'', ignore_file=r'',
-                 override_filename: Optional[str] = None) -> None:
+                 override_filename: str | None = None) -> None:
         super().__init__((Episode(self, i, override_filename=override_filename)
                           for i in items))
 
@@ -334,7 +334,7 @@ class Podcast(list):
 class Episode:
 
     def __init__(self, podcast: Podcast, item,
-                 *, override_filename: Optional[str] = None) -> None:
+                 *, override_filename: str | None = None) -> None:
         self.podcast = podcast
         self.title = item.findtext('title')
         self.description = item.findtext('description', '')

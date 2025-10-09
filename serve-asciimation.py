@@ -23,7 +23,6 @@ import signal
 import socket
 import sys
 import time
-from typing import Optional
 import urllib.request
 
 HOST = '127.0.0.1'
@@ -222,7 +221,7 @@ async def handle_connect(reader, writer, *, sleep_delay,
         raise
 
 
-def main(args=None) -> Optional[str]:
+def main(args=None) -> str | None:
     args = parser.parse_args(args)
     if args.hardening:
         if platform.system() == 'Windows':  # pragma: no cover

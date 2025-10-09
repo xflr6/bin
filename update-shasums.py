@@ -122,7 +122,7 @@ def interpolate(filename, pattern, sums, *, encoding: str):
     return updated
 
 
-def main(args=None) -> None:
+def main(args=None) -> str | None:
     args = parser.parse_args(args)
     if any(args.target in paths for paths in args.glob):
         ValueError(f'target {args.target} also in files: {args.glob}')

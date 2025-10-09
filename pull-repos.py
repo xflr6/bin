@@ -81,7 +81,7 @@ def removed_clone(path: pathlib.Path, *, reset: bool = False):
     return removed, clone
 
 
-def main(args=None) -> None:
+def main(args=None) -> str | None:
     args = parser.parse_args(args)
 
     if args.quiet:

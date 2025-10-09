@@ -16,7 +16,6 @@ import re
 import shutil
 import subprocess
 import sys
-from typing import Optional
 import urllib.request
 import warnings
 
@@ -106,7 +105,7 @@ def prompt_for_continuation():  # pragma: no cover
     return not line
 
 
-def main(args=None) -> Optional[str]:
+def main(args=None) -> str | None:
     args = parser.parse_args(args)
 
     if args.quiet:

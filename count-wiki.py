@@ -20,7 +20,6 @@ import pathlib
 import re
 import sys
 import time
-from typing import Optional
 import xml.etree.ElementTree as etree
 
 PREFIX = 'mediawiki'
@@ -54,7 +53,7 @@ SUFFIX_OPEN_MODULE = {'.bz2': bz2,
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def positive_int(s: str) -> Optional[int]:
+def positive_int(s: str) -> int | None:
     if s is None or not s.strip():
         return None
 
@@ -209,7 +208,7 @@ def lines_changed(a: str, b: str, *,
     return total
 
 
-def main(args=None) -> Optional[str]:
+def main(args=None) -> str | None:
     args = parser.parse_args(args)
     log(f'filename: {args.filename}', '')
 

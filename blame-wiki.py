@@ -13,7 +13,6 @@ import functools
 import gzip
 import re
 import sys
-from typing import Optional
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as etree
@@ -80,7 +79,7 @@ def elem_findtext(elem, *tags, prefix=None, **kwargs):
     return dict(zip(tags, values))
 
 
-def main(args=None) -> Optional[str]:
+def main(args=None) -> str | None:
     args = parser.parse_args(args)
     log(f'export url: {args.export_url}',
         f'title: {args.page_title}', '')

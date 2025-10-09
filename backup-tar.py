@@ -19,7 +19,6 @@ import stat
 import subprocess
 import sys
 import time
-from typing import Optional
 
 NAME_TEMPLATE = '%Y%m%d-%H%M.tar.gz'
 
@@ -279,7 +278,7 @@ def prompt_for_deletion(path: pathlib.Path) -> bool:  # pragma: no cover
         log(f'{path} deleted.')
 
 
-def main(args=None) -> Optional[str]:
+def main(args=None) -> str | None:
     args = parser.parse_args(args)
 
     dest_path = args.dest_dir / args.name

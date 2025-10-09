@@ -17,7 +17,6 @@ import pathlib
 import string
 import subprocess
 import sys
-from typing import Optional
 
 NAME_TEMPLATE = '{stem}_2up.pdf'
 
@@ -161,7 +160,7 @@ def render_template(xnup: int, ynup: int, *,
     return template.substitute(context)
 
 
-def main(args=None) -> Optional[str]:
+def main(args=None) -> str | None:
     args = parser.parse_args(args)
 
     dest_path = args.name.format(stem=args.pdf_file.stem)

@@ -18,7 +18,6 @@ import stat
 import subprocess
 import sys
 import time
-from typing import Optional
 
 NAME_TEMPLATE = '{name}.svndump.gz'
 
@@ -155,7 +154,7 @@ def map_popen(commands, *, stdin=None, stdout=None, **kwargs):
         stdin = proc.stdout
 
 
-def main(args=None) -> Optional[str]:
+def main(args=None) -> str | None:
     args = parser.parse_args(args)
 
     if not args.detail:

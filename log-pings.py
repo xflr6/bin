@@ -23,7 +23,6 @@ import signal
 import socket
 import sys
 import time
-from typing import Optional
 
 HOST = '0.0.0.0'
 
@@ -471,7 +470,7 @@ def serve_forever(s, *, max_size, encoding, ip_tmpl, icmp_tmpl):
                                      'icmp': icmp.format(icmp_tmpl)})
 
 
-def main(args=None) -> Optional[str]:
+def main(args=None) -> str | None:
     args = parser.parse_args(args)
     if args.hardening:
         if platform.system() == 'Windows':  # pragma: no cover

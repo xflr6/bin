@@ -19,7 +19,6 @@ import signal
 import socket
 import sys
 import time
-from typing import Optional
 
 HOST = '0.0.0.0'
 
@@ -179,7 +178,7 @@ def serve_forever(s, *, encoding: str, bufsize: int = 1_024):
         logging.info('%s:%d %s', host, port, msg)
 
 
-def main(args=None) -> Optional[str]:
+def main(args=None) -> str | None:
     args = parser.parse_args(args)
     if args.hardening:
         if platform.system() == 'Windows':  # pragma: no cover
