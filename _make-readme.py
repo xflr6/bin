@@ -19,7 +19,7 @@ ENCODING = 'utf-8'
 PYTHON = 'py' if platform.system() == 'Windows' else 'python3'
 
 
-def iterhelp(pattern='*.py'):
+def iterhelp(pattern: str = '*.py'):
     for p in sorted(DIRECTORY.glob(pattern)):
         if p.name.startswith('_'):
             continue
@@ -34,10 +34,10 @@ usage = '\n\n\n'.join(f"### {cmd[0]}\n\n```sh\n$ {' '.join(cmd)}\n{stdout}```"
 
 text = README_PATH.read_text(encoding=ENCODING)
 
-head, sep_1, rest = text.partition(REPLACE_AFTER)
+(head, sep_1, rest) = text.partition(REPLACE_AFTER)
 assert head and sep_1 and rest
 
-_, sep_2, tail = rest.partition(REPLACE_BEFORE)
+(_, sep_2, tail) = rest.partition(REPLACE_BEFORE)
 assert sep_2 and tail
 
 text = f'{head}{sep_1}\n\n{usage}\n\n{sep_2}{tail}'
