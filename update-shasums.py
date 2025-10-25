@@ -89,11 +89,9 @@ parser.add_argument('glob', nargs='+', type=present_file_glob,
                     help='glob pattern of files to checksum')
 
 
-def sha256sum(filename, *, bufsize: int = 32_768) -> str:
-    s = hashlib.sha256()
+def sha256sum(filename, /) -> str:
     with open(filename, 'rb') as f:
-        for data in iter(functools.partial(f.read, bufsize), b''):
-            s.update(data)
+        s = hashlib.file_digest(f, hashlib.sha256)
     return s.hexdigest()
 
 
