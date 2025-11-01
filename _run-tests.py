@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# flake8: noqa
 
 """Run the tests with https://pytest.org."""
 
@@ -13,9 +14,12 @@ SELF = pathlib.Path(__file__)
 ARGS = [#'--collect-only',
         #'--verbose',
         #'--pdb',
-        #'--exitfirst',  # a.k.a. '-x'
+        #'--exitfirst',  # a.k.a. -x
         #'-W', 'error',
        ]
+
+if platform.system() == 'Windows' and 'idlelib' in sys.modules:
+    ARGS += ['-p', 'no:faulthandler']
 
 if platform.system() == 'Windows':
     ARGS.append('--pdb')
