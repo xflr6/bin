@@ -113,7 +113,7 @@ parser.add_argument('--name', metavar='TEMPLATE',
 parser.add_argument('--exclude-file', metavar='PATH', type=present_file,
                     help='path to file with one line per blacklist item')
 
-parser.add_argument('--comp', choices=('gzip', 'lzo', 'xz', 'zstd'),
+parser.add_argument('--comp', choices=('gzip', 'lz4', 'lzo', 'xz', 'zstd'),
                     help='compression (use mksquashfs default if omitted)')
 
 parser.add_argument('--owner', type=user, help='image file owner')
