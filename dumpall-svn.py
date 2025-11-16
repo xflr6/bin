@@ -132,10 +132,8 @@ def run_pipe(cmd, *filter_cmds, check: bool = False, **kwargs):
         procs = [s.enter_context(p) for p in procs]
 
         log('returncode(s): ', end='')
-        for has_next, p in enumerate(procs, 1 - len(procs)):
+        for has_next, p in enumerate(reversed(procs), 1 - len(procs)):
             out, err = p.communicate()
-            if has_next:  # Allow p to receive a SIGPIPE if next proc exits.
-                p.stdout.close()
             log(f'{p.args[0]}={p.returncode}', end=', ' if has_next else '\n')
             if check and p.returncode:
                 raise subprocess.CalledProcessError(p.returncode, p.args,

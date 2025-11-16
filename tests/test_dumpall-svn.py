@@ -58,7 +58,6 @@ def test_dumpall_svn(tmp_path, mocker, proc):
     proc.assert_has_calls([mocker.call.__enter__(proc),
                            mocker.call.__enter__(proc),
                            mocker.call.communicate(),
-                           mocker.call.stdout.close(),
                            mocker.call.communicate(),
                            mocker.call.__exit__(proc, None, None, None),
                            mocker.call.__exit__(proc, None, None, None)])
