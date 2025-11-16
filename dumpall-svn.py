@@ -23,7 +23,8 @@ NAME_TEMPLATE = '{name}.svndump.gz'
 
 COMPRESS = {'.bz2': ['bzip2', '--stdout'],
             '.gz': ['gzip', '--stdout'],
-            '.xz':  ['xz', '--stdout']}
+            '.xz':  ['xz', '--stdout'],
+            '.zstd': ['zstd']}
 
 CHMOD = stat.S_IRUSR
 
