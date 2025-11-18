@@ -251,7 +251,7 @@ class InvalidChecksumError(ValueError):
     pass
 
 
-B8, H16, L32 = ctypes.c_uint8, ctypes.c_uint16, ctypes.c_uint32
+(B8, H16, L32) = ctypes.c_uint8, ctypes.c_uint16, ctypes.c_uint32
 
 
 class IPHeader(DataMixin, ctypes.BigEndianStructure):

@@ -31,7 +31,7 @@ def test_log_udp(capsys, mocker, host='127.0.0.1', port=9, encoding='utf-8'):
                          '--no-hardening',
                          '--verbose']) is None
 
-    out, err = capsys.readouterr()
+    (out, err) = capsys.readouterr()
     assert msg in out
     assert not err
 

@@ -204,11 +204,11 @@ def main(args=None) -> str | None:
     if dest_path.exists():
         return f'error: result file {dest_path} already exists'
 
-    cmd, kwargs = run_args_kwargs(args.source_dir, dest_path,
-                                  exclude_file=args.exclude_file,
-                                  comp=args.comp,
-                                  set_path=args.set_path,
-                                  quiet=args.quiet)
+    (cmd, kwargs) = run_args_kwargs(args.source_dir, dest_path,
+                                    exclude_file=args.exclude_file,
+                                    comp=args.comp,
+                                    set_path=args.set_path,
+                                    quiet=args.quiet)
 
     log('', f'os.umask(0o{args.set_umask:03o})')
     os.umask(args.set_umask)

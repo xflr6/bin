@@ -99,7 +99,7 @@ def main(args=None) -> str | None:
         g_dir = args.target_dir / url['dir']
         log(f'target: {g_dir}/', end='')
 
-        removed, clone = removed_clone(g_dir, reset=args.reset)
+        (removed, clone) = removed_clone(g_dir, reset=args.reset)
         if removed:
             n_reset += 1
 

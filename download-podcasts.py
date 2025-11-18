@@ -267,7 +267,7 @@ class Podcast(list):
                  directory, limit: int | None = None,
                  ignore_size=r'', ignore_file=r'',
                  override_filename: str | None = None) -> Podcast:
-        channel, items = get_channel_items(url, limit=limit)
+        (channel, items) = get_channel_items(url, limit=limit)
         return cls(url, channel, items, directory=directory, limit=limit,
                    ignore_size=ignore_size, ignore_file=ignore_file,
                    override_filename=override_filename)

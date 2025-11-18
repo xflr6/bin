@@ -189,7 +189,7 @@ def iterfiles(root, exclude_match, *, infos=None, sep: str = os.sep):
 
     stack = [('', root)]
     while stack:
-        prefix, root = stack.pop()
+        (prefix, root) = stack.pop()
         try:
             dentries = os.scandir(root)
         except OSError as e:
@@ -298,9 +298,9 @@ def main(args=None) -> str | None:
     log(*(f"{infos['n_' + c]} {c}" for c in counts), sep=', ', end=')\n')
     log(f"file size sum: {infos['n_bytes']:_d} bytes")
 
-    cmd, kwargs = run_args_kwargs(args.source_dir, dest_path,
-                                  auto_compress=args.auto_compress,
-                                  set_path=args.set_path)
+    (cmd, kwargs) = run_args_kwargs(args.source_dir, dest_path,
+                                    auto_compress=args.auto_compress,
+                                    set_path=args.set_path)
 
     log('', f'os.umask(0o{args.set_umask:03o})')
     os.umask(args.set_umask)

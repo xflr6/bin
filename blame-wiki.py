@@ -97,11 +97,11 @@ def main(args=None) -> str | None:
     log(f'xml: {ns!r}')
     ns = {'namespaces': {'mw': ns}}
 
-    site, = tree.findall('mw:siteinfo', **ns)
+    (site,) = tree.findall('mw:siteinfo', **ns)
     for k, v in elem_findtext(site, 'sitename', 'dbname', 'base', prefix='mw', **ns).items():
         log(f'siteinfo/{k}: {v}')
 
-    page, = tree.findall('mw:page', **ns)
+    (page,) = tree.findall('mw:page', **ns)
     page_infos = elem_findtext(page, 'ns', 'title', 'id', prefix='mw', **ns)
     for k, v in page_infos.items():
         log(f'page/{k}: {v}')

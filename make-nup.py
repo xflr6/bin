@@ -65,7 +65,7 @@ def nup(s: str):
     if not all(nups) or not all(n > 0 for n in nups):
         raise argparse.ArgumentTypeError(f'invalid nup: {s} (e.g: 2x2)')
 
-    x, y = nups
+    (x, y) = nups
     return argparse.Namespace(x=x, y=y)
 
 

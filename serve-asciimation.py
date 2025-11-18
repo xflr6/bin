@@ -45,7 +45,7 @@ FRAME = re.compile(r'(\d+)\n' + r'(.*)\n' * 13)
 
 FRAMES = None
 
-HOME, CLS = '\x1b[H', '\x1b[J'
+(HOME, CLS) = '\x1b[H', '\x1b[J'
 
 ENCODING = 'utf-8'
 
@@ -152,7 +152,7 @@ def generate_frames(film, *, screen_size=(80, 24), frame_size=(67, 13)):
 
 
 def get_centerframe_func(*, screen_size, frame_size):
-    hmargin, vmargin = (s - f for s, f in zip(screen_size, frame_size))
+    (hmargin, vmargin) = (s - f for s, f in zip(screen_size, frame_size))
     screen = '\r\n' * (vmargin // 2) + '%s' + '\r\n' * (vmargin - vmargin // 2)
     content = '%%-%ds' % frame_size[0]
     row = ' ' * (hmargin // 2) + content + ' ' * (hmargin - hmargin // 2)

@@ -90,7 +90,7 @@ def test_log_pings(capsys, mocker, ip_header, icmp_packet, host='127.0.0.1'):
                            '--max-size', str(bufsize),
                            '--verbose']) is None
 
-    out, err = capsys.readouterr()
+    (out, err) = capsys.readouterr()
     assert not err
     lines = out.splitlines()
 

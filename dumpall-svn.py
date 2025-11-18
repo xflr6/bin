@@ -136,7 +136,7 @@ def run_pipe(cmd, *filter_cmds, check: bool = False, **kwargs):
 
         log('returncode(s): ', end='')
         for has_next, p in enumerate(reversed(procs), 1 - len(procs)):
-            out, err = p.communicate()
+            (out, err) = p.communicate()
             log(f'{p.args[0]}={p.returncode}', end=', ' if has_next else '\n')
             if check and p.returncode:
                 raise subprocess.CalledProcessError(p.returncode, p.args,
@@ -166,11 +166,11 @@ def main(args=None) -> str | None:
     print(f'svnadmin dump {len(args.repo_dir)} repo(s) into: {args.target_dir}/')
     log(f'file name template: {args.name}')
 
-    cmd, filter_cmds, kwargs = pipe_args_kwargs(args.name,
-                                                deltas=args.deltas,
-                                                auto_compress=args.auto_compress,
-                                                quiet=args.quiet,
-                                                set_path=args.set_path)
+    (cmd, filter_cmds, kwargs) = pipe_args_kwargs(args.name,
+                                                  deltas=args.deltas,
+                                                  auto_compress=args.auto_compress,
+                                                  quiet=args.quiet,
+                                                  set_path=args.set_path)
 
     caption = ' | '.join(c for c, *_ in ([cmd] + filter_cmds))
 

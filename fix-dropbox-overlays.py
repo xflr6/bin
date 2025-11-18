@@ -32,7 +32,7 @@ parser.add_argument('--version', action='version', version=__version__)
 
 
 def get_enum_keys(key):
-    nkeys, _, _ = winreg.QueryInfoKey(key)
+    (nkeys, _, _) = winreg.QueryInfoKey(key)
     log(f'for i in range({nkeys!r}): winreg.EnumKey(..., i)')
     return [winreg.EnumKey(key, i) for i in range(nkeys)]
 
@@ -57,7 +57,7 @@ def move_key(key, src, dst):
 
 
 def lspace_name(s: str):
-    lspace, name = re.fullmatch(r'(\s*)(\w+)(?: \w+)?', s).groups()
+    (lspace, name) = re.fullmatch(r'(\s*)(\w+)(?: \w+)?', s).groups()
     return len(lspace), name
 
 

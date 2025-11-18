@@ -162,7 +162,7 @@ def count_edits(root, pages, *,
                 rev_epath, user_epath, text_epath) -> int:
     display_func = make_display_func(display_epath)
 
-    n_edits, n_lines = (collections.Counter() for _ in range(2))
+    (n_edits, n_lines) = (collections.Counter() for _ in range(2))
 
     count = 0
 
@@ -224,7 +224,7 @@ def main(args=None) -> str | None:
     with open_module.open(args.filename, 'rb') as f:
         pairs = etree.iterparse(f, events=('start', 'end'))
 
-        _, root = next(pairs)
+        (_, root) = next(pairs)
         if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
             return f'error: invalid xml root tag {root.tag!r}'
 
@@ -250,7 +250,7 @@ def main(args=None) -> str | None:
                           user_epath=make_epath(USER_PATH, ns_map),
                           text_epath=make_epath(TEXT_PATH, ns_map))
 
-            n, n_edits, n_lines = count_edits(root, elements, **kwargs)
+            (n, n_edits, n_lines) = count_edits(root, elements, **kwargs)
             counters = n_edits, n_lines
 
     stop = time.monotonic()

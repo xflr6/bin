@@ -108,7 +108,7 @@ def interpolate(filename, pattern, sums, *, encoding: str):
     with open(filename, encoding=encoding) as f:
         text = f.read()
 
-    text, n = pattern.subn(repl, text)
+    (text, n) = pattern.subn(repl, text)
 
     if n != len(sums):
         raise ValueError(f'mismatch {len(sums)} files but {n} pattern matches')
