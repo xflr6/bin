@@ -239,7 +239,7 @@ def run_args_kwargs(source_dir, dest_path, *,
     if auto_compress:
         cmd.append('--auto-compress')
 
-    kwargs = {'cwd':  source_dir,
+    kwargs = {'cwd': source_dir,
               'env': {'PATH': set_path},
               'encoding': encoding}
 

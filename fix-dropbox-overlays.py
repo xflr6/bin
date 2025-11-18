@@ -97,8 +97,8 @@ def main(args=None) -> None:
 
     log(f'winreg.ConnectRegistry(*{handle})',
         f'winreg.OpenKey(..., {SUB_KEY!r})')
-    with winreg.ConnectRegistry(*handle) as h,\
-         winreg.OpenKey(h, SUB_KEY) as o:
+    with (winreg.ConnectRegistry(*handle) as h,
+          winreg.OpenKey(h, SUB_KEY) as o):
 
         keys = get_enum_keys(o)
         log(f'keys: {keys!r}')

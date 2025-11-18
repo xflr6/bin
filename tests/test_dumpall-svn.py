@@ -43,7 +43,7 @@ def test_dumpall_svn(tmp_path, mocker, proc):
     open_spy.assert_called_once_with(result, 'xb', opener=mocker.ANY)
     opener = open_spy.call_args.kwargs['opener']
     assert isinstance(opener, functools.partial) and opener.func is os.open
-    assert (opener.args,  opener.keywords) == ((), {'mode': 0o600})
+    assert (opener.args, opener.keywords) == ((), {'mode': 0o600})
 
     env = {'PATH': path}
 

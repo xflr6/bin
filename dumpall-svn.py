@@ -25,7 +25,7 @@ COMPRESS = {'.bz2': ['bzip2', '--stdout'],
             '.gz': ['gzip', '--stdout'],
             '.lz4': ['lz4'],
             '.lzo': ['lzop'],
-            '.xz':  ['xz', '--stdout'],
+            '.xz': ['xz', '--stdout'],
             '.zst': ['zstd']}
 
 CHMOD = stat.S_IRUSR

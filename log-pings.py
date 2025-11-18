@@ -397,7 +397,7 @@ class TimevalMixin:
         timestamp = self.timestamp
         if (min is not None or max is not None) and not min <= timestamp <= max:
             raise ValueError
-        return datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc)
+        return datetime.datetime.fromtimestamp(timestamp, datetime.UTC)
 
 
 class Timeval32(TimevalMixin, DataMixin, ctypes.LittleEndianStructure):

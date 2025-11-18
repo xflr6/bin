@@ -121,8 +121,8 @@ def read_page_bytes(url: str = URL, *,
                     cache_path: pathlib.Path = CACHE) -> bytes:
     if not cache_path.exists():
         logging.info('download %r into %r', url, cache_path)
-        with urllib.request.urlopen(url) as src,\
-             gzip.open(cache_path, 'wb') as dst:
+        with (urllib.request.urlopen(url) as src,
+              gzip.open(cache_path, 'wb') as dst):
             shutil.copyfileobj(src, dst)
 
     logging.debug('read %r', cache_path)

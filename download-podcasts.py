@@ -15,6 +15,7 @@ import asyncio
 import codecs
 from collections.abc import Collection
 import configparser
+import datetime
 import email.utils
 import io
 import pathlib
@@ -344,7 +345,7 @@ class Episode:
         if pub_date is not None:
             published = email.utils.parsedate_to_datetime(pub_date)
             if published.tzinfo is None:
-                published = published.replace(tzinfo=datetime.timezone.utc)
+                published = published.replace(tzinfo=datetime.UTC)
             pub_date = published.date()
         self.pub_date = pub_date
 
@@ -399,7 +400,7 @@ def urlretrieve(url: str, filename):
 
         newpos = gotblocks * blocksize * 100 // totalsize
         if newpos > pos:
-            print(f'\b\b\b\b{newpos:3d}%',  end='', file=sys.stdout, flush=True)
+            print(f'\b\b\b\b{newpos:3d}%', end='', file=sys.stdout, flush=True)
             pos = newpos
 
     return urllib.request.urlretrieve(url, filename, progress_func)

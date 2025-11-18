@@ -1,7 +1,6 @@
 import importlib
 import re
 import socket as _socket
-import sys
 
 import pytest
 

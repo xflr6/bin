@@ -22,7 +22,7 @@ KEYS = ['   DropboxExt01', '   DropboxExt02', '   DropboxExt03',
 def winreg(mocker, name='winreg'):
     module = mocker.NonCallableMock(name=name,
                                     HKEY_LOCAL_MACHINE=mocker.sentinel.HKEY_LOCAL_MACHINE,
-                                    REG_SZ = mocker.sentinel.REG_SZ)
+                                    REG_SZ=mocker.sentinel.REG_SZ)
 
     module.attach_mock(mocker.MagicMock(), 'ConnectRegistry')
     module.attach_mock(mocker.MagicMock(), 'OpenKey')
@@ -81,9 +81,9 @@ def test_fix_dropox_overlays(mocker, winreg):
                              query_info]
                             + enum_keys
                             + delete_keys
-                            + set_values +
-                            [open_key.__exit__(None, None, None),
-                             connect.__exit__(None, None, None)])
+                            + set_values
+                            + [open_key.__exit__(None, None, None),
+                               connect.__exit__(None, None, None)])
 
 
 def test_fix_dropox_overlays_dry(mocker, winreg):
@@ -107,6 +107,6 @@ def test_fix_dropox_overlays_dry(mocker, winreg):
                              open_key,
                              open_key.__enter__(),
                              query_info]
-                            + enum_keys +
-                            [open_key.__exit__(None, None, None),
-                             connect.__exit__(None, None, None)])
+                            + enum_keys
+                            + [open_key.__exit__(None, None, None),
+                               connect.__exit__(None, None, None)])
