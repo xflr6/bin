@@ -22,7 +22,7 @@ $ git clone git@github.com:xflr6/bin.git
 ```sh
 $ backup-squashfs.py --help
 usage: backup-squashfs.py [-h] [--name TEMPLATE] [--exclude-file PATH]
-                          [--comp {gzip,lzo,xz,zstd}] [--owner OWNER]
+                          [--comp {gzip,lz4,lzo,xz,zstd}] [--owner OWNER]
                           [--group GROUP] [--chmod MODE] [--set-path LINE]
                           [--set-umask MASK] [--quiet] [--ask-for-deletion]
                           [--version]
@@ -39,7 +39,7 @@ options:
   --name TEMPLATE       image filename time.strftime() format string template
                         (default: %Y%m%d-%H%M.sfs)
   --exclude-file PATH   path to file with one line per blacklist item
-  --comp {gzip,lzo,xz,zstd}
+  --comp {gzip,lz4,lzo,xz,zstd}
                         compression (use mksquashfs default if omitted)
   --owner OWNER         image file owner
   --group GROUP         image file group
@@ -176,7 +176,8 @@ options:
   --name TEMPLATE     dump filename time.strftime() format string template
                       (default: {name}.svndump.gz)
   --no-auto-compress  never compress dump file(s) (default: auto-compress if
-                      --name ends with any of: .bz2, .gz, .xz)
+                      --name ends with any of: .bz2, .gz, .lz4, .lzo, .xz,
+                      .zst)
   --no-deltas         don't pass --deltas to $(svnadmin dump)
   --chmod MODE        dump file chmod (default: 400)
   --set-path LINE     PATH for subprocess(es) (default: /usr/bin:/bin)
