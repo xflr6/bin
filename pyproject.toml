@@ -1,0 +1,15 @@
+[tool.pytest]
+minversion = "9"
+testpaths = ["tests"]
+addopts = ["--cov", "--cov-report=term", "--cov-report=html"]
+strict_config = true
+strict_markers = true
+mock_use_standalone_module = "true"
+log_cli = true
+log_cli_level = "WARNING"
+log_file = "test-log.txt"
+log_file_level = "DEBUG"
+
+[tool.coverage.run]
+include = ["./[a-z]*-[a-z]*.py"]
+omit = ["tests/*.py"]
