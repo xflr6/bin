@@ -1,3 +1,7 @@
+[tool.flake8]
+ignore = ["E126", "E128", "W503"]
+max-line-length = 110
+
 [tool.pytest]
 minversion = "9"
 testpaths = ["tests"]
