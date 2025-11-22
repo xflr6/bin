@@ -3,11 +3,11 @@ import re
 
 import pytest
 
-make_nup = importlib.import_module('make-nup')
+pdflatex_make_nup = importlib.import_module('pdflatex-make-nup')
 
 
 @pytest.mark.parametrize('keep', [False, True], ids=lambda x: 'keep=%r' % x)
-def test_make_nup(tmp_path, mocker, completed_proc, keep, encoding='utf-8'):
+def test_main(tmp_path, mocker, completed_proc, keep, encoding='utf-8'):
     pdf_path = tmp_path / 'spam.pdf'
     pdf_path.write_bytes(b'')
 
@@ -32,16 +32,16 @@ def test_make_nup(tmp_path, mocker, completed_proc, keep, encoding='utf-8'):
 
     run = mocker.patch('subprocess.run', autospec=True, side_effect=run)
 
-    assert make_nup.main([str(pdf_path),
-                          '--name', '{stem}-2UP.pdf',
-                          '--paper', 'legal',
-                          '--nup', '2x1',
-                          '--pages', '1-42',
-                          '--orient', 'a',
-                          '--scale', '.942',
-                          '--no-frame',
-                          '--no-openright']
-                         + (['--keep'] if keep else [])) is None
+    assert pdflatex_make_nup.main([str(pdf_path),
+                                   '--name', '{stem}-2UP.pdf',
+                                   '--paper', 'legal',
+                                   '--nup', '2x1',
+                                   '--pages', '1-42',
+                                   '--orient', 'a',
+                                   '--scale', '.942',
+                                   '--no-frame',
+                                   '--no-openright']
+                                  + (['--keep'] if keep else [])) is None
 
     doc = re.sub(r'\s', '', doc)
     assert doc == ('\\documentclass['
