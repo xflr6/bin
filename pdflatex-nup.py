@@ -5,7 +5,7 @@
 See also https://github.com/DavidFirth/pdfjam
 """
 
-__title__ = 'make-nup.py'
+__title__ = 'pdflatex-nup.py'
 __version__ = '0.1.dev0'
 __author__ = 'Sebastian Bank <sebastian.bank@uni-leipzig.de>'
 __license__ = 'MIT, see LICENSE.txt'

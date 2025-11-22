@@ -2,7 +2,7 @@
 
 """Svnadmin dump Subversion repositories into target directory."""
 
-__title__ = 'dumpall-svn.py'
+__title__ = 'svn-dumpall.py'
 __version__ = '0.1.dev0'
 __author__ = 'Sebastian Bank <sebastian.bank@uni-leipzig.de>'
 __license__ = 'MIT, see LICENSE.txt'

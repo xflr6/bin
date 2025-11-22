@@ -2,7 +2,7 @@
 
 """Git clone --mirror or git remote update all public Gists of GitHub user."""
 
-__title__ = 'pull-gists.py'
+__title__ = 'git-pull-gists.py'
 __version__ = '0.1.dev0'
 __author__ = 'Sebastian Bank <sebastian.bank@uni-leipzig.de>'
 __license__ = 'MIT, see LICENSE.txt'

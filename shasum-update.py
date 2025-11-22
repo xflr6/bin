@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-__title__ = 'update-shasums.py'
+__title__ = 'shasum-update.py'
 __version__ = '0.1.dev0'
 __author__ = 'Sebastian Bank <sebastian.bank@uni-leipzig.de>'
 __license__ = 'MIT, see LICENSE.txt'
