@@ -50,8 +50,7 @@ def test_dumpall_svn(tmp_path, mocker, proc):
     dump = mocker.call(['svnadmin', 'dump', '--deltas', '--quiet', present],
                        stdin=None, stdout=subprocess.PIPE, env=env)
 
-    compress = mocker.call(['gzip', '--stdout'],
-                           stdin=proc.stdout, stdout=outfd, env=env)
+    compress = mocker.call(['gzip'], stdin=proc.stdout, stdout=outfd, env=env)
 
     assert Popen.call_args_list == [dump, compress]
 
