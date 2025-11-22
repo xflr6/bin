@@ -22,9 +22,6 @@ import warnings
 GISTS = 'https://api.github.com/users/{username}/gists'
 
 
-log = functools.partial(print, file=sys.stderr, sep='\n')
-
-
 def directory(s: str) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
@@ -50,6 +47,9 @@ parser.add_argument('--detail', dest='quiet', action='store_false',
                     help='show detailed info for each clone/update')
 
 parser.add_argument('--version', action='version', version=__version__)
+
+
+log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
 def itergists(username: str):

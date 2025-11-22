@@ -33,9 +33,6 @@ CHMOD = stat.S_IRUSR
 SUBPROCESS_PATH = '/usr/bin:/bin'
 
 
-log = functools.partial(print, file=sys.stderr, sep='\n')
-
-
 def directory(s: str) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
@@ -107,6 +104,9 @@ parser.add_argument('--verbose', dest='quiet', action='store_false',
                     help="don't pass --quiet to $(svnadmin dump)")
 
 parser.add_argument('--version', action='version', version=__version__)
+
+
+log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
 def pipe_args_kwargs(name, *,

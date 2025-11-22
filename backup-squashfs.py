@@ -28,9 +28,6 @@ SUBPROCESS_PATH = '/usr/bin'
 SET_UMASK = stat.S_IXUSR | stat.S_IRWXG | stat.S_IRWXO
 
 
-log = functools.partial(print, file=sys.stderr, sep='\n')
-
-
 def directory(s: str) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
@@ -138,6 +135,11 @@ parser.add_argument('--ask-for-deletion', action='store_true',
                     help='prompt for image file deletion before exit')
 
 parser.add_argument('--version', action='version', version=__version__)
+
+
+
+log = functools.partial(print, file=sys.stderr, sep='\n')
+
 
 
 def run_args_kwargs(source_dir, dest_path, *,

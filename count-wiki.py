@@ -50,9 +50,6 @@ SUFFIX_OPEN_MODULE = {'.bz2': bz2,
                       '.xz': lzma}
 
 
-log = functools.partial(print, file=sys.stderr, sep='\n')
-
-
 def positive_int(s: str) -> int | None:
     if s is None or not s.strip():
         return None
@@ -96,6 +93,9 @@ parser.add_argument('--stop-after', metavar='N', type=positive_int,
                     help='stop after N tags')
 
 parser.add_argument('--version', action='version', version=__version__)
+
+
+log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
 def extract_ns(tag: str) -> str:

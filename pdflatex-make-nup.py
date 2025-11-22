@@ -50,9 +50,6 @@ TEMPLATE = ('\\documentclass['  # http://www.ctan.org/pkg/pdfpages'
 OPEN_KWARGS = {'encoding': 'utf-8', 'newline': '\n'}
 
 
-log = functools.partial(print, file=sys.stderr, sep='\n')
-
-
 def nup(s: str):
     nups = None, None
     fields = tuple(f.strip() or None for f in s.strip().lower().partition('x'))
@@ -140,6 +137,9 @@ parser.add_argument('--keep', dest='clean_up', action='store_false',
                     help="don't delete intermediate files (*.tex, *.log, etc.)")
 
 parser.add_argument('--version', action='version', version=__version__)
+
+
+log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
 def render_template(xnup: int, ynup: int, *,

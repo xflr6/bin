@@ -20,15 +20,15 @@ SUB_KEY = (r'SOFTWARE\Microsoft\Windows\CurrentVersion'
            r'\Explorer\ShellIconOverlayIdentifiers')
 
 
-log = functools.partial(print, file=sys.stderr, sep='\n')
-
-
 parser = argparse.ArgumentParser(description=__doc__)
 
 parser.add_argument('--dry-run', action='store_true',
                     help="show what would be changed (don't write to registry)")
 
 parser.add_argument('--version', action='version', version=__version__)
+
+
+log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
 def get_enum_keys(key):

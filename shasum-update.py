@@ -21,9 +21,6 @@ import sys
 ENCODING = 'utf-8'
 
 
-log = functools.partial(print, file=sys.stderr, sep='\n')
-
-
 def present_file(s: str) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
@@ -87,6 +84,9 @@ parser.add_argument('--confirm', action='store_true',
 
 parser.add_argument('glob', nargs='+', type=present_file_glob,
                     help='glob pattern of files to checksum')
+
+
+log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
 def sha256sum(filename, /) -> str:

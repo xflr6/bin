@@ -28,9 +28,6 @@ ENCODING = 'utf-8'
 GZIP = 'gzip'
 
 
-log = functools.partial(print, file=sys.stderr, sep='\n')
-
-
 parser = argparse.ArgumentParser(description=__doc__)
 
 parser.add_argument('page_title', help='title of the page on MediaWiki')
@@ -41,6 +38,9 @@ parser.add_argument('--export-url', metavar='URL', default=EXPORT_URL,
                     help=f'MediaWiki instance export url (default: {EXPORT_URL})')
 
 parser.add_argument('--version', action='version', version=__version__)
+
+
+log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
 def make_request(url: str, title: str, *,
