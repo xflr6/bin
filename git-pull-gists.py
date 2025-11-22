@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Git clone --mirror or git remote update all public Gists of GitHub user."""
+"""Git clone --mirror or git remote update all public Gists of GitHub user(s)."""
 
 __title__ = 'git-pull-gists.py'
 __version__ = '0.1.dev0'
@@ -10,6 +10,7 @@ __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
 import functools
+import itertools
 import json
 import pathlib
 import re
@@ -38,7 +39,8 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('target_dir', type=directory,
                     help='output directory for writing/updating bare Git clones')
 
-parser.add_argument('gh_username', help='name of the GitHub user account')
+parser.add_argument('gh_username', nargs='+',
+                    help='name of the GitHub user account')
 
 parser.add_argument('--reset', action='store_true',
                     help='delete present Git clones first')
@@ -112,59 +114,62 @@ def main(args=None) -> str | None:
         global log
         log = lambda *args, **kwargs: None
 
-    print(f'pull all public gist repos of {args.gh_username} into: {args.target_dir}/')
+    for gh_username in args.gh_username:
+        print(f'pull all public gist repos of {gh_username}'
+              f' into: {args.target_dir}/')
 
-    gists = list(itergists(username=args.gh_username))
-    print(f'pull {len(gists)} repo(s) into: {args.target_dir}/')
+        gists = list(itergists(username=gh_username))
+        print(f'pull {len(gists)} repo(s) into: {args.target_dir}/')
 
-    n_reset = n_cloned = n_updated = n_failed = 0
-    for g in gists:
-        print()
-        url = g['git_push_url']
-        log(f'source: {url}')
+        n_reset = n_cloned = n_updated = n_failed = 0
+        for g in gists:
+            print()
+            url = g['git_push_url']
+            log(f'source: {url}')
 
-        url = parse_url(url)
-        g_dir = args.target_dir / url['dir']
-        log(f'target: {g_dir}/', end='')
+            url = parse_url(url)
+            g_dir = args.target_dir / url['dir']
+            log(f'target: {g_dir}/', end='')
 
-        (removed, clone) = removed_clone(g_dir, reset=args.reset)
-        if removed:
-            n_reset += 1
+            (removed, clone) = removed_clone(g_dir, reset=args.reset)
+            if removed:
+                n_reset += 1
 
-        if clone:
-            log()
-            cmd = ['git', 'clone', '--mirror', url['url']]
-            cwd = args.target_dir
-            n_cloned += 1
-        else:
-            log(f' (inode={g_dir.stat().st_ino})')
-            cmd = ['git', 'remote', 'update']
-            cwd = g_dir
-            n_updated += 1
-
-        print(f'subprocess.run({cmd}, cwd={cwd})')
-        log(f'{"[ start git ]":-^80}')
-        try:
-            proc = subprocess.run(cmd, cwd=cwd, check=True)
-        except subprocess.CalledProcessError as e:  # pragma: no cover
-            n_failed += 1
             if clone:
-                n_cloned -= 1
+                log()
+                cmd = ['git', 'clone', '--mirror', url['url']]
+                cwd = args.target_dir
+                n_cloned += 1
             else:
-                n_updated -= 1
-            log(f'{"[ end git ]":-^80}')
-            warnings.warn(str(e))
-            if not prompt_for_continuation():
-                return 'exiting'
-        else:
-            log(f'{"[ end git ]":-^80}')
-            log(f'returncode: {proc.returncode}')
+                log(f' (inode={g_dir.stat().st_ino})')
+                cmd = ['git', 'remote', 'update']
+                cwd = g_dir
+                n_updated += 1
 
-    print('\ndone'
-          f'(reset={n_reset},'
-          f' cloned={n_cloned},'
-          f' updated={n_updated},'
-          f' failed={n_failed}).')
+            print(f'subprocess.run({cmd}, cwd={cwd})')
+            log(f'{"[ start git ]":-^80}')
+            try:
+                proc = subprocess.run(cmd, cwd=cwd, check=True)
+            except subprocess.CalledProcessError as e:  # pragma: no cover
+                n_failed += 1
+                if clone:
+                    n_cloned -= 1
+                else:
+                    n_updated -= 1
+                log(f'{"[ end git ]":-^80}')
+                warnings.warn(str(e))
+                if not prompt_for_continuation():
+                    return 'exiting'
+            else:
+                log(f'{"[ end git ]":-^80}')
+                log(f'returncode: {proc.returncode}')
+
+        print('\ndone'
+              f'(reset={n_reset},'
+              f' cloned={n_cloned},'
+              f' updated={n_updated},'
+              f' failed={n_failed}).')
+
     return None
 
 
