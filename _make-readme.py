@@ -29,7 +29,7 @@ def iterhelp(pattern: str = '*.py'):
         yield list(map(str, cmd[1:])), stdout
 
 
-usage = '\n\n\n'.join(f"### {cmd[0]}\n\n```sh\n$ {' '.join(cmd)}\n{stdout}```"
+usage = '\n\n\n'.join(f"### {cmd[0]}\n\n```shell\n$ {' '.join(cmd)}\n{stdout}```"
                       for cmd, stdout in iterhelp() if stdout)
 
 text = README_PATH.read_text(encoding=ENCODING)

@@ -19,7 +19,7 @@ $ git clone git@github.com:xflr6/bin.git
 
 ### backup-squashfs.py
 
-```sh
+```shell
 $ backup-squashfs.py --help
 usage: backup-squashfs.py [-h] [--name TEMPLATE] [--exclude-file PATH]
                           [--comp {gzip,lz4,lzo,xz,zstd}] [--owner OWNER]
@@ -54,7 +54,7 @@ options:
 
 ### backup-tar.py
 
-```sh
+```shell
 $ backup-tar.py --help
 usage: backup-tar.py [-h] [--name TEMPLATE] [--exclude-file PATH]
                      [--no-auto-compress] [--owner OWNER] [--group GROUP]
@@ -86,7 +86,7 @@ options:
 
 ### blame-wiki.py
 
-```sh
+```shell
 $ blame-wiki.py --help
 usage: blame-wiki.py [-h] [--export-url URL] [--version]
                      page_title search_string
@@ -107,7 +107,7 @@ options:
 
 ### count-wiki.py
 
-```sh
+```shell
 $ count-wiki.py --help
 usage: count-wiki.py [-h] [--tag TAG] [--stats] [--stats-top N]
                      [--display PATH] [--display-after N] [--stop-after N]
@@ -134,7 +134,7 @@ options:
 
 ### download-podcasts.py
 
-```sh
+```shell
 $ download-podcasts.py --help
 usage: download-podcasts.py [-h] [--config PATH] [--encoding NAME] [--limit N]
                             [--serial] [--verbose]
@@ -158,7 +158,7 @@ options:
 
 ### dumpall-svn.py
 
-```sh
+```shell
 $ dumpall-svn.py --help
 usage: dumpall-svn.py [-h] [--name TEMPLATE] [--no-auto-compress]
                       [--no-deltas] [--chmod MODE] [--set-path LINE]
@@ -189,7 +189,7 @@ options:
 
 ### fix-dropbox-overlays.py
 
-```sh
+```shell
 $ fix-dropbox-overlays.py --help
 usage: fix-dropbox-overlays.py [-h] [--dry-run] [--version]
 
@@ -204,7 +204,7 @@ options:
 
 ### git-pull-gists.py
 
-```sh
+```shell
 $ git-pull-gists.py --help
 usage: git-pull-gists.py [-h] [--reset] [--detail] [--version]
                          target_dir gh_username
@@ -225,7 +225,7 @@ options:
 
 ### git-pull-repos.py
 
-```sh
+```shell
 $ git-pull-repos.py --help
 usage: git-pull-repos.py [-h] [--reset] [--detail] [--version]
                          target_dir repo_url [repo_url ...]
@@ -246,7 +246,7 @@ options:
 
 ### log-pings.py
 
-```sh
+```shell
 $ log-pings.py --help
 usage: log-pings.py [-h] [--host IP] [--file LOGFILE] [--format TMPL]
                     [--datefmt TMPL] [--ipfmt TMPL] [--icmpfmt TMPL]
@@ -275,7 +275,7 @@ options:
 
 ### log-udp.py
 
-```sh
+```shell
 $ log-udp.py --help
 usage: log-udp.py [-h] [--host IP] [--port SERVICE] [--file LOGFILE]
                   [--format TMPL] [--datefmt TMPL] [--setuid USER]
@@ -302,7 +302,7 @@ options:
 
 ### make-nup.py
 
-```sh
+```shell
 $ make-nup.py --help
 usage: make-nup.py [-h] [--name TMPL] [--paper SIZE] [--nup XxY]
                    [--pages RANGE] [--orient {l,p,a}] [--scale FACTOR]
@@ -332,7 +332,7 @@ options:
 
 ### serve-asciimation.py
 
-```sh
+```shell
 $ serve-asciimation.py --help
 usage: serve-asciimation.py [-h] [--host IP] [--port SERVICE] [--fps N]
                             [--setuid USER] [--chroot DIR] [--no-hardening]
@@ -355,7 +355,7 @@ options:
 
 ### update-shasums.py
 
-```sh
+```shell
 $ update-shasums.py --help
 usage: update-shasums.py [-h] [--target TEXT_FILE] [--encoding NAME]
                          [--pattern REGEX] [--confirm]
