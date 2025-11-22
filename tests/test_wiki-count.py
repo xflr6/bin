@@ -1,7 +1,7 @@
 import bz2
 import importlib
 
-count_wiki = importlib.import_module('count-wiki')
+wiki_count = importlib.import_module('wiki-count')
 
 EXPORT = '''\
 <mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/">
@@ -27,7 +27,7 @@ def test_main(capsys, tmp_path):
     with export.open('wb') as z, bz2.open(z, 'wt', encoding=ENCODING) as f:
         f.write(EXPORT)
 
-    assert count_wiki.main([str(export),
+    assert wiki_count.main([str(export),
                             '--tag', 'mediawiki:page',
                             '--display', 'mediawiki:title',
                             '--display-after', '100',

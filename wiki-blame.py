@@ -2,7 +2,7 @@
 
 """Dump XML of first MediaWiki page revision containing a search string."""
 
-__title__ = 'blame-wiki.py'
+__title__ = 'wiki-blame.py'
 __version__ = '0.1.dev0'
 __author__ = 'Sebastian Bank <sebastian.bank@uni-leipzig.de>'
 __license__ = 'MIT, see LICENSE.txt'

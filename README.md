@@ -83,54 +83,6 @@ options:
 ```
 
 
-### blame-wiki.py
-
-```shell
-$ blame-wiki.py --help
-usage: blame-wiki.py [-h] [--export-url URL] [--version]
-                     page_title search_string
-
-Dump XML of first MediaWiki page revision containing a search string.
-
-positional arguments:
-  page_title        title of the page on MediaWiki
-  search_string     string to match page wikitext
-
-options:
-  -h, --help        show this help message and exit
-  --export-url URL  MediaWiki instance export url (default:
-                    https://en.wikipedia.org/wiki/Special:Export)
-  --version         show program's version number and exit
-```
-
-
-### count-wiki.py
-
-```shell
-$ count-wiki.py --help
-usage: count-wiki.py [-h] [--tag TAG] [--stats] [--stats-top N]
-                     [--display PATH] [--display-after N] [--stop-after N]
-                     [--version]
-                     filename
-
-Count page tags in MediaWiki XML export.
-
-positional arguments:
-  filename           path to MediaWiki XML export (format: .xml.bz2)
-
-options:
-  -h, --help         show this help message and exit
-  --tag TAG          end tag to count (default: mediawiki:page)
-  --stats            also compute and display page edit statistics
-  --stats-top N      show top N users edits and lines (default: 100)
-  --display PATH     ElementPath to log in sub-total (default:
-                     mediawiki:title)
-  --display-after N  log sub-total after N tags (default: 1000)
-  --stop-after N     stop after N tags
-  --version          show program's version number and exit
-```
-
-
 ### download-podcasts.py
 
 ```shell
@@ -371,6 +323,54 @@ options:
   --detail            include detail infos for each repository
   --verbose           don't pass --quiet to svnadmin dump
   --version           show program's version number and exit
+```
+
+
+### wiki-blame.py
+
+```shell
+$ wiki-blame.py --help
+usage: wiki-blame.py [-h] [--export-url URL] [--version]
+                     page_title search_string
+
+Dump XML of first MediaWiki page revision containing a search string.
+
+positional arguments:
+  page_title        title of the page on MediaWiki
+  search_string     string to match page wikitext
+
+options:
+  -h, --help        show this help message and exit
+  --export-url URL  MediaWiki instance export url (default:
+                    https://en.wikipedia.org/wiki/Special:Export)
+  --version         show program's version number and exit
+```
+
+
+### wiki-count.py
+
+```shell
+$ wiki-count.py --help
+usage: wiki-count.py [-h] [--tag TAG] [--stats] [--stats-top N]
+                     [--display PATH] [--display-after N] [--stop-after N]
+                     [--version]
+                     filename
+
+Count page tags in MediaWiki XML export.
+
+positional arguments:
+  filename           path to MediaWiki XML export (format: .xml.bz2)
+
+options:
+  -h, --help         show this help message and exit
+  --tag TAG          end tag to count (default: mediawiki:page)
+  --stats            also compute and display page edit statistics
+  --stats-top N      show top N users edits and lines (default: 100)
+  --display PATH     ElementPath to log in sub-total (default:
+                     mediawiki:title)
+  --display-after N  log sub-total after N tags (default: 1000)
+  --stop-after N     stop after N tags
+  --version          show program's version number and exit
 ```
 
 

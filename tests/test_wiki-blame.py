@@ -1,7 +1,7 @@
 import gzip
 import importlib
 
-blame_wiki = importlib.import_module('blame-wiki')
+wiki_blame = importlib.import_module('wiki-blame')
 
 EXPORT = '''\
 <mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/">
@@ -43,7 +43,7 @@ def test_main(capsys, mocker, http_resp):
     search_string = 'spam'
     export_url = 'https://example.org/wiki/Special:Export'
 
-    assert blame_wiki.main([page_title, search_string,
+    assert wiki_blame.main([page_title, search_string,
                             '--export-url', export_url]) is None
 
     (out, _) = capsys.readouterr()
