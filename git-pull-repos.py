@@ -44,43 +44,6 @@ parser.add_argument('--detail', dest='quiet', action='store_false',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-log = functools.partial(print, file=sys.stderr, sep='\n')
-
-
-def parse_url(s: str):
-    if s.startswith('github.com:'):
-        s = f'git@{s}'
-    if not s.endswith('.git'):
-        s = f'{s}.git'
-    return re.search(r'(?P<url>.*/(?P<dir>[^/]+))$', s).groupdict()
-
-
-def prompt_for_deletion(path: pathlib.Path) -> bool:  # pragma: no cover
-    line = None
-    while line is None or (line and line not in ('y', 'yes')):
-        line = input(f'delete {path}/? [(y)es=delete/ENTER=keep]: ')
-
-    if line in ('y', 'yes'):
-        log(f'shutil.rmtree({path})')
-        shutil.rmtree(path)
-        return True
-    else:
-        log(f'kept: {path}/ (inode={path.stat().st_ino})')
-        return False
-
-
-def removed_clone(path: pathlib.Path, *, reset: bool = False):
-    removed = clone = False
-    if path.exists():
-        if not path.is_dir():
-            raise RuntimeError(f'path is not a directory: {path}')
-        if reset and prompt_for_deletion(path):
-            removed = clone = True
-    else:
-        clone = True
-    return removed, clone
-
-
 def main(args=None) -> str | None:
     args = parser.parse_args(args)
 
@@ -122,6 +85,43 @@ def main(args=None) -> str | None:
 
     print(f'\ndone (reset={n_reset}, cloned={n_cloned}, updated={n_updated}).')
     return None
+
+
+log = functools.partial(print, file=sys.stderr, sep='\n')
+
+
+def parse_url(s: str):
+    if s.startswith('github.com:'):
+        s = f'git@{s}'
+    if not s.endswith('.git'):
+        s = f'{s}.git'
+    return re.search(r'(?P<url>.*/(?P<dir>[^/]+))$', s).groupdict()
+
+
+def removed_clone(path: pathlib.Path, *, reset: bool = False):
+    removed = clone = False
+    if path.exists():
+        if not path.is_dir():
+            raise RuntimeError(f'path is not a directory: {path}')
+        if reset and prompt_for_deletion(path):
+            removed = clone = True
+    else:
+        clone = True
+    return removed, clone
+
+
+def prompt_for_deletion(path: pathlib.Path) -> bool:  # pragma: no cover
+    line = None
+    while line is None or (line and line not in ('y', 'yes')):
+        line = input(f'delete {path}/? [(y)es=delete/ENTER=keep]: ')
+
+    if line in ('y', 'yes'):
+        log(f'shutil.rmtree({path})')
+        shutil.rmtree(path)
+        return True
+    else:
+        log(f'kept: {path}/ (inode={path.stat().st_ino})')
+        return False
 
 
 if __name__ == '__main__':  # pragma: no cover

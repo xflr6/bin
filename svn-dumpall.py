@@ -78,8 +78,8 @@ parser.add_argument('target_dir', type=directory,
 parser.add_argument('repo_dir', nargs='+', type=directory,
                     help='input SVN repository directory')
 
-parser.add_argument('--name', metavar='TEMPLATE',
-                    type=template, default=NAME_TEMPLATE,
+parser.add_argument('--name', metavar='TEMPLATE', type=template,
+                    default=NAME_TEMPLATE,
                     help=f'dump file name time.strftime() format string template'
                          f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
 
@@ -104,59 +104,6 @@ parser.add_argument('--verbose', dest='quiet', action='store_false',
                     help="don't pass --quiet to svnadmin dump")
 
 parser.add_argument('--version', action='version', version=__version__)
-
-
-log = functools.partial(print, file=sys.stderr, sep='\n')
-
-
-def pipe_args_kwargs(name, *,
-                     deltas: bool,
-                     auto_compress: bool,
-                     quiet: bool,
-                     set_path):
-    cmd = ['svnadmin', 'dump']
-    if deltas:
-        cmd.append('--deltas')
-    if quiet:
-        cmd.append('--quiet')
-
-    filter_cmds = []
-    suffix = pathlib.Path(name).suffix
-    if auto_compress:
-        if (compress_cmd := COMPRESS.get(suffix)) is not None:
-            filter_cmds.append(compress_cmd)
-    elif suffix in COMPRESS:
-        raise ValueError(f'{auto_compress=} but {name=} with compress {suffix=}')
-
-    # CAVEAT: env cannot override PATH on Windows
-    # see https://docs.python.org/3/library/subprocess.html#subprocess.Popen
-    return cmd, filter_cmds, {'env': {'PATH': set_path}}
-
-
-def run_pipe(cmd, *filter_cmds, check: bool = False, **kwargs):
-    procs = map_popen([cmd] + list(filter_cmds), **kwargs)
-    with contextlib.ExitStack() as s:
-        procs = [s.enter_context(p) for p in procs]
-
-        log('returncode(s): ', end='')
-        for has_next, p in enumerate(reversed(procs), 1 - len(procs)):
-            (out, err) = p.communicate()
-            log(f'{p.args[0]}={p.returncode}', end=', ' if has_next else '\n')
-            if check and p.returncode:
-                raise subprocess.CalledProcessError(p.returncode, p.args,
-                                                    output=out, stderr=err)
-
-
-def map_popen(commands, *, stdin=None, stdout=None, **kwargs):
-    for has_next, cmd in enumerate(commands, 1 - len(commands)):
-        log(f'subprocess.Popen({cmd}, **{kwargs})',
-            '| ' if has_next else f'> {stdout}\n', sep=' ', end='')
-        proc = subprocess.Popen(cmd,
-                                stdin=stdin,
-                                stdout=subprocess.PIPE if has_next else stdout,
-                                **kwargs)
-        yield proc
-        stdin = proc.stdout
 
 
 def main(args=None) -> str | None:
@@ -219,6 +166,59 @@ def main(args=None) -> str | None:
           f'done (removed={n_found}, dumped={n_dumped}) (total {n_bytes:_d} bytes).',
           sep='\n')
     return None
+
+
+log = functools.partial(print, file=sys.stderr, sep='\n')
+
+
+def pipe_args_kwargs(name, *,
+                     deltas: bool,
+                     auto_compress: bool,
+                     quiet: bool,
+                     set_path):
+    cmd = ['svnadmin', 'dump']
+    if deltas:
+        cmd.append('--deltas')
+    if quiet:
+        cmd.append('--quiet')
+
+    filter_cmds = []
+    suffix = pathlib.Path(name).suffix
+    if auto_compress:
+        if (compress_cmd := COMPRESS.get(suffix)) is not None:
+            filter_cmds.append(compress_cmd)
+    elif suffix in COMPRESS:
+        raise ValueError(f'{auto_compress=} but {name=} with compress {suffix=}')
+
+    # CAVEAT: env cannot override PATH on Windows
+    # see https://docs.python.org/3/library/subprocess.html#subprocess.Popen
+    return cmd, filter_cmds, {'env': {'PATH': set_path}}
+
+
+def run_pipe(cmd, *filter_cmds, check: bool = False, **kwargs):
+    procs = map_popen([cmd] + list(filter_cmds), **kwargs)
+    with contextlib.ExitStack() as s:
+        procs = [s.enter_context(p) for p in procs]
+
+        log('returncode(s): ', end='')
+        for has_next, p in enumerate(reversed(procs), 1 - len(procs)):
+            (out, err) = p.communicate()
+            log(f'{p.args[0]}={p.returncode}', end=', ' if has_next else '\n')
+            if check and p.returncode:
+                raise subprocess.CalledProcessError(p.returncode, p.args,
+                                                    output=out, stderr=err)
+
+
+def map_popen(commands, *, stdin=None, stdout=None, **kwargs):
+    for has_next, cmd in enumerate(commands, 1 - len(commands)):
+        log(f'subprocess.Popen({cmd}, **{kwargs})',
+            '| ' if has_next else f'> {stdout}\n', sep=' ', end='')
+        proc = subprocess.Popen(cmd,
+                                stdin=stdin,
+                                stdout=subprocess.PIPE if has_next else stdout,
+                                **kwargs)
+        yield proc
+        stdin = proc.stdout
 
 
 if __name__ == '__main__':  # pragma: no cover

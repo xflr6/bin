@@ -50,22 +50,6 @@ TEMPLATE = ('\\documentclass['  # http://www.ctan.org/pkg/pdfpages'
 OPEN_KWARGS = {'encoding': 'utf-8', 'newline': '\n'}
 
 
-def nup(s: str):
-    nups = None, None
-    fields = tuple(f.strip() or None for f in s.strip().lower().partition('x'))
-    if all(fields):
-        try:
-            nups = tuple(map(int, fields[::2]))
-        except ValueError:
-            pass
-
-    if not all(nups) or not all(n > 0 for n in nups):
-        raise argparse.ArgumentTypeError(f'invalid nup: {s} (e.g: 2x2)')
-
-    (x, y) = nups
-    return argparse.Namespace(x=x, y=y)
-
-
 def present_pdf_file(s: str) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
@@ -92,6 +76,22 @@ def template(s: str) -> str:
     return s
 
 
+def nup(s: str):
+    nups = None, None
+    fields = tuple(f.strip() or None for f in s.strip().lower().partition('x'))
+    if all(fields):
+        try:
+            nups = tuple(map(int, fields[::2]))
+        except ValueError:
+            pass
+
+    if not all(nups) or not all(n > 0 for n in nups):
+        raise argparse.ArgumentTypeError(f'invalid nup: {s} (e.g: 2x2)')
+
+    (x, y) = nups
+    return argparse.Namespace(x=x, y=y)
+
+
 def factor(s: str) -> str:
     try:
         value = float(s)
@@ -108,8 +108,8 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('pdf_file', type=present_pdf_file,
                     help='name of the source PDF file for \\includepdfmerge')
 
-parser.add_argument('--name', metavar='TMPL',
-                    type=template, default=NAME_TEMPLATE,
+parser.add_argument('--name', metavar='TMPL', type=template,
+                    default=NAME_TEMPLATE,
                     help=f'template for nup PDF file (default: {NAME_TEMPLATE})')
 
 parser.add_argument('--paper', metavar='SIZE', default=PAPER,
@@ -137,27 +137,6 @@ parser.add_argument('--keep', dest='clean_up', action='store_false',
                     help="don't delete intermediate files (*.tex, *.log, etc.)")
 
 parser.add_argument('--version', action='version', version=__version__)
-
-
-log = functools.partial(print, file=sys.stderr, sep='\n')
-
-
-def render_template(xnup: int, ynup: int, *,
-                    paper, landscape, filename, pages,
-                    openright, scale, frame) -> str:
-    if landscape is None:
-        landscape = xnup > ynup
-
-    template = string.Template(TEMPLATE)
-    context = {'paper': paper,
-               'orientation': 'landscape' if landscape else 'portrait',
-               'nup': f'{xnup:d}x{ynup:d}',
-               'filename': filename,
-               'pages': pages,
-               'scale': scale,
-               'openright': 'true' if openright else 'false',
-               'frame': 'true' if frame else 'false'}
-    return template.substitute(context)
 
 
 def main(args=None) -> str | None:
@@ -204,6 +183,27 @@ def main(args=None) -> str | None:
             p.unlink()
 
     return None
+
+
+log = functools.partial(print, file=sys.stderr, sep='\n')
+
+
+def render_template(xnup: int, ynup: int, *,
+                    paper, landscape, filename, pages,
+                    openright, scale, frame) -> str:
+    if landscape is None:
+        landscape = xnup > ynup
+
+    template = string.Template(TEMPLATE)
+    context = {'paper': paper,
+               'orientation': 'landscape' if landscape else 'portrait',
+               'nup': f'{xnup:d}x{ynup:d}',
+               'filename': filename,
+               'pages': pages,
+               'scale': scale,
+               'openright': 'true' if openright else 'false',
+               'frame': 'true' if frame else 'false'}
+    return template.substitute(context)
 
 
 if __name__ == '__main__':  # pragma: no cover

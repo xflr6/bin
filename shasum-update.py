@@ -71,8 +71,8 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--target', metavar='TEXT_FILE', type=present_file,
                     help='path to the text file to be updated')
 
-parser.add_argument('--encoding', metavar='NAME',
-                    type=encoding, default=ENCODING,
+parser.add_argument('--encoding', metavar='NAME', type=encoding,
+                    default=ENCODING,
                     help='target text file read/write encoding'
                          f' (default: {ENCODING})')
 
@@ -84,6 +84,27 @@ parser.add_argument('--confirm', action='store_true',
 
 parser.add_argument('glob', nargs='+', type=present_file_glob,
                     help='glob pattern of file(s) to checksum')
+
+
+def main(args=None) -> str | None:
+    args = parser.parse_args(args)
+    if any(args.target in paths for paths in args.glob):
+        ValueError(f'target {args.target} also in files: {args.glob}')
+
+    sums = {p.name: sha256sum(p) for paths in args.glob for p in paths}
+    log(*(f'{f} {s}' for f, s in sums.items()))
+
+    if args.target is not None:
+        updated = interpolate(args.target,
+                              pattern=args.pattern,
+                              sums=sums,
+                              encoding=args.encoding)
+
+        log('\n%d updated%s' % (len(updated),
+                                (' %r' % updated) if updated else ''))
+        if args.confirm and updated:
+            input('enter any string to end: ')
+    return None
 
 
 log = functools.partial(print, file=sys.stderr, sep='\n')
@@ -118,27 +139,6 @@ def interpolate(filename, pattern, sums, *, encoding: str):
             f.write(text)
 
     return updated
-
-
-def main(args=None) -> str | None:
-    args = parser.parse_args(args)
-    if any(args.target in paths for paths in args.glob):
-        ValueError(f'target {args.target} also in files: {args.glob}')
-
-    sums = {p.name: sha256sum(p) for paths in args.glob for p in paths}
-    log(*(f'{f} {s}' for f, s in sums.items()))
-
-    if args.target is not None:
-        updated = interpolate(args.target,
-                              pattern=args.pattern,
-                              sums=sums,
-                              encoding=args.encoding)
-
-        log('\n%d updated%s' % (len(updated),
-                                (' %r' % updated) if updated else ''))
-        if args.confirm and updated:
-            input('enter any string to end: ')
-    return None
 
 
 if __name__ == '__main__':  # pragma: no cover

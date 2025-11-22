@@ -107,8 +107,8 @@ parser.add_argument('source_dir', type=directory,
 parser.add_argument('dest_dir', type=directory,
                     help='output directory for writing the tar archive file')
 
-parser.add_argument('--name', metavar='TEMPLATE',
-                    type=template, default=NAME_TEMPLATE,
+parser.add_argument('--name', metavar='TEMPLATE', type=template,
+                    default=NAME_TEMPLATE,
                     help='archive file name time.strftime() format string template'
                          f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
 
@@ -135,6 +135,65 @@ parser.add_argument('--ask-for-deletion', action='store_true',
                     help='prompt for archive file deletion before exit')
 
 parser.add_argument('--version', action='version', version=__version__)
+
+
+def main(args=None) -> str | None:
+    args = parser.parse_args(args)
+
+    dest_path = args.dest_dir / args.name
+
+    log(f'tar source: {args.source_dir}',
+        f'tar destination: {dest_path}')
+
+    if dest_path.exists():
+        return f'error: result file {dest_path} already exists'
+
+    match = make_exclude_match(args.exclude_file)
+
+    infos = {}
+    files = sorted(iterfiles(args.source_dir, match, infos=infos))
+    log('traversed source: (', end='')
+    counts = 'dirs', 'files', 'symlinks', 'other', 'excluded'
+    log(*(f"{infos['n_' + c]} {c}" for c in counts), sep=', ', end=')\n')
+    log(f"file size sum: {infos['n_bytes']:_d} bytes")
+
+    (cmd, kwargs) = run_args_kwargs(args.source_dir, dest_path,
+                                    auto_compress=args.auto_compress,
+                                    set_path=args.set_path)
+
+    log('', f'os.umask(0o{args.set_umask:03o})')
+    os.umask(args.set_umask)
+
+    log(f'subprocess.Popen({cmd}, **{kwargs})')
+    start = time.monotonic()
+    with subprocess.Popen(cmd, stdin=subprocess.PIPE, **kwargs) as proc:
+        for f in files:
+            print(f, file=proc.stdin, end='\0')
+        proc.communicate()
+    stop = time.monotonic()
+    log(f'returncode: {proc.returncode}',
+        f'time elapsed: {datetime.timedelta(seconds=stop - start)}')
+
+    if not dest_path.exists():
+        return 'error: result file not found'
+
+    dest_stat = dest_path.stat()
+    log(f'tar result: {dest_path} ({dest_stat.st_size:_d} bytes)')
+    if not dest_stat.st_size:
+        return 'error: result file is empty'
+    log(format_permissions(dest_stat))
+
+    log('', f'os.chmod(..., 0o{args.chmod:03o})')
+    dest_path.chmod(args.chmod)
+    if args.owner or args.group:
+        log(f'shutil.chown(..., user={args.owner}, group={args.group})')
+        shutil.chown(dest_path, user=args.owner, group=args.group)
+    log(format_permissions(dest_path.stat()))
+
+    if args.ask_for_deletion:
+        prompt_for_deletion(dest_path)  # pragma: no cover
+
+    return None
 
 
 log = functools.partial(print, file=sys.stderr, sep='\n')
@@ -278,65 +337,6 @@ def prompt_for_deletion(path: pathlib.Path) -> bool:  # pragma: no cover
     else:
         path.unlink()
         log(f'{path} deleted.')
-
-
-def main(args=None) -> str | None:
-    args = parser.parse_args(args)
-
-    dest_path = args.dest_dir / args.name
-
-    log(f'tar source: {args.source_dir}',
-        f'tar destination: {dest_path}')
-
-    if dest_path.exists():
-        return f'error: result file {dest_path} already exists'
-
-    match = make_exclude_match(args.exclude_file)
-
-    infos = {}
-    files = sorted(iterfiles(args.source_dir, match, infos=infos))
-    log('traversed source: (', end='')
-    counts = 'dirs', 'files', 'symlinks', 'other', 'excluded'
-    log(*(f"{infos['n_' + c]} {c}" for c in counts), sep=', ', end=')\n')
-    log(f"file size sum: {infos['n_bytes']:_d} bytes")
-
-    (cmd, kwargs) = run_args_kwargs(args.source_dir, dest_path,
-                                    auto_compress=args.auto_compress,
-                                    set_path=args.set_path)
-
-    log('', f'os.umask(0o{args.set_umask:03o})')
-    os.umask(args.set_umask)
-
-    log(f'subprocess.Popen({cmd}, **{kwargs})')
-    start = time.monotonic()
-    with subprocess.Popen(cmd, stdin=subprocess.PIPE, **kwargs) as proc:
-        for f in files:
-            print(f, file=proc.stdin, end='\0')
-        proc.communicate()
-    stop = time.monotonic()
-    log(f'returncode: {proc.returncode}',
-        f'time elapsed: {datetime.timedelta(seconds=stop - start)}')
-
-    if not dest_path.exists():
-        return 'error: result file not found'
-
-    dest_stat = dest_path.stat()
-    log(f'tar result: {dest_path} ({dest_stat.st_size:_d} bytes)')
-    if not dest_stat.st_size:
-        return 'error: result file is empty'
-    log(format_permissions(dest_stat))
-
-    log('', f'os.chmod(..., 0o{args.chmod:03o})')
-    dest_path.chmod(args.chmod)
-    if args.owner or args.group:
-        log(f'shutil.chown(..., user={args.owner}, group={args.group})')
-        shutil.chown(dest_path, user=args.owner, group=args.group)
-    log(format_permissions(dest_path.stat()))
-
-    if args.ask_for_deletion:
-        prompt_for_deletion(dest_path)  # pragma: no cover
-
-    return None
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -51,62 +51,6 @@ parser.add_argument('--detail', dest='quiet', action='store_false',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-log = functools.partial(print, file=sys.stderr, sep='\n')
-
-
-def itergists(username: str):
-    url = GISTS.format(username=username)
-    while url is not None:
-        log(f'urllib.request.urlopen({url})')
-        with urllib.request.urlopen(url) as u:
-            gists = json.load(u)
-        links = [l.partition('; ') for l in u.info().get('Link', '').split(', ')]
-        links = {r: u.partition('<')[2].partition('>')[0] for u, _, r in links}
-        url = links.get('rel="next"')
-
-        yield from gists
-
-
-def parse_url(s: str):
-    return re.search(r'(?P<url>.*/(?P<dir>[^/]+))$', s).groupdict()
-
-
-def prompt_for_deletion(path: pathlib.Path) -> bool:  # pragma: no cover
-    line = None
-    while line is None or (line and line not in ('y', 'yes')):
-        line = input(f'delete {path}/? [(y)es=delete/ENTER=keep]: ')
-
-    if line in ('y', 'yes'):
-        log(f'shutil.rmtree({path})')
-        shutil.rmtree(path)
-        return True
-    else:
-        log(f'kept: {path}/ (inode={path.stat().st_ino})')
-        return False
-
-
-def removed_clone(path: pathlib.Path, *, reset: bool = False):
-    removed = clone = False
-    if path.exists():
-        if not path.is_dir():  # pragma: no cover
-            raise RuntimeError(f'path is not a directory: {path}')
-        if reset and prompt_for_deletion(path):
-            removed = clone = True
-    else:
-        clone = True
-    return removed, clone
-
-
-def prompt_for_continuation():  # pragma: no cover
-    line = None
-    while line is None or (line and line.strip().lower() not in ('q', 'quit')):
-        if line is not None:
-            print('  (enter q(uit) or use CTRL-C to exit)')
-        line = input('to continue, press enter [ENTER=continue]: ')
-
-    return not line
-
-
 def main(args=None) -> str | None:
     args = parser.parse_args(args)
 
@@ -171,6 +115,62 @@ def main(args=None) -> str | None:
               f' failed={n_failed}).')
 
     return None
+
+
+log = functools.partial(print, file=sys.stderr, sep='\n')
+
+
+def itergists(username: str):
+    url = GISTS.format(username=username)
+    while url is not None:
+        log(f'urllib.request.urlopen({url})')
+        with urllib.request.urlopen(url) as u:
+            gists = json.load(u)
+        links = [l.partition('; ') for l in u.info().get('Link', '').split(', ')]
+        links = {r: u.partition('<')[2].partition('>')[0] for u, _, r in links}
+        url = links.get('rel="next"')
+
+        yield from gists
+
+
+def parse_url(s: str):
+    return re.search(r'(?P<url>.*/(?P<dir>[^/]+))$', s).groupdict()
+
+
+def removed_clone(path: pathlib.Path, *, reset: bool = False):
+    removed = clone = False
+    if path.exists():
+        if not path.is_dir():  # pragma: no cover
+            raise RuntimeError(f'path is not a directory: {path}')
+        if reset and prompt_for_deletion(path):
+            removed = clone = True
+    else:
+        clone = True
+    return removed, clone
+
+
+def prompt_for_deletion(path: pathlib.Path) -> bool:  # pragma: no cover
+    line = None
+    while line is None or (line and line not in ('y', 'yes')):
+        line = input(f'delete {path}/? [(y)es=delete/ENTER=keep]: ')
+
+    if line in ('y', 'yes'):
+        log(f'shutil.rmtree({path})')
+        shutil.rmtree(path)
+        return True
+    else:
+        log(f'kept: {path}/ (inode={path.stat().st_ino})')
+        return False
+
+
+def prompt_for_continuation():  # pragma: no cover
+    line = None
+    while line is None or (line and line.strip().lower() not in ('q', 'quit')):
+        if line is not None:
+            print('  (enter q(uit) or use CTRL-C to exit)')
+        line = input('to continue, press enter [ENTER=continue]: ')
+
+    return not line
 
 
 if __name__ == '__main__':  # pragma: no cover

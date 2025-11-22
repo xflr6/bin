@@ -28,65 +28,6 @@ parser.add_argument('--dry-run', action='store_true',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-log = functools.partial(print, file=sys.stderr, sep='\n')
-
-
-def get_enum_keys(key):
-    (nkeys, _, _) = winreg.QueryInfoKey(key)
-    log(f'for i in range({nkeys!r}): winreg.EnumKey(..., i)')
-    return [winreg.EnumKey(key, i) for i in range(nkeys)]
-
-
-def delete_key(key, sub_key):
-    log(f'winreg.DeleteKey(..., {sub_key!r})')
-    winreg.DeleteKey(key, sub_key)
-
-
-def move_key(key, src, dst):
-    log(f'winreg.QueryValue(..., {src!r})')
-    value = winreg.QueryValue(key, src)
-
-    log(f'winreg.DeleteKey(..., {src!r})')
-    winreg.DeleteKey(key, src)
-
-    log(f'winreg.CreateKey(..., {dst!r})')
-    winreg.CreateKey(key, dst)
-
-    log(f'winreg.SetValue(..., {dst!r}, {winreg.REG_SZ!r}, {value!r})')
-    winreg.SetValue(key, dst, winreg.REG_SZ, value)
-
-
-def lspace_name(s: str):
-    (lspace, name) = re.fullmatch(r'(\s*)(\w+)(?: \w+)?', s).groups()
-    return len(lspace), name
-
-
-def plain_name(lspace: int, name: str) -> str:
-    return ' ' * lspace + name
-
-
-def iterchanges(keys):
-    pairs = map(lspace_name, keys)
-    pairs = sorted(pairs, key=lambda x: (-x[0], x[1]))
-
-    grouped = itertools.groupby(pairs, lambda x: x[0])
-    grouped = [(ls, [n for _, n in g]) for ls, g in grouped]
-
-    for (ls, ln), (rs, rn) in itertools.combinations(grouped, 2):
-        if ln[:len(rn)] == rn:
-            break
-    else:
-        return
-
-    assert all(n.startswith('DropboxExt') for n in (ln + rn))
-
-    for name in rn:
-        yield plain_name(rs, name), None  # delete
-
-    for name in ln:
-        yield plain_name(ls, name), plain_name(rs, name)  # move
-
-
 def main(args=None) -> None:
     global winreg
     import winreg
@@ -120,6 +61,65 @@ def main(args=None) -> None:
 
     print('done')
     return None
+
+
+log = functools.partial(print, file=sys.stderr, sep='\n')
+
+
+def get_enum_keys(key):
+    (nkeys, _, _) = winreg.QueryInfoKey(key)
+    log(f'for i in range({nkeys!r}): winreg.EnumKey(..., i)')
+    return [winreg.EnumKey(key, i) for i in range(nkeys)]
+
+
+def iterchanges(keys):
+    pairs = map(lspace_name, keys)
+    pairs = sorted(pairs, key=lambda x: (-x[0], x[1]))
+
+    grouped = itertools.groupby(pairs, lambda x: x[0])
+    grouped = [(ls, [n for _, n in g]) for ls, g in grouped]
+
+    for (ls, ln), (rs, rn) in itertools.combinations(grouped, 2):
+        if ln[:len(rn)] == rn:
+            break
+    else:
+        return
+
+    assert all(n.startswith('DropboxExt') for n in (ln + rn))
+
+    for name in rn:
+        yield plain_name(rs, name), None  # delete
+
+    for name in ln:
+        yield plain_name(ls, name), plain_name(rs, name)  # move
+
+
+def lspace_name(s: str):
+    (lspace, name) = re.fullmatch(r'(\s*)(\w+)(?: \w+)?', s).groups()
+    return len(lspace), name
+
+
+def plain_name(lspace: int, name: str) -> str:
+    return ' ' * lspace + name
+
+
+def delete_key(key, sub_key):
+    log(f'winreg.DeleteKey(..., {sub_key!r})')
+    winreg.DeleteKey(key, sub_key)
+
+
+def move_key(key, src, dst):
+    log(f'winreg.QueryValue(..., {src!r})')
+    value = winreg.QueryValue(key, src)
+
+    log(f'winreg.DeleteKey(..., {src!r})')
+    winreg.DeleteKey(key, src)
+
+    log(f'winreg.CreateKey(..., {dst!r})')
+    winreg.CreateKey(key, dst)
+
+    log(f'winreg.SetValue(..., {dst!r}, {winreg.REG_SZ!r}, {value!r})')
+    winreg.SetValue(key, dst, winreg.REG_SZ, value)
 
 
 if __name__ == '__main__':  # pragma: no cover
