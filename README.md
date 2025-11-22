@@ -60,9 +60,9 @@ options:
 ```shell
 $ git-pull-gists.py --help
 usage: git-pull-gists.py [-h] [--reset] [--detail] [--version]
-                         target_dir gh_username
+                         target_dir gh_username [gh_username ...]
 
-Git clone --mirror or git remote update all public Gists of GitHub user.
+Git clone --mirror or git remote update all public Gists of GitHub user(s).
 
 positional arguments:
   target_dir   output directory for writing/updating bare Git clones
