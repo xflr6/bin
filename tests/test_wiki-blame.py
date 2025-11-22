@@ -3,7 +3,7 @@ import importlib
 
 wiki_blame = importlib.import_module('wiki-blame')
 
-EXPORT = '''\
+EXPORT = '''
 <mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/">
   <siteinfo>
     <sitename>Wikispam</sitename>
@@ -19,7 +19,7 @@ EXPORT = '''\
     </revision>
   </page>
 </mediawiki>
-'''
+'''.lstrip()
 
 ENCODING = 'utf-8'
 

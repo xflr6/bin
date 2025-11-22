@@ -3,7 +3,7 @@ import importlib
 
 wiki_count = importlib.import_module('wiki-count')
 
-EXPORT = '''\
+EXPORT = '''
 <mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/">
   <page>
     <title>Main Page</title>
@@ -16,7 +16,7 @@ EXPORT = '''\
     <title>Eggs</title>
   </page>
 </mediawiki>
-'''
+'''.lstrip()
 
 ENCODING = 'utf-8'
 
