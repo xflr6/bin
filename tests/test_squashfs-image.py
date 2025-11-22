@@ -2,7 +2,7 @@ import importlib
 
 import pytest
 
-backup_squashfs = importlib.import_module('backup-squashfs')
+squashfs_image = importlib.import_module('squashfs-image')
 
 
 @pytest.mark.usefixtures('mock_pwd_grp', 'mock_strftime')
@@ -23,15 +23,15 @@ def test_main(tmp_path, mocker, completed_proc):
     run = mocker.patch('subprocess.run', autospec=True, side_effect=run)
     chown = mocker.patch('shutil.chown', autospec=True)
 
-    assert backup_squashfs.main([str(s_dir), str(d_path.parent),
-                                 '--name', 'archive-%Y%m%d-%H%M.sfs',
-                                 '--exclude-file', str(e_path),
-                                 '--comp', 'gzip',
-                                 '--owner', 'nonuser',
-                                 '--group', 'nongroup',
-                                 '--chmod', '440',
-                                 '--set-path', '/bin',
-                                 '--set-umask', '066']) is None
+    assert squashfs_image.main([str(s_dir), str(d_path.parent),
+                                '--name', 'archive-%Y%m%d-%H%M.sfs',
+                                '--exclude-file', str(e_path),
+                                '--comp', 'gzip',
+                                '--owner', 'nonuser',
+                                '--group', 'nongroup',
+                                '--chmod', '440',
+                                '--set-path', '/bin',
+                                '--set-umask', '066']) is None
 
     umask.assert_called_once_with(0o066)
 

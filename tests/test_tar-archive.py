@@ -2,7 +2,7 @@ import importlib
 
 import pytest
 
-backup_tar = importlib.import_module('backup-tar')
+tar_archive = importlib.import_module('tar-archive')
 
 
 @pytest.mark.usefixtures('mock_pwd_grp', 'mock_strftime')
@@ -23,14 +23,14 @@ def test_main(tmp_path, mocker, proc):
     Popen = mocker.patch('subprocess.Popen', autospec=True, side_effect=Popen)
     chown = mocker.patch('shutil.chown', autospec=True)
 
-    assert backup_tar.main([str(s_dir), str(d_path.parent),
-                            '--name', 'archive-%Y%m%d-%H%M.tar.gz',
-                            '--exclude-file', str(e_path),
-                            '--owner', 'nonuser',
-                            '--group', 'nongroup',
-                            '--chmod', '440',
-                            '--set-path', '/bin',
-                            '--set-umask', '066']) is None
+    assert tar_archive.main([str(s_dir), str(d_path.parent),
+                             '--name', 'archive-%Y%m%d-%H%M.tar.gz',
+                             '--exclude-file', str(e_path),
+                             '--owner', 'nonuser',
+                             '--group', 'nongroup',
+                             '--chmod', '440',
+                             '--set-path', '/bin',
+                             '--set-umask', '066']) is None
 
     umask.assert_called_once_with(0o066)
 

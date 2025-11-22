@@ -16,73 +16,6 @@ $ (cd /usr/local && git clone git@github.com:xflr6/bin.git)
 ## Usage
 
 
-### backup-squashfs.py
-
-```shell
-$ backup-squashfs.py --help
-usage: backup-squashfs.py [-h] [--name TEMPLATE] [--exclude-file PATH]
-                          [--comp {gzip,lz4,lzo,xz,zstd}] [--owner OWNER]
-                          [--group GROUP] [--chmod MODE] [--set-path LINE]
-                          [--set-umask MASK] [--quiet] [--ask-for-deletion]
-                          [--version]
-                          source_dir dest_dir
-
-Create SquashFS image from given directory, optionally ask for its deletion.
-
-positional arguments:
-  source_dir            input root directory to image
-  dest_dir              output directory for writing the SquashFS image file
-
-options:
-  -h, --help            show this help message and exit
-  --name TEMPLATE       image file name time.strftime() format string template
-                        (default: %Y%m%d-%H%M.sfs)
-  --exclude-file PATH   path to file with one line per excluded dir/file
-  --comp {gzip,lz4,lzo,xz,zstd}
-                        compression (use mksquashfs default if omitted)
-  --owner OWNER         image file owner
-  --group GROUP         image file group
-  --chmod MODE          image file chmod (default: 400)
-  --set-path LINE       PATH for mksquashfs subprocess (default: /usr/bin)
-  --set-umask MASK      umask for mksquashfs subprocess (default: 177)
-  --quiet               suppress stdout and stderr of mksquashfs subprocess
-  --ask-for-deletion    prompt for image file deletion before exit
-  --version             show program's version number and exit
-```
-
-
-### backup-tar.py
-
-```shell
-$ backup-tar.py --help
-usage: backup-tar.py [-h] [--name TEMPLATE] [--exclude-file PATH]
-                     [--no-auto-compress] [--owner OWNER] [--group GROUP]
-                     [--chmod MODE] [--set-path LINE] [--set-umask MASK]
-                     [--ask-for-deletion] [--version]
-                     source_dir dest_dir
-
-Create tar archive from given directory, optionally ask for its deletion.
-
-positional arguments:
-  source_dir           input root directory to archive
-  dest_dir             output directory for writing the tar archive file
-
-options:
-  -h, --help           show this help message and exit
-  --name TEMPLATE      archive file name time.strftime() format string
-                       template (default: %Y%m%d-%H%M.tar.gz)
-  --exclude-file PATH  path to file with one line per excluded dir/file
-  --no-auto-compress   don't pass --auto-compress to tar
-  --owner OWNER        archive file owner
-  --group GROUP        archive file group
-  --chmod MODE         archive file chmod (default: 400)
-  --set-path LINE      PATH for tar subprocess (default: /usr/bin:/bin)
-  --set-umask MASK     umask for tar subprocess (default: 177)
-  --ask-for-deletion   prompt for archive file deletion before exit
-  --version            show program's version number and exit
-```
-
-
 ### download-podcasts.py
 
 ```shell
@@ -295,6 +228,41 @@ options:
 ```
 
 
+### squashfs-image.py
+
+```shell
+$ squashfs-image.py --help
+usage: squashfs-image.py [-h] [--name TEMPLATE] [--exclude-file PATH]
+                         [--comp {gzip,lz4,lzo,xz,zstd}] [--owner OWNER]
+                         [--group GROUP] [--chmod MODE] [--set-path LINE]
+                         [--set-umask MASK] [--quiet] [--ask-for-deletion]
+                         [--version]
+                         source_dir dest_dir
+
+Create SquashFS image from given directory, optionally ask for its deletion.
+
+positional arguments:
+  source_dir            input root directory to image
+  dest_dir              output directory for writing the SquashFS image file
+
+options:
+  -h, --help            show this help message and exit
+  --name TEMPLATE       image file name time.strftime() format string template
+                        (default: %Y%m%d-%H%M.sfs)
+  --exclude-file PATH   path to file with one line per excluded dir/file
+  --comp {gzip,lz4,lzo,xz,zstd}
+                        compression (use mksquashfs default if omitted)
+  --owner OWNER         image file owner
+  --group GROUP         image file group
+  --chmod MODE          image file chmod (default: 400)
+  --set-path LINE       PATH for mksquashfs subprocess (default: /usr/bin)
+  --set-umask MASK      umask for mksquashfs subprocess (default: 177)
+  --quiet               suppress stdout and stderr of mksquashfs subprocess
+  --ask-for-deletion    prompt for image file deletion before exit
+  --version             show program's version number and exit
+```
+
+
 ### svn-dumpall.py
 
 ```shell
@@ -323,6 +291,38 @@ options:
   --detail            include detail infos for each repository
   --verbose           don't pass --quiet to svnadmin dump
   --version           show program's version number and exit
+```
+
+
+### tar-archive.py
+
+```shell
+$ tar-archive.py --help
+usage: tar-archive.py [-h] [--name TEMPLATE] [--exclude-file PATH]
+                      [--no-auto-compress] [--owner OWNER] [--group GROUP]
+                      [--chmod MODE] [--set-path LINE] [--set-umask MASK]
+                      [--ask-for-deletion] [--version]
+                      source_dir dest_dir
+
+Create tar archive from given directory, optionally ask for its deletion.
+
+positional arguments:
+  source_dir           input root directory to archive
+  dest_dir             output directory for writing the tar archive file
+
+options:
+  -h, --help           show this help message and exit
+  --name TEMPLATE      archive file name time.strftime() format string
+                       template (default: %Y%m%d-%H%M.tar.gz)
+  --exclude-file PATH  path to file with one line per excluded dir/file
+  --no-auto-compress   don't pass --auto-compress to tar
+  --owner OWNER        archive file owner
+  --group GROUP        archive file group
+  --chmod MODE         archive file chmod (default: 400)
+  --set-path LINE      PATH for tar subprocess (default: /usr/bin:/bin)
+  --set-umask MASK     umask for tar subprocess (default: 177)
+  --ask-for-deletion   prompt for archive file deletion before exit
+  --version            show program's version number and exit
 ```
 
 

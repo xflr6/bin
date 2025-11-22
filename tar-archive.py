@@ -2,7 +2,7 @@
 
 """Create tar archive from given directory, optionally ask for its deletion."""
 
-__title__ = 'backup-tar.py'
+__title__ = 'tar-archive.py'
 __version__ = '0.1.dev0'
 __author__ = 'Sebastian Bank <sebastian.bank@uni-leipzig.de>'
 __license__ = 'MIT, see LICENSE.txt'
