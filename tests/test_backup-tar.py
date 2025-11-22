@@ -6,7 +6,7 @@ backup_tar = importlib.import_module('backup-tar')
 
 
 @pytest.mark.usefixtures('mock_pwd_grp', 'mock_strftime')
-def test_backup_tar(tmp_path, mocker, proc):
+def test_main(tmp_path, mocker, proc):
     s_dir = tmp_path / 'source'
     s_dir.mkdir()
 

@@ -42,7 +42,7 @@ def winreg(mocker, name='winreg'):
     del sys.modules[name]
 
 
-def test_fix_dropox_overlays(mocker, winreg):
+def test_main(mocker, winreg):
     conn = winreg.ConnectRegistry.return_value.__enter__.return_value
     key = winreg.OpenKey.return_value.__enter__.return_value
 
@@ -86,7 +86,7 @@ def test_fix_dropox_overlays(mocker, winreg):
                                connect.__exit__(None, None, None)])
 
 
-def test_fix_dropox_overlays_dry(mocker, winreg):
+def test_main_dry(mocker, winreg):
     conn = winreg.ConnectRegistry.return_value.__enter__.return_value
     key = winreg.OpenKey.return_value.__enter__.return_value
 

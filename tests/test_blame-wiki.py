@@ -24,7 +24,7 @@ EXPORT = '''\
 ENCODING = 'utf-8'
 
 
-def test_blame_wiki(capsys, mocker, http_resp):
+def test_main(capsys, mocker, http_resp):
     http_resp.info.return_value = {
         'content-type': f'application/xml; charset={ENCODING}',
         'content-disposition': 'attachment;filename=spam.xml',

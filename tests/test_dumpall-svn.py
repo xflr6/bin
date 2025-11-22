@@ -9,7 +9,7 @@ dumpall_svn = importlib.import_module('dumpall-svn')
 
 
 @pytest.mark.usefixtures('mock_strftime')
-def test_dumpall_svn(tmp_path, mocker, proc):
+def test_main(tmp_path, mocker, proc):
     repo_dir = tmp_path / 'repo'
     repo_dir.mkdir()
 

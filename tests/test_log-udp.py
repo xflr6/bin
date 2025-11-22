@@ -7,7 +7,7 @@ log_udp = importlib.import_module('log-udp')
 
 
 @pytest.mark.usefixtures('mock_pwd_grp')
-def test_log_udp(capsys, mocker, host='127.0.0.1', port=9, encoding='utf-8'):
+def test_main(capsys, mocker, host='127.0.0.1', port=9, encoding='utf-8'):
     msg = 'spam lovely spam'
 
     packets = iter([msg.encode(encoding)])
