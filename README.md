@@ -8,7 +8,7 @@ Command-line scripts (mostly \*nix).
 
 ## Installation
 
-```sh
+```shell
 $ (cd /usr/local && git clone git@github.com:xflr6/bin.git)
 ```
 
