@@ -121,11 +121,15 @@ def pipe_args_kwargs(name, *,
         cmd.append('--quiet')
 
     filter_cmds = []
+    suffix = pathlib.Path(name).suffix
     if auto_compress:
-        suffix = pathlib.Path(name).suffix
-        if suffix in COMPRESS:
-            filter_cmds.append(COMPRESS[suffix])
+        if (compress_cmd := COMPRESS.get(suffix)) is not None:
+            filter_cmds.append(compress_cmd)
+    elif suffix in COMPRESS:
+        raise ValueError(f'{auto_compress=} but {name=} with compress {suffix=}')
 
+    # CAVEAT: env cannot override the PATH on Windows
+    # see https://docs.python.org/3/library/subprocess.html#subprocess.Popen
     return cmd, filter_cmds, {'env': {'PATH': set_path}}
 
 

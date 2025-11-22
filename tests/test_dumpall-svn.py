@@ -10,10 +10,10 @@ dumpall_svn = importlib.import_module('dumpall-svn')
 
 @pytest.mark.usefixtures('mock_strftime')
 def test_dumpall_svn(tmp_path, mocker, proc):
-    present = tmp_path / 'present'
-    present.mkdir()
+    repo_dir = tmp_path / 'repo'
+    repo_dir.mkdir()
 
-    result = tmp_path / 'present-19700101-0000.svndump.gz'
+    result = tmp_path / 'repo-19700101-0000.svndump.gz'
     assert not result.exists()
 
     outfd = None
@@ -31,7 +31,7 @@ def test_dumpall_svn(tmp_path, mocker, proc):
 
     path = '/bin'
 
-    assert dumpall_svn.main([str(tmp_path), str(present),
+    assert dumpall_svn.main([str(tmp_path), str(repo_dir),
                              '--name', '{name}-%Y%m%d-%H%M.svndump.gz',
                              '--chmod', '600',
                              '--set-path', path]) is None
@@ -47,7 +47,7 @@ def test_dumpall_svn(tmp_path, mocker, proc):
 
     env = {'PATH': path}
 
-    dump = mocker.call(['svnadmin', 'dump', '--deltas', '--quiet', present],
+    dump = mocker.call(['svnadmin', 'dump', '--deltas', '--quiet', repo_dir],
                        stdin=None, stdout=subprocess.PIPE, env=env)
 
     compress = mocker.call(['gzip'], stdin=proc.stdout, stdout=outfd, env=env)
@@ -60,3 +60,10 @@ def test_dumpall_svn(tmp_path, mocker, proc):
                            mocker.call.communicate(),
                            mocker.call.__exit__(proc, None, None, None),
                            mocker.call.__exit__(proc, None, None, None)])
+
+
+def test_no_auto_compress_raises_with_compress_suffix(tmp_path):
+    repo_dir = tmp_path / 'repo'
+    repo_dir.mkdir()
+    with pytest.raises(ValueError, match=r"with compress suffix='\.gz'"):
+        dumpall_svn.main([str(tmp_path), str(repo_dir), '--no-auto-compress'])
