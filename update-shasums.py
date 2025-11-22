@@ -128,14 +128,16 @@ def main(args=None) -> str | None:
     sums = {p.name: sha256sum(p) for paths in args.glob for p in paths}
     log(*(f'{f} {s}' for f, s in sums.items()))
 
-    updated = interpolate(args.target,
-                          pattern=args.pattern,
-                          sums=sums,
-                          encoding=args.encoding)
+    if args.target is not None:
+        updated = interpolate(args.target,
+                              pattern=args.pattern,
+                              sums=sums,
+                              encoding=args.encoding)
 
-    log('\n%d updated%s' % (len(updated), (' %r' % updated) if updated else ''))
-    if args.confirm and updated:
-        input('enter any string to end: ')
+        log('\n%d updated%s' % (len(updated),
+                                (' %r' % updated) if updated else ''))
+        if args.confirm and updated:
+            input('enter any string to end: ')
     return None
 
 
