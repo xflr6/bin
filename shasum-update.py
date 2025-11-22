@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Update SHA256 checksums in text file given a regex locating file and hash."""
+"""SHA256sum file(s) and update text file with regex locating name and hash."""
 
 from __future__ import annotations
 

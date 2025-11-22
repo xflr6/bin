@@ -354,15 +354,15 @@ options:
 ```
 
 
-### update-shasums.py
+### shasum-update.py
 
 ```shell
-$ update-shasums.py --help
-usage: update-shasums.py [-h] [--target TEXT_FILE] [--encoding NAME]
-                         [--pattern REGEX] [--confirm]
-                         glob [glob ...]
+$ shasum-update.py --help
+usage: shasum-update.py [-h] [--target TEXT_FILE] [--encoding NAME]
+                        [--pattern REGEX] [--confirm]
+                        glob [glob ...]
 
-Update SHA256 checksums in text file given a regex locating file and hash.
+SHA256sum file(s) and update text file with regex locating name and hash.
 
 positional arguments:
   glob                glob pattern of files to checksum

@@ -4,7 +4,7 @@ import importlib
 import os
 import pathlib
 
-update_shasums = importlib.import_module('update-shasums')
+shasum_update = importlib.import_module('shasum-update')
 
 ENCODING = 'utf-8'
 
@@ -25,7 +25,7 @@ def chdir(path):
         os.chdir(cwd)
 
 
-def test_update_shasums(tmp_path):
+def test_main(tmp_path):
     globfile = tmp_path / 'data.bin'
     globfile.write_bytes(DATA)
 
@@ -34,10 +34,10 @@ def test_update_shasums(tmp_path):
                       encoding=ENCODING)
 
     with chdir(tmp_path):
-        assert update_shasums.main(['--target', target.name,
-                                    '--encoding', ENCODING,
-                                    '--pattern', PATTERN,
-                                    '*.bin']) is None
+        assert shasum_update.main(['--target', target.name,
+                                   '--encoding', ENCODING,
+                                   '--pattern', PATTERN,
+                                   '*.bin']) is None
 
     assert globfile.read_bytes() == DATA
 
