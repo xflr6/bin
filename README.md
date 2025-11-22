@@ -268,15 +268,14 @@ options:
 ```
 
 
-### pdflatex-make-nup.py
+### pdflatex-nup.py
 
 ```shell
-$ pdflatex-make-nup.py --help
-usage: pdflatex-make-nup.py [-h] [--name TMPL] [--paper SIZE] [--nup XxY]
-                            [--pages RANGE] [--orient {l,p,a}]
-                            [--scale FACTOR] [--no-frame] [--no-openright]
-                            [--keep] [--version]
-                            pdf_file
+$ pdflatex-nup.py --help
+usage: pdflatex-nup.py [-h] [--name TMPL] [--paper SIZE] [--nup XxY]
+                       [--pages RANGE] [--orient {l,p,a}] [--scale FACTOR]
+                       [--no-frame] [--no-openright] [--keep] [--version]
+                       pdf_file
 
 Compile a 2up version of a PDF file using LaTeX pdfpages' \includepdfmerge.
 See also https://github.com/DavidFirth/pdfjam

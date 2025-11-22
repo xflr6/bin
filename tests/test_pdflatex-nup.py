@@ -3,7 +3,7 @@ import re
 
 import pytest
 
-pdflatex_make_nup = importlib.import_module('pdflatex-make-nup')
+pdflatex_nup = importlib.import_module('pdflatex-nup')
 
 
 @pytest.mark.parametrize('keep', [False, True], ids=lambda x: 'keep=%r' % x)
@@ -32,16 +32,16 @@ def test_main(tmp_path, mocker, completed_proc, keep, encoding='utf-8'):
 
     run = mocker.patch('subprocess.run', autospec=True, side_effect=run)
 
-    assert pdflatex_make_nup.main([str(pdf_path),
-                                   '--name', '{stem}-2UP.pdf',
-                                   '--paper', 'legal',
-                                   '--nup', '2x1',
-                                   '--pages', '1-42',
-                                   '--orient', 'a',
-                                   '--scale', '.942',
-                                   '--no-frame',
-                                   '--no-openright']
-                                  + (['--keep'] if keep else [])) is None
+    assert pdflatex_nup.main([str(pdf_path),
+                              '--name', '{stem}-2UP.pdf',
+                              '--paper', 'legal',
+                              '--nup', '2x1',
+                              '--pages', '1-42',
+                              '--orient', 'a',
+                              '--scale', '.942',
+                              '--no-frame',
+                              '--no-openright']
+                             + (['--keep'] if keep else [])) is None
 
     doc = re.sub(r'\s', '', doc)
     assert doc == ('\\documentclass['
