@@ -69,6 +69,9 @@ def present_file_glob(s: str) -> list[pathlib.Path]:
 
 parser = argparse.ArgumentParser(description=__doc__)
 
+parser.add_argument('glob', nargs='+', type=present_file_glob,
+                    help='glob pattern of file(s) to checksum')
+
 parser.add_argument('--target', metavar='TEXT_FILE', type=present_file,
                     help='path to the text file to be updated')
 
@@ -83,8 +86,7 @@ parser.add_argument('--pattern', metavar='REGEX', type=file_checksum_pattern,
 parser.add_argument('--confirm', action='store_true',
                     help='prompt for confirmation before exit when updated')
 
-parser.add_argument('glob', nargs='+', type=present_file_glob,
-                    help='glob pattern of file(s) to checksum')
+parser.add_argument('--version', action='version', version=__version__)
 
 
 def shasum_update(*glob_paths: Sequence[pathlib.Path], target: pathlib.Path | None,

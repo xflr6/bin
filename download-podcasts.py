@@ -80,6 +80,8 @@ parser.add_argument('--serial', dest='parallel', action='store_false',
 parser.add_argument('--verbose', action='store_true',
                     help='log skipping of downloads that match present files')
 
+parser.add_argument('--version', action='version', version=__version__)
+
 
 class ConfigParser(configparser.ConfigParser):
 

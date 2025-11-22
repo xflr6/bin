@@ -21,7 +21,7 @@ $ (cd /usr/local && git clone git@github.com:xflr6/bin.git)
 ```shell
 $ download-podcasts.py --help
 usage: download-podcasts.py [-h] [--config PATH] [--encoding NAME] [--limit N]
-                            [--serial] [--verbose]
+                            [--serial] [--verbose] [--version]
                             [section ...]
 
 Download podcast episodes from subscriptions in config file sections.
@@ -37,6 +37,7 @@ options:
   --limit N        number of episodes to download (overrides --config file)
   --serial         don't parallelize downloads from different sections
   --verbose        log skipping of downloads that match present files
+  --version        show program's version number and exit
 ```
 
 
@@ -211,7 +212,7 @@ options:
 ```shell
 $ shasum-update.py --help
 usage: shasum-update.py [-h] [--target TEXT_FILE] [--encoding NAME]
-                        [--pattern REGEX] [--confirm]
+                        [--pattern REGEX] [--confirm] [--version]
                         glob [glob ...]
 
 SHA256sum file(s) and update text file with regex locating name and hash.
@@ -225,6 +226,7 @@ options:
   --encoding NAME     target text file read/write encoding (default: utf-8)
   --pattern REGEX     re.sub() pattern with file and checksum group
   --confirm           prompt for confirmation before exit when updated
+  --version           show program's version number and exit
 ```
 
 
