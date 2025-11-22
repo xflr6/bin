@@ -12,17 +12,16 @@ for zip_path in "$@"; do
     zip_name=${zip_file%.*}
 
     extract="$WORKDIR/${zip_name}.zip2sfs/"
-    result="$zip_name.sfs"
+    result="${zip_name}.sfs"
 
-    unzip -n "$zip_path" -d "$extract"
-    mksquashfs "$extract" "$result" -noappend
+    unzip -n "${zip_path}" -d "${extract}"
+    mksquashfs "${extract}" "${result}" -noappend
 
-    chown --reference="$zip_path" "$result"
-    chmod --reference="$zip_path" "$result"
-    touch --reference="$zip_path" "$result"
+    chown --reference="${zip_path}" "${result}"
+    chmod --reference="${zip_path}" "${result}"
+    touch --reference="${zip_path}" "${result}"
 
-    rm -rf "$extract"
-
+    rm -rf "${extract}"
 done
 
 exit 0
