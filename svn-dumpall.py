@@ -106,33 +106,32 @@ parser.add_argument('--verbose', dest='quiet', action='store_false',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def main(args=None) -> str | None:
-    args = parser.parse_args(args)
-
-    if not args.detail:
-        global log
-        log = lambda *args, **kwargs: None
-
+def svn_dumpall(target_dir: pathlib.Path, *repo_dirs: pathlib.Path, name: str,
+                auto_compress: bool,
+                deltas: bool,
+                chmod: int,
+                set_path: str,
+                quiet: bool) -> str | None:
     start = time.monotonic()
-    print(f'svnadmin dump {len(args.repo_dir)} repo(s) into: {args.target_dir}/')
-    log(f'file name template: {args.name}')
+    print(f'svnadmin dump {len(repo_dirs)} repo(s) into: {target_dir}/')
+    log(f'file name template: {name}')
 
-    (cmd, filter_cmds, kwargs) = pipe_args_kwargs(args.name,
-                                                  deltas=args.deltas,
-                                                  auto_compress=args.auto_compress,
-                                                  quiet=args.quiet,
-                                                  set_path=args.set_path)
+    (cmd, filter_cmds, kwargs) = pipe_args_kwargs(name,
+                                                  deltas=deltas,
+                                                  auto_compress=auto_compress,
+                                                  quiet=quiet,
+                                                  set_path=set_path)
 
     caption = ' | '.join(c for c, *_ in ([cmd] + filter_cmds))
 
-    open_kwargs = {'opener': functools.partial(os.open, mode=args.chmod)}
+    open_kwargs = {'opener': functools.partial(os.open, mode=chmod)}
 
     n_found = n_dumped = n_bytes = 0
-    for d in args.repo_dir:
+    for d in repo_dirs:
         if not d.is_dir():
             return 'error: repo is not a directory'
 
-        dest_path = args.target_dir / args.name.format(name=d.name)
+        dest_path = target_dir / name.format(name=d.name)
         log('', f'source: {d}/', f'target: {dest_path}')
 
         found_size = dest_path.stat().st_size if dest_path.exists() else None
@@ -219,6 +218,19 @@ def map_popen(commands, *, stdin=None, stdout=None, **kwargs):
                                 **kwargs)
         yield proc
         stdin = proc.stdout
+
+
+def main(args=None) -> str | None:
+    args = parser.parse_args(args)
+    if not args.detail:
+        global log
+        log = lambda *args, **kwargs: None
+    return svn_dumpall(args.target_dir, *args.repo_dir, name=args.name,
+                       auto_compress=args.auto_compress,
+                       deltas=args.deltas,
+                       chmod=args.chmod,
+                       set_path=args.set_path,
+                       quiet=args.quiet)
 
 
 if __name__ == '__main__':  # pragma: no cover

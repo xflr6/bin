@@ -140,33 +140,36 @@ parser.add_argument('--ask-for-deletion', action='store_true',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def main(args=None) -> str | None:
-    args = parser.parse_args(args)
-
-    dest_path = args.dest_dir / args.name
-
-    log(f'mksquashfs source: {args.source_dir}',
+def squashfs_image(source_dir: pathlib.Path, dest_dir: pathlib.Path, *, name: str,
+                   exclude_file: pathlib.Path | None,
+                   comp: str,
+                   owner: str | None, group: str | None, chmod: int,
+                   set_path: str, set_umask: int,
+                   quiet: bool,
+                   ask_for_deletion: bool) -> str | None:
+    dest_path = dest_dir / name
+    log(f'mksquashfs source: {source_dir}',
         f'mksquashfs destination: {dest_path}')
 
     if dest_path.exists():
         return f'error: result file {dest_path} already exists'
 
-    (cmd, kwargs) = run_args_kwargs(args.source_dir, dest_path,
-                                    exclude_file=args.exclude_file,
-                                    comp=args.comp,
-                                    set_path=args.set_path,
-                                    quiet=args.quiet)
+    (cmd, kwargs) = run_args_kwargs(source_dir, dest_path,
+                                    exclude_file=exclude_file,
+                                    comp=comp,
+                                    set_path=set_path,
+                                    quiet=quiet)
 
-    log('', f'os.umask(0o{args.set_umask:03o})')
-    os.umask(args.set_umask)
+    log('', f'os.umask(0o{set_umask:03o})')
+    os.umask(set_umask)
 
     log(f'subprocess.run({cmd}, **{kwargs})')
-    if not args.quiet:
+    if not quiet:
         log(f'{"[ start subprocess ]":-^80}')
     start = time.monotonic()
     proc = subprocess.run(cmd, check=True, **kwargs)
     stop = time.monotonic()
-    if not args.quiet:
+    if not quiet:
         log(f'{"[ end subprocess ]":-^80}')
     log(f'returncode: {proc.returncode}',
         f'time elapsed: {datetime.timedelta(seconds=stop - start)}')
@@ -180,16 +183,15 @@ def main(args=None) -> str | None:
         return 'error: result file is empty'
     log(format_permissions(dest_stat))
 
-    log('', f'os.chmod(..., 0o{args.chmod:03o})')
-    dest_path.chmod(args.chmod)
-    if args.owner or args.group:
-        log(f'shutil.chown(..., user={args.owner}, group={args.group})')
-        shutil.chown(dest_path, user=args.owner, group=args.group)
+    log('', f'os.chmod(..., 0o{chmod:03o})')
+    dest_path.chmod(chmod)
+    if owner or group:
+        log(f'shutil.chown(..., user={owner}, group={group})')
+        shutil.chown(dest_path, user=owner, group=group)
     log(format_permissions(dest_path.stat()))
 
-    if args.ask_for_deletion:
+    if ask_for_deletion:
         prompt_for_deletion(dest_path)  # pragma: no cover
-
     return None
 
 
@@ -247,6 +249,20 @@ def prompt_for_deletion(path: pathlib.Path) -> bool:  # pragma: no cover
     else:
         path.unlink()
         log(f'{path} deleted.')
+
+
+def main(args=None) -> str | None:
+    args = parser.parse_args(args)
+    return squashfs_image(args.source_dir, args.dest_dir, name=args.name,
+                          exclude_file=args.exclude_file,
+                          comp=args.comp,
+                          owner=args.owner,
+                          group=args.group,
+                          chmod=args.chmod,
+                          set_path=args.set_path,
+                          set_umask=args.set_umask,
+                          quiet=args.quiet,
+                          ask_for_deletion=args.ask_for_deletion)
 
 
 if __name__ == '__main__':  # pragma: no cover

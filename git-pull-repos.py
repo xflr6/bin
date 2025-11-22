@@ -44,32 +44,27 @@ parser.add_argument('--detail', dest='quiet', action='store_false',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def main(args=None) -> str | None:
-    args = parser.parse_args(args)
-
-    if args.quiet:
-        global log
-        log = lambda *args, **kwargs: None
-
-    print(f'pull {len(args.repo_url)} repo(s) into: {args.target_dir}/')
+def git_pull_repos(target_dir: pathlib.Path, *repo_urls: str,
+                   reset: bool) -> str | None:
+    print(f'pull {len(repo_urls)} repo(s) into: {target_dir}/')
 
     n_reset = n_cloned = n_updated = 0
-    for url in sorted(args.repo_url):
+    for url in sorted(repo_urls):
         print()
         log(f'source: {url}')
 
         url = parse_url(url)
-        g_dir = args.target_dir / url['dir']
+        g_dir = target_dir / url['dir']
         log(f'target: {g_dir}/', end='')
 
-        (removed, clone) = removed_clone(g_dir, reset=args.reset)
+        (removed, clone) = removed_clone(g_dir, reset=reset)
         if removed:
             n_reset += 1
 
         if clone:
             log()
             cmd = ['git', 'clone', '--mirror', url['url']]
-            cwd = args.target_dir
+            cwd = target_dir
             n_cloned += 1
         else:
             log(f' (inode={g_dir.stat().st_ino})')
@@ -122,6 +117,14 @@ def prompt_for_deletion(path: pathlib.Path) -> bool:  # pragma: no cover
     else:
         log(f'kept: {path}/ (inode={path.stat().st_ino})')
         return False
+
+
+def main(args=None) -> str | None:
+    args = parser.parse_args(args)
+    if args.quiet:
+        global log
+        log = lambda *args, **kwargs: None
+    return git_pull_repos(args.target_dir, *args.repo_url, reset=args.reset)
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -76,7 +76,7 @@ def template(s: str) -> str:
     return s
 
 
-def nup(s: str):
+def nup(s: str) -> tuple[int, int]:
     nups = None, None
     fields = tuple(f.strip() or None for f in s.strip().lower().partition('x'))
     if all(fields):
@@ -87,7 +87,6 @@ def nup(s: str):
 
     if not all(nups) or not all(n > 0 for n in nups):
         raise argparse.ArgumentTypeError(f'invalid nup: {s} (e.g: 2x2)')
-
     (x, y) = nups
     return argparse.Namespace(x=x, y=y)
 
@@ -139,26 +138,29 @@ parser.add_argument('--keep', dest='clean_up', action='store_false',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def main(args=None) -> str | None:
-    args = parser.parse_args(args)
-
-    dest_path = args.name.format(stem=args.pdf_file.stem)
-    dest_path = args.pdf_file.with_name(dest_path)
-
+def pdflatex_nup(pdf_file: pathlib.Path, *, name: str,
+                 paper: str,
+                 nup_x: int, nup_y: int,
+                 pages: str,
+                 orient_landscape: bool | None,
+                 scale: str,
+                 frame: bool,
+                 openright: bool,
+                 clean_up: bool) -> str | None:
+    dest_path = pdf_file.with_name(name.format(stem=pdf_file.stem))
     doc_path = dest_path.with_suffix('.tex')
-
-    log(f'source: {args.pdf_file}',
+    log(f'source: {pdf_file}',
         f'pdfpages doc: {doc_path}',
         f'destination: {dest_path}', '')
 
-    doc = render_template(args.nup.x, args.nup.y,
-                          paper=args.paper,
-                          landscape=LANDSCAPE[args.orient],
-                          filename=args.pdf_file.name,
-                          pages=args.pages,
-                          openright=args.openright,
-                          scale=args.scale,
-                          frame=args.frame)
+    doc = render_template(nup_x, nup_y,
+                          paper=paper,
+                          landscape=orient_landscape,
+                          filename=pdf_file.name,
+                          pages=pages,
+                          openright=openright,
+                          scale=scale,
+                          frame=frame)
 
     log(f'{doc_path!r}.write_text(..., **{OPEN_KWARGS})')
     with doc_path.open('wt', **OPEN_KWARGS) as f:
@@ -175,7 +177,7 @@ def main(args=None) -> str | None:
     if not dest_path.exists():
         return 'error: result file not found'
 
-    if args.clean_up:
+    if clean_up:
         delete_glob = dest_path.with_suffix('.*').name
         delete_paths = set(dest_path.parent.glob(delete_glob)) - {dest_path}
         for p in sorted(delete_paths):
@@ -188,22 +190,35 @@ def main(args=None) -> str | None:
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def render_template(xnup: int, ynup: int, *,
+def render_template(nup_x: int, nup_y: int, *,
                     paper, landscape, filename, pages,
                     openright, scale, frame) -> str:
     if landscape is None:
-        landscape = xnup > ynup
+        landscape = nup_x > nup_y
 
     template = string.Template(TEMPLATE)
     context = {'paper': paper,
                'orientation': 'landscape' if landscape else 'portrait',
-               'nup': f'{xnup:d}x{ynup:d}',
+               'nup': f'{nup_x:d}x{nup_y:d}',
                'filename': filename,
                'pages': pages,
                'scale': scale,
                'openright': 'true' if openright else 'false',
                'frame': 'true' if frame else 'false'}
     return template.substitute(context)
+
+
+def main(args=None) -> str | None:
+    args = parser.parse_args(args)
+    return pdflatex_nup(args.pdf_file, name=args.name,
+                        paper=args.paper,
+                        nup_x=args.nup.x, nup_y=args.nup.y,
+                        pages=args.pages,
+                        orient_landscape=LANDSCAPE[args.orient],
+                        scale=args.scale,
+                        frame=args.frame,
+                        openright=args.openright,
+                        clean_up=args.clean_up)
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -12,6 +12,7 @@ __copyright__ = 'Copyright (c) 2017,2020 Sebastian Bank'
 
 import argparse
 import codecs
+from collections.abc import Sequence
 import functools
 import hashlib
 import pathlib
@@ -86,23 +87,25 @@ parser.add_argument('glob', nargs='+', type=present_file_glob,
                     help='glob pattern of file(s) to checksum')
 
 
-def main(args=None) -> str | None:
-    args = parser.parse_args(args)
-    if any(args.target in paths for paths in args.glob):
-        ValueError(f'target {args.target} also in files: {args.glob}')
+def shasum_update(*glob_paths: Sequence[pathlib.Path], target: pathlib.Path | None,
+                  encoding: str,
+                  pattern: re.Patterm[str] | None,
+                  confirm: bool) -> str | None:
+    if any(target in paths for paths in glob_paths):
+        ValueError(f'target {target} also in files: {glob_paths}')
 
-    sums = {p.name: sha256sum(p) for paths in args.glob for p in paths}
+    sums = {p.name: sha256sum(p) for paths in glob_paths for p in paths}
     log(*(f'{f} {s}' for f, s in sums.items()))
 
-    if args.target is not None:
-        updated = interpolate(args.target,
-                              pattern=args.pattern,
+    if target is not None:
+        updated = interpolate(target,
+                              pattern=pattern,
                               sums=sums,
-                              encoding=args.encoding)
+                              encoding=encoding)
 
         log('\n%d updated%s' % (len(updated),
                                 (' %r' % updated) if updated else ''))
-        if args.confirm and updated:
+        if confirm and updated:
             input('enter any string to end: ')
     return None
 
@@ -116,7 +119,7 @@ def sha256sum(filename, /) -> str:
     return s.hexdigest()
 
 
-def interpolate(filename, pattern, sums, *, encoding: str):
+def interpolate(filename, *, pattern, sums, encoding: str):
     updated = []
 
     def repl(ma):
@@ -139,6 +142,14 @@ def interpolate(filename, pattern, sums, *, encoding: str):
             f.write(text)
 
     return updated
+
+
+def main(args=None) -> str | None:
+    args = parser.parse_args(args)
+    return shasum_update(*args.glob, target=args.target,
+                         encoding=args.encoding,
+                         pattern=args.pattern,
+                         confirm=args.confirm)
 
 
 if __name__ == '__main__':  # pragma: no cover

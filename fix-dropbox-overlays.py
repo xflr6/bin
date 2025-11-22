@@ -28,19 +28,14 @@ parser.add_argument('--dry-run', action='store_true',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def main(args=None) -> None:
+def fix_dropbox_overlays(*, dry_run: bool) -> None:
     global winreg
     import winreg
 
-    args = parser.parse_args(args)
-
     handle = COMPUTER_NAME, winreg.HKEY_LOCAL_MACHINE
 
-    log(f'winreg.ConnectRegistry(*{handle})',
-        f'winreg.OpenKey(..., {SUB_KEY!r})')
-    with (winreg.ConnectRegistry(*handle) as h,
-          winreg.OpenKey(h, SUB_KEY) as o):
-
+    log(f'winreg.ConnectRegistry(*{handle})', f'winreg.OpenKey(..., {SUB_KEY!r})')
+    with winreg.ConnectRegistry(*handle) as h, winreg.OpenKey(h, SUB_KEY) as o:
         keys = get_enum_keys(o)
         log(f'keys: {keys!r}')
 
@@ -50,12 +45,12 @@ def main(args=None) -> None:
         for src, dst in iterchanges(keys):
             if dst is None:
                 print(f'delete {src!r}')
-                if args.dry_run:
+                if dry_run:
                     continue
                 delete_key(o, src)
             else:
                 print(f'move {src!r} to {dst!r}')
-                if args.dry_run:
+                if dry_run:
                     continue
                 move_key(o, src, dst)
 
@@ -120,6 +115,11 @@ def move_key(key, src, dst):
 
     log(f'winreg.SetValue(..., {dst!r}, {winreg.REG_SZ!r}, {value!r})')
     winreg.SetValue(key, dst, winreg.REG_SZ, value)
+
+
+def main(args=None) -> None:
+    args = parser.parse_args(args)
+    return fix_dropbox_overlays(dry_run=args.dry_run)
 
 
 if __name__ == '__main__':  # pragma: no cover

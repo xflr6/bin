@@ -10,7 +10,6 @@ __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
 import functools
-import itertools
 import json
 import pathlib
 import re
@@ -51,19 +50,14 @@ parser.add_argument('--detail', dest='quiet', action='store_false',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def main(args=None) -> str | None:
-    args = parser.parse_args(args)
-
-    if args.quiet:
-        global log
-        log = lambda *args, **kwargs: None
-
-    for gh_username in args.gh_username:
+def git_pull_gists(target_dir: pathlib.Path, *gh_usernames: str,
+                   reset: bool) -> str | None:
+    for gh_username in gh_usernames:
         print(f'pull all public gist repos of {gh_username}'
-              f' into: {args.target_dir}/')
+              f' into: {target_dir}/')
 
         gists = list(itergists(username=gh_username))
-        print(f'pull {len(gists)} repo(s) into: {args.target_dir}/')
+        print(f'pull {len(gists)} repo(s) into: {target_dir}/')
 
         n_reset = n_cloned = n_updated = n_failed = 0
         for g in gists:
@@ -72,17 +66,17 @@ def main(args=None) -> str | None:
             log(f'source: {url}')
 
             url = parse_url(url)
-            g_dir = args.target_dir / url['dir']
+            g_dir = target_dir / url['dir']
             log(f'target: {g_dir}/', end='')
 
-            (removed, clone) = removed_clone(g_dir, reset=args.reset)
+            (removed, clone) = removed_clone(g_dir, reset=reset)
             if removed:
                 n_reset += 1
 
             if clone:
                 log()
                 cmd = ['git', 'clone', '--mirror', url['url']]
-                cwd = args.target_dir
+                cwd = target_dir
                 n_cloned += 1
             else:
                 log(f' (inode={g_dir.stat().st_ino})')
@@ -169,8 +163,15 @@ def prompt_for_continuation():  # pragma: no cover
         if line is not None:
             print('  (enter q(uit) or use CTRL-C to exit)')
         line = input('to continue, press enter [ENTER=continue]: ')
-
     return not line
+
+
+def main(args=None) -> str | None:
+    args = parser.parse_args(args)
+    if args.quiet:
+        global log
+        log = lambda *args, **kwargs: None
+    return git_pull_gists(args.target_dir, *args.gh_username, reset=args.reset)
 
 
 if __name__ == '__main__':  # pragma: no cover
