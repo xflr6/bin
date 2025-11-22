@@ -334,7 +334,7 @@ usage: shasum-update.py [-h] [--target TEXT_FILE] [--encoding NAME]
 SHA256sum file(s) and update text file with regex locating name and hash.
 
 positional arguments:
-  glob                glob pattern of files to checksum
+  glob                glob pattern of file(s) to checksum
 
 options:
   -h, --help          show this help message and exit
@@ -357,7 +357,7 @@ usage: svn-dumpall.py [-h] [--name TEMPLATE] [--no-auto-compress]
 Svnadmin dump Subversion repositories into target directory.
 
 positional arguments:
-  target_dir          output directory for writing SVN dump files
+  target_dir          output directory for writing SVN dump file(s)
   repo_dir            input SVN repository directory
 
 options:

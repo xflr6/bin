@@ -73,7 +73,7 @@ def mode(s: str, *,
 parser = argparse.ArgumentParser(description=__doc__)
 
 parser.add_argument('target_dir', type=directory,
-                    help='output directory for writing SVN dump files')
+                    help='output directory for writing SVN dump file(s)')
 
 parser.add_argument('repo_dir', nargs='+', type=directory,
                     help='input SVN repository directory')

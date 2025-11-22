@@ -83,7 +83,7 @@ parser.add_argument('--confirm', action='store_true',
                     help='prompt for confirmation before exit when updated')
 
 parser.add_argument('glob', nargs='+', type=present_file_glob,
-                    help='glob pattern of files to checksum')
+                    help='glob pattern of file(s) to checksum')
 
 
 log = functools.partial(print, file=sys.stderr, sep='\n')
