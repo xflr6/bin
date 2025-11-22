@@ -1,10 +1,10 @@
 import importlib
 import json
 
-pull_gists = importlib.import_module('pull-gists')
+git_pull_gists = importlib.import_module('git-pull-gists')
 
 
-def test_pull_repos(tmp_path, mocker, mock_run, http_resp):
+def test_main(tmp_path, mocker, mock_run, http_resp):
     present = tmp_path / 'present.git'
     present.mkdir()
 
@@ -19,7 +19,7 @@ def test_pull_repos(tmp_path, mocker, mock_run, http_resp):
     urlopen = mocker.patch('urllib.request.urlopen', autospec=True,
                            return_value=http_resp)
 
-    assert pull_gists.main([str(tmp_path), 'spam']) is None
+    assert git_pull_gists.main([str(tmp_path), 'spam']) is None
 
     urlopen.assert_called_once_with('https://api.github.com/users/spam/gists')
 

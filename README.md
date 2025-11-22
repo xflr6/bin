@@ -202,6 +202,48 @@ options:
 ```
 
 
+### git-pull-gists.py
+
+```sh
+$ git-pull-gists.py --help
+usage: git-pull-gists.py [-h] [--reset] [--detail] [--version]
+                         target_dir gh_username
+
+Git clone --mirror or git remote update all public gists of GitHub user.
+
+positional arguments:
+  target_dir   output directory for bare git clones
+  gh_username  GitHub username
+
+options:
+  -h, --help   show this help message and exit
+  --reset      delete present git clones first
+  --detail     show detailed info for each clone/update
+  --version    show program's version number and exit
+```
+
+
+### git-pull-repos.py
+
+```sh
+$ git-pull-repos.py --help
+usage: git-pull-repos.py [-h] [--reset] [--detail] [--version]
+                         target_dir repo_url [repo_url ...]
+
+Git clone --mirror or git remote update git repositories.
+
+positional arguments:
+  target_dir  output directory for bare git clones
+  repo_url    git repository url
+
+options:
+  -h, --help  show this help message and exit
+  --reset     delete present git clones first
+  --detail    show detailed info for each clone/update
+  --version   show program's version number and exit
+```
+
+
 ### log-pings.py
 
 ```sh
@@ -285,48 +327,6 @@ options:
   --no-openright    don't pass openright option to \includepdfmerge
   --keep            don't delete intermediate files (*.tex, *.log, etc.)
   --version         show program's version number and exit
-```
-
-
-### pull-gists.py
-
-```sh
-$ pull-gists.py --help
-usage: pull-gists.py [-h] [--reset] [--detail] [--version]
-                     target_dir gh_username
-
-Git clone --mirror or git remote update all public gists of GitHub user.
-
-positional arguments:
-  target_dir   output directory for bare git clones
-  gh_username  GitHub username
-
-options:
-  -h, --help   show this help message and exit
-  --reset      delete present git clones first
-  --detail     show detailed info for each clone/update
-  --version    show program's version number and exit
-```
-
-
-### pull-repos.py
-
-```sh
-$ pull-repos.py --help
-usage: pull-repos.py [-h] [--reset] [--detail] [--version]
-                     target_dir repo_url [repo_url ...]
-
-Git clone --mirror or git remote update git repositories.
-
-positional arguments:
-  target_dir  output directory for bare git clones
-  repo_url    git repository url
-
-options:
-  -h, --help  show this help message and exit
-  --reset     delete present git clones first
-  --detail    show detailed info for each clone/update
-  --version   show program's version number and exit
 ```
 
 

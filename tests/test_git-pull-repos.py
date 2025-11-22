@@ -3,12 +3,12 @@ import importlib
 
 import pytest
 
-pull_repos = importlib.import_module('pull-repos')
+git_pull_repos = importlib.import_module('git-pull-repos')
 
 
 def test_directory():
     with pytest.raises(argparse.ArgumentTypeError):
-        pull_repos.directory(None)
+        git_pull_repos.directory(None)
 
 
 @pytest.mark.parametrize('s, expected', [
@@ -16,10 +16,10 @@ def test_directory():
      {'dir': 'spam.git', 'url': 'git@github.com:user/spam.git'}),
 ])
 def test_parse_url(s, expected):
-    assert pull_repos.parse_url(s) == expected
+    assert git_pull_repos.parse_url(s) == expected
 
 
-def test_pull_repos(tmp_path, mocker, mock_run):
+def test_main(tmp_path, mocker, mock_run):
     present = tmp_path / 'present.git'
     present.mkdir()
 
@@ -27,9 +27,9 @@ def test_pull_repos(tmp_path, mocker, mock_run):
     assert not absent.exists()
     absent_url = f'git@example.com:spam/{absent.name}'
 
-    assert pull_repos.main([str(tmp_path),
-                            f'git@example.com:spam/{present.name}',
-                            absent_url]) is None
+    assert git_pull_repos.main([str(tmp_path),
+                               f'git@example.com:spam/{present.name}',
+                               absent_url]) is None
 
     clone = mocker.call(['git', 'clone', '--mirror', absent_url],
                         cwd=tmp_path, check=True)
