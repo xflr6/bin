@@ -21,11 +21,11 @@ import time
 
 NAME_TEMPLATE = '{name}.svndump.gz'
 
-COMPRESS = {'.bz2': ['bzip2', '--stdout'],
-            '.gz': ['gzip', '--stdout'],
+COMPRESS = {'.bz2': ['bzip2'],
+            '.gz': ['gzip'],
             '.lz4': ['lz4'],
             '.lzo': ['lzop'],
-            '.xz': ['xz', '--stdout'],
+            '.xz': ['xz'],
             '.zst': ['zstd']}
 
 CHMOD = stat.S_IRUSR
