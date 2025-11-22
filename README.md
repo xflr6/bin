@@ -156,37 +156,6 @@ options:
 ```
 
 
-### dumpall-svn.py
-
-```shell
-$ dumpall-svn.py --help
-usage: dumpall-svn.py [-h] [--name TEMPLATE] [--no-auto-compress]
-                      [--no-deltas] [--chmod MODE] [--set-path LINE]
-                      [--detail] [--verbose] [--version]
-                      target_dir repo_dir [repo_dir ...]
-
-Svnadmin dump subversion repositories into target directory.
-
-positional arguments:
-  target_dir          output directory for dump files
-  repo_dir            subversion repository directory
-
-options:
-  -h, --help          show this help message and exit
-  --name TEMPLATE     dump filename time.strftime() format string template
-                      (default: {name}.svndump.gz)
-  --no-auto-compress  never compress dump file(s) (default: auto-compress if
-                      --name ends with any of: .bz2, .gz, .lz4, .lzo, .xz,
-                      .zst)
-  --no-deltas         don't pass --deltas to $(svnadmin dump)
-  --chmod MODE        dump file chmod (default: 400)
-  --set-path LINE     PATH for subprocess(es) (default: /usr/bin:/bin)
-  --detail            include detail infos for each repository
-  --verbose           don't pass --quiet to $(svnadmin dump)
-  --version           show program's version number and exit
-```
-
-
 ### fix-dropbox-overlays.py
 
 ```shell
@@ -373,6 +342,37 @@ options:
   --encoding NAME     target text file read/write encoding (default: utf-8)
   --pattern REGEX     re.sub() pattern with file and checksum group
   --confirm           prompt for confirmation before exit when updated
+```
+
+
+### svn-dumpall.py
+
+```shell
+$ svn-dumpall.py --help
+usage: svn-dumpall.py [-h] [--name TEMPLATE] [--no-auto-compress]
+                      [--no-deltas] [--chmod MODE] [--set-path LINE]
+                      [--detail] [--verbose] [--version]
+                      target_dir repo_dir [repo_dir ...]
+
+Svnadmin dump subversion repositories into target directory.
+
+positional arguments:
+  target_dir          output directory for dump files
+  repo_dir            subversion repository directory
+
+options:
+  -h, --help          show this help message and exit
+  --name TEMPLATE     dump filename time.strftime() format string template
+                      (default: {name}.svndump.gz)
+  --no-auto-compress  never compress dump file(s) (default: auto-compress if
+                      --name ends with any of: .bz2, .gz, .lz4, .lzo, .xz,
+                      .zst)
+  --no-deltas         don't pass --deltas to $(svnadmin dump)
+  --chmod MODE        dump file chmod (default: 400)
+  --set-path LINE     PATH for subprocess(es) (default: /usr/bin:/bin)
+  --detail            include detail infos for each repository
+  --verbose           don't pass --quiet to $(svnadmin dump)
+  --version           show program's version number and exit
 ```
 
 

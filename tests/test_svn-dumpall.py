@@ -5,7 +5,7 @@ import subprocess
 
 import pytest
 
-dumpall_svn = importlib.import_module('dumpall-svn')
+svn_dumpall = importlib.import_module('svn-dumpall')
 
 
 @pytest.mark.usefixtures('mock_strftime')
@@ -31,7 +31,7 @@ def test_main(tmp_path, mocker, proc):
 
     path = '/bin'
 
-    assert dumpall_svn.main([str(tmp_path), str(repo_dir),
+    assert svn_dumpall.main([str(tmp_path), str(repo_dir),
                              '--name', '{name}-%Y%m%d-%H%M.svndump.gz',
                              '--chmod', '600',
                              '--set-path', path]) is None
@@ -66,4 +66,4 @@ def test_no_auto_compress_raises_with_compress_suffix(tmp_path):
     repo_dir = tmp_path / 'repo'
     repo_dir.mkdir()
     with pytest.raises(ValueError, match=r"with compress suffix='\.gz'"):
-        dumpall_svn.main([str(tmp_path), str(repo_dir), '--no-auto-compress'])
+        svn_dumpall.main([str(tmp_path), str(repo_dir), '--no-auto-compress'])
