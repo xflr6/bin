@@ -128,7 +128,7 @@ def pipe_args_kwargs(name, *,
     elif suffix in COMPRESS:
         raise ValueError(f'{auto_compress=} but {name=} with compress {suffix=}')
 
-    # CAVEAT: env cannot override the PATH on Windows
+    # CAVEAT: env cannot override PATH on Windows
     # see https://docs.python.org/3/library/subprocess.html#subprocess.Popen
     return cmd, filter_cmds, {'env': {'PATH': set_path}}
 
