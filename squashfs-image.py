@@ -139,9 +139,7 @@ parser.add_argument('--ask-for-deletion', action='store_true',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-
 log = functools.partial(print, file=sys.stderr, sep='\n')
-
 
 
 def run_args_kwargs(source_dir, dest_path, *,
