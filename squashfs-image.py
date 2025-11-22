@@ -22,15 +22,14 @@ import time
 NAME_TEMPLATE = '%Y%m%d-%H%M.sfs'
 
 CHMOD = 0o400
-
-assert CHMOD == stat.S_IRUSR and stat.filemode(CHMOD) == '?r--------'
+assert stat.filemode(CHMOD) == '?r--------'
+assert CHMOD == stat.S_IRUSR
 
 SUBPROCESS_PATH = '/usr/bin'
 
 SET_UMASK = 0o177
-
-assert SET_UMASK == stat.S_IXUSR | stat.S_IRWXG | stat.S_IRWXO
 assert stat.filemode(SET_UMASK) == '?--xrwxrwx'
+assert SET_UMASK == stat.S_IXUSR | stat.S_IRWXG | stat.S_IRWXO
 
 
 def directory(s: str) -> pathlib.Path:
