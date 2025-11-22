@@ -28,17 +28,17 @@ usage: backup-squashfs.py [-h] [--name TEMPLATE] [--exclude-file PATH]
                           [--version]
                           source_dir dest_dir
 
-Create SquashFS image from given directory, optioally ask for its deletion.
+Create SquashFS image from given directory, optionally ask for its deletion.
 
 positional arguments:
-  source_dir            image source directory
-  dest_dir              image target directory
+  source_dir            input root directory to image
+  dest_dir              output directory for writing the SquashFS image file
 
 options:
   -h, --help            show this help message and exit
-  --name TEMPLATE       image filename time.strftime() format string template
+  --name TEMPLATE       image file name time.strftime() format string template
                         (default: %Y%m%d-%H%M.sfs)
-  --exclude-file PATH   path to file with one line per blacklist item
+  --exclude-file PATH   path to file with one line per excluded dir/file
   --comp {gzip,lz4,lzo,xz,zstd}
                         compression (use mksquashfs default if omitted)
   --owner OWNER         image file owner
@@ -65,21 +65,21 @@ usage: backup-tar.py [-h] [--name TEMPLATE] [--exclude-file PATH]
 Create tar archive from given directory, optionally ask for its deletion.
 
 positional arguments:
-  source_dir           archive source directory
-  dest_dir             directory for tar archive
+  source_dir           input root directory to archive
+  dest_dir             output directory for writing the tar archive file
 
 options:
   -h, --help           show this help message and exit
-  --name TEMPLATE      archive filename time.strftime() format string template
-                       (default: %Y%m%d-%H%M.tar.gz)
-  --exclude-file PATH  path to file with one line per blacklist item
+  --name TEMPLATE      archive file name time.strftime() format string
+                       template (default: %Y%m%d-%H%M.tar.gz)
+  --exclude-file PATH  path to file with one line per excluded dir/file
   --no-auto-compress   don't pass --auto-compress to tar
-  --owner OWNER        tar archive owner
-  --group GROUP        tar archive group
-  --chmod MODE         tar archive chmod (default: 400)
+  --owner OWNER        archive file owner
+  --group GROUP        archive file group
+  --chmod MODE         archive file chmod (default: 400)
   --set-path LINE      PATH for tar subprocess (default: /usr/bin:/bin)
   --set-umask MASK     umask for tar subprocess (default: 177)
-  --ask-for-deletion   prompt for tar archive deletion before exit
+  --ask-for-deletion   prompt for archive file deletion before exit
   --version            show program's version number and exit
 ```
 
@@ -178,15 +178,15 @@ $ git-pull-gists.py --help
 usage: git-pull-gists.py [-h] [--reset] [--detail] [--version]
                          target_dir gh_username
 
-Git clone --mirror or git remote update all public gists of GitHub user.
+Git clone --mirror or git remote update all public Gists of GitHub user.
 
 positional arguments:
-  target_dir   output directory for bare git clones
-  gh_username  GitHub username
+  target_dir   output directory for writing/updating bare Git clones
+  gh_username  name of the GitHub user account
 
 options:
   -h, --help   show this help message and exit
-  --reset      delete present git clones first
+  --reset      delete present Git clones first
   --detail     show detailed info for each clone/update
   --version    show program's version number and exit
 ```
@@ -199,15 +199,15 @@ $ git-pull-repos.py --help
 usage: git-pull-repos.py [-h] [--reset] [--detail] [--version]
                          target_dir repo_url [repo_url ...]
 
-Git clone --mirror or git remote update git repositories.
+Git clone --mirror or git remote update remote Git repositories.
 
 positional arguments:
-  target_dir  output directory for bare git clones
-  repo_url    git repository url
+  target_dir  output directory for writing/updating bare Git clones
+  repo_url    input Git repository URL
 
 options:
   -h, --help  show this help message and exit
-  --reset     delete present git clones first
+  --reset     delete present Git clones first
   --detail    show detailed info for each clone/update
   --version   show program's version number and exit
 ```
@@ -354,21 +354,21 @@ usage: svn-dumpall.py [-h] [--name TEMPLATE] [--no-auto-compress]
                       [--detail] [--verbose] [--version]
                       target_dir repo_dir [repo_dir ...]
 
-Svnadmin dump subversion repositories into target directory.
+Svnadmin dump Subversion repositories into target directory.
 
 positional arguments:
-  target_dir          output directory for dump files
-  repo_dir            subversion repository directory
+  target_dir          output directory for writing SVN dump files
+  repo_dir            input SVN repository directory
 
 options:
   -h, --help          show this help message and exit
-  --name TEMPLATE     dump filename time.strftime() format string template
+  --name TEMPLATE     dump file name time.strftime() format string template
                       (default: {name}.svndump.gz)
   --no-auto-compress  never compress dump file(s) (default: auto-compress if
                       --name ends with any of: .bz2, .gz, .lz4, .lzo, .xz,
                       .zst)
   --no-deltas         don't pass --deltas to svnadmin dump
-  --chmod MODE        dump file chmod (default: 400)
+  --chmod MODE        dump file(s) chmod (default: 400)
   --set-path LINE     PATH for subprocess(es) (default: /usr/bin:/bin)
   --detail            include detail infos for each repository
   --verbose           don't pass --quiet to svnadmin dump

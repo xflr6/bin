@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Git clone --mirror or git remote update git repositories."""
+"""Git clone --mirror or git remote update remote Git repositories."""
 
 __title__ = 'pull-repos.py'
 __version__ = '0.1.dev0'
@@ -31,12 +31,12 @@ def directory(s: str) -> pathlib.Path:
 parser = argparse.ArgumentParser(description=__doc__)
 
 parser.add_argument('target_dir', type=directory,
-                    help='output directory for bare git clones')
+                    help='output directory for writing/updating bare Git clones')
 
-parser.add_argument('repo_url', nargs='+', help='git repository url')
+parser.add_argument('repo_url', nargs='+', help='input Git repository URL')
 
 parser.add_argument('--reset', action='store_true',
-                    help='delete present git clones first')
+                    help='delete present Git clones first')
 
 parser.add_argument('--detail', dest='quiet', action='store_false',
                     help='show detailed info for each clone/update')

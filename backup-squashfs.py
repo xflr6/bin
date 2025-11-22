@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Create SquashFS image from given directory, optioally ask for its deletion."""
+"""Create SquashFS image from given directory, optionally ask for its deletion."""
 
 __title__ = 'backup-squashfs.py'
 __version__ = '0.1.dev0'
@@ -98,17 +98,19 @@ def mode(s: str, *,
 
 parser = argparse.ArgumentParser(description=__doc__)
 
-parser.add_argument('source_dir', type=directory, help='image source directory')
+parser.add_argument('source_dir', type=directory,
+                    help='input root directory to image')
 
-parser.add_argument('dest_dir', type=directory, help='image target directory')
+parser.add_argument('dest_dir', type=directory,
+                    help='output directory for writing the SquashFS image file')
 
 parser.add_argument('--name', metavar='TEMPLATE',
                     type=template, default=NAME_TEMPLATE,
-                    help='image filename time.strftime() format string template'
+                    help='image file name time.strftime() format string template'
                          f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
 
 parser.add_argument('--exclude-file', metavar='PATH', type=present_file,
-                    help='path to file with one line per blacklist item')
+                    help='path to file with one line per excluded dir/file')
 
 parser.add_argument('--comp', choices=('gzip', 'lz4', 'lzo', 'xz', 'zstd'),
                     help='compression (use mksquashfs default if omitted)')

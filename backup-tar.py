@@ -101,27 +101,29 @@ def mode(s: str, *,
 
 parser = argparse.ArgumentParser(description=__doc__)
 
-parser.add_argument('source_dir', type=directory, help='archive source directory')
+parser.add_argument('source_dir', type=directory,
+                    help='input root directory to archive')
 
-parser.add_argument('dest_dir', type=directory, help='directory for tar archive')
+parser.add_argument('dest_dir', type=directory,
+                    help='output directory for writing the tar archive file')
 
 parser.add_argument('--name', metavar='TEMPLATE',
                     type=template, default=NAME_TEMPLATE,
-                    help='archive filename time.strftime() format string template'
+                    help='archive file name time.strftime() format string template'
                          f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
 
 parser.add_argument('--exclude-file', metavar='PATH', type=exclude_file,
-                    help='path to file with one line per blacklist item')
+                    help='path to file with one line per excluded dir/file')
 
 parser.add_argument('--no-auto-compress', dest='auto_compress', action='store_false',
                     help="don't pass --auto-compress to tar")
 
-parser.add_argument('--owner', type=user, help='tar archive owner')
+parser.add_argument('--owner', type=user, help='archive file owner')
 
-parser.add_argument('--group', type=group, help='tar archive group')
+parser.add_argument('--group', type=group, help='archive file group')
 
 parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
-                    help=f'tar archive chmod (default: {CHMOD:03o})')
+                    help=f'archive file chmod (default: {CHMOD:03o})')
 
 parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
                     help=f'PATH for tar subprocess (default: {SUBPROCESS_PATH})')
@@ -130,7 +132,7 @@ parser.add_argument('--set-umask', metavar='MASK', type=mode, default=SET_UMASK,
                     help=f'umask for tar subprocess (default: {SET_UMASK:03o})')
 
 parser.add_argument('--ask-for-deletion', action='store_true',
-                    help='prompt for tar archive deletion before exit')
+                    help='prompt for archive file deletion before exit')
 
 parser.add_argument('--version', action='version', version=__version__)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Svnadmin dump subversion repositories into target directory."""
+"""Svnadmin dump Subversion repositories into target directory."""
 
 __title__ = 'dumpall-svn.py'
 __version__ = '0.1.dev0'
@@ -73,14 +73,14 @@ def mode(s: str, *,
 parser = argparse.ArgumentParser(description=__doc__)
 
 parser.add_argument('target_dir', type=directory,
-                    help='output directory for dump files')
+                    help='output directory for writing SVN dump files')
 
 parser.add_argument('repo_dir', nargs='+', type=directory,
-                    help='subversion repository directory')
+                    help='input SVN repository directory')
 
 parser.add_argument('--name', metavar='TEMPLATE',
                     type=template, default=NAME_TEMPLATE,
-                    help=f'dump filename time.strftime() format string template'
+                    help=f'dump file name time.strftime() format string template'
                          f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
 
 parser.add_argument('--no-auto-compress', dest='auto_compress', action='store_false',
@@ -92,7 +92,7 @@ parser.add_argument('--no-deltas', dest='deltas', action='store_false',
                     help="don't pass --deltas to svnadmin dump")
 
 parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
-                    help=f'dump file chmod (default: {CHMOD:03o})')
+                    help=f'dump file(s) chmod (default: {CHMOD:03o})')
 
 parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
                     help=f'PATH for subprocess(es) (default: {SUBPROCESS_PATH})')
