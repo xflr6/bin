@@ -89,7 +89,7 @@ parser.add_argument('--no-auto-compress', dest='auto_compress', action='store_fa
                          f" {', '.join(COMPRESS)})")
 
 parser.add_argument('--no-deltas', dest='deltas', action='store_false',
-                    help="don't pass --deltas to $(svnadmin dump)")
+                    help="don't pass --deltas to svnadmin dump")
 
 parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
                     help=f'dump file chmod (default: {CHMOD:03o})')
@@ -101,7 +101,7 @@ parser.add_argument('--detail', action='store_true',
                     help='include detail infos for each repository')
 
 parser.add_argument('--verbose', dest='quiet', action='store_false',
-                    help="don't pass --quiet to $(svnadmin dump)")
+                    help="don't pass --quiet to svnadmin dump")
 
 parser.add_argument('--version', action='version', version=__version__)
 

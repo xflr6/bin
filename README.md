@@ -367,11 +367,11 @@ options:
   --no-auto-compress  never compress dump file(s) (default: auto-compress if
                       --name ends with any of: .bz2, .gz, .lz4, .lzo, .xz,
                       .zst)
-  --no-deltas         don't pass --deltas to $(svnadmin dump)
+  --no-deltas         don't pass --deltas to svnadmin dump
   --chmod MODE        dump file chmod (default: 400)
   --set-path LINE     PATH for subprocess(es) (default: /usr/bin:/bin)
   --detail            include detail infos for each repository
-  --verbose           don't pass --quiet to $(svnadmin dump)
+  --verbose           don't pass --quiet to svnadmin dump
   --version           show program's version number and exit
 ```
 
