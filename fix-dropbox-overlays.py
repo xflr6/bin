@@ -11,13 +11,13 @@ __copyright__ = 'Copyright (c) 2020-2021 Sebastian Bank'
 import argparse
 import functools
 import itertools
+import pprint
 import re
 import sys
 
-COMPUTER_NAME = None
+KEY = r'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers'
 
-SUB_KEY = (r'SOFTWARE\Microsoft\Windows\CurrentVersion'
-           r'\Explorer\ShellIconOverlayIdentifiers')
+COMPUTER_NAME = None  # local
 
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -32,27 +32,41 @@ def fix_dropbox_overlays(*, dry_run: bool) -> None:
     global winreg
     import winreg
 
-    handle = COMPUTER_NAME, winreg.HKEY_LOCAL_MACHINE
+    (h_key, _, sub_key) = KEY.partition('\\')
+    h_key = getattr(winreg, h_key)
 
-    log(f'winreg.ConnectRegistry(*{handle})', f'winreg.OpenKey(..., {SUB_KEY!r})')
-    with winreg.ConnectRegistry(*handle) as h, winreg.OpenKey(h, SUB_KEY) as o:
-        keys = get_enum_keys(o)
-        log(f'keys: {keys!r}')
+    log(f'winreg.ConnectRegistry({COMPUTER_NAME}, {h_key})',
+        f'winreg.OpenKey(..., {sub_key!r})')
+    with (winreg.ConnectRegistry(COMPUTER_NAME, h_key) as handle,
+          winreg.OpenKey(handle, sub_key) as sub_key):
+        (nkeys, _, _) = winreg.QueryInfoKey(sub_key)
+        log(f'for i in range({nkeys!r}): winreg.EnumKey(..., i)')
+        keys = [winreg.EnumKey(sub_key, i) for i in range(nkeys)]
+        log('keys:')
+        pprint.pp(keys, stream=sys.stderr)
 
         changes = list(iterchanges(keys))
         log(f'changes: {changes!r}')
-
         for src, dst in iterchanges(keys):
             if dst is None:
                 print(f'delete {src!r}')
-                if dry_run:
-                    continue
-                delete_key(o, src)
+                if not dry_run:
+                    log(f'winreg.DeleteKey(..., {src!r})')
+                    winreg.DeleteKey(sub_key, src)
             else:
                 print(f'move {src!r} to {dst!r}')
-                if dry_run:
-                    continue
-                move_key(o, src, dst)
+                if not dry_run:
+                    log(f'winreg.QueryValue(..., {src!r})')
+                    value = winreg.QueryValue(sub_key, src)
+
+                    log(f'winreg.DeleteKey(..., {src!r})')
+                    winreg.DeleteKey(sub_key, src)
+
+                    log(f'winreg.CreateKey(..., {dst!r})')
+                    winreg.CreateKey(sub_key, dst)
+
+                    log(f'winreg.SetValue(..., {dst!r}, {winreg.REG_SZ!r}, {value!r})')
+                    winreg.SetValue(sub_key, dst, winreg.REG_SZ, value)
 
     print('done')
     return None
@@ -61,60 +75,33 @@ def fix_dropbox_overlays(*, dry_run: bool) -> None:
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def get_enum_keys(key):
-    (nkeys, _, _) = winreg.QueryInfoKey(key)
-    log(f'for i in range({nkeys!r}): winreg.EnumKey(..., i)')
-    return [winreg.EnumKey(key, i) for i in range(nkeys)]
-
-
 def iterchanges(keys):
-    pairs = map(lspace_name, keys)
+    pairs = map(indent_name, keys)
     pairs = sorted(pairs, key=lambda x: (-x[0], x[1]))
 
     grouped = itertools.groupby(pairs, lambda x: x[0])
-    grouped = [(ls, [n for _, n in g]) for ls, g in grouped]
-
-    for (ls, ln), (rs, rn) in itertools.combinations(grouped, 2):
-        if ln[:len(rn)] == rn:
+    grouped = [(indent, [n for _, n in g]) for indent, g in grouped]
+    for (x_indent, x_name), (y_indent, y_name) in itertools.combinations(grouped, 2):
+        if x_name[:len(y_name)] == y_name:
             break
     else:
         return
 
-    assert all(n.startswith('DropboxExt') for n in (ln + rn))
+    assert all(n.startswith('DropboxExt') for n in (x_name + y_name))
 
-    for name in rn:
-        yield plain_name(rs, name), None  # delete
-
-    for name in ln:
-        yield plain_name(ls, name), plain_name(rs, name)  # move
-
-
-def lspace_name(s: str):
-    (lspace, name) = re.fullmatch(r'(\s*)(\w+)(?: \w+)?', s).groups()
-    return len(lspace), name
+    for name in y_name:
+        yield plain_name(y_indent, name), None  # delete
+    for name in x_name:
+        yield plain_name(x_indent, name), plain_name(y_indent, name)  # move
 
 
-def plain_name(lspace: int, name: str) -> str:
-    return ' ' * lspace + name
+def indent_name(s: str, /) -> tuple[int, str]:
+    ma = re.fullmatch(r'(?P<indent>\s*)(?P<name>\w+)(?: \w+)?', s)
+    return len(ma['indent']), ma['name']
 
 
-def delete_key(key, sub_key):
-    log(f'winreg.DeleteKey(..., {sub_key!r})')
-    winreg.DeleteKey(key, sub_key)
-
-
-def move_key(key, src, dst):
-    log(f'winreg.QueryValue(..., {src!r})')
-    value = winreg.QueryValue(key, src)
-
-    log(f'winreg.DeleteKey(..., {src!r})')
-    winreg.DeleteKey(key, src)
-
-    log(f'winreg.CreateKey(..., {dst!r})')
-    winreg.CreateKey(key, dst)
-
-    log(f'winreg.SetValue(..., {dst!r}, {winreg.REG_SZ!r}, {value!r})')
-    winreg.SetValue(key, dst, winreg.REG_SZ, value)
+def plain_name(indent: int, name: str) -> str:
+    return ' ' * indent + name
 
 
 def main(args=None) -> None:
