@@ -9,6 +9,7 @@ __license__ = 'MIT, see LICENSE.txt'
 __copyright__ = 'Copyright (c) 2020-2021 Sebastian Bank'
 
 import argparse
+from collections.abc import Iterable, Iterator
 import functools
 import itertools
 import pprint
@@ -75,7 +76,7 @@ def fix_dropbox_overlays(*, dry_run: bool) -> None:
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def iterchanges(keys):
+def iterchanges(keys: Iterable[str], /) -> Iterator[tuple[str, str | None]]:
     pairs = map(indent_name, keys)
     pairs = sorted(pairs, key=lambda x: (-x[0], x[1]))
 
@@ -89,10 +90,10 @@ def iterchanges(keys):
 
     assert all(n.startswith('DropboxExt') for n in (x_name + y_name))
 
-    for name in y_name:
-        yield plain_name(y_indent, name), None  # delete
-    for name in x_name:
-        yield plain_name(x_indent, name), plain_name(y_indent, name)  # move
+    for name in y_name:  # delete
+        yield plain_name(y_indent, name), None
+    for name in x_name:  # move
+        yield plain_name(x_indent, name), plain_name(y_indent, name)
 
 
 def indent_name(s: str, /) -> tuple[int, str]:
