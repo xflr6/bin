@@ -93,7 +93,7 @@ def git_pull_repos(target_dir: pathlib.Path, *repo_urls: str,
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def parse_url(s: str, /):
+def parse_url(s: str, /) -> dict[str, str]:
     if s.startswith('github.com:'):
         s = f'git@{s}'
     if not s.endswith('.git'):
