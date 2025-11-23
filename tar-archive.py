@@ -253,7 +253,7 @@ def make_exclude_match(exclude_paths: Iterable[pathlib.Path] | None):
 
 
 def iterfiles(root, /, exclude_match, *, infos=None,
-              sep: str = os.sep) - Iterator[str]:
+              sep: str = os.sep) -> Iterator[str]:
     n_dirs = n_files = n_symlinks = n_other = n_bytes = n_excluded = 0
 
     stack = [('', root)]
