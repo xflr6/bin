@@ -216,7 +216,7 @@ def iterpaths(path: pathlib.Path, /, *,
         for line in f:
             if (line := line.strip()) and not line.startswith('#'):
                 yield path
-    
+
 
 def make_exclude_match(exclude_paths: Iterable[pathlib.Path] | None):
     if exclude_paths is None:
