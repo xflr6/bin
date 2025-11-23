@@ -40,7 +40,7 @@ def test_main(tmp_path, mocker, proc):
 
     assert outfd.name == str(result)
 
-    open_spy.assert_called_once_with(result, 'xb', opener=mocker.ANY)
+    open_spy.assert_called_once_with(result, mode='xb', opener=mocker.ANY)
     opener = open_spy.call_args.kwargs['opener']
     assert isinstance(opener, functools.partial) and opener.func is os.open
     assert (opener.args, opener.keywords) == ((), {'mode': 0o600})

@@ -22,7 +22,7 @@ import warnings
 GISTS = 'https://api.github.com/users/{username}/gists'
 
 
-def directory(s: str) -> pathlib.Path:
+def directory(s: str, /) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
     except ValueError:
@@ -69,20 +69,25 @@ def git_pull_gists(target_dir: pathlib.Path, *gh_usernames: str,
             g_dir = target_dir / url['dir']
             log(f'target: {g_dir}/', end='')
 
-            (removed, clone) = removed_clone(g_dir, reset=reset)
-            if removed:
-                n_reset += 1
+            if reset and g_dir.exists():
+                if not g_dir.is_dir():  # pragma: no cover
+                    raise RuntimeError(f'{g_dir} is not a directory')
+                if prompt_for_deletion(g_dir):
+                    log(f'shutil.rmtree({g_dir})')
+                    shutil.rmtree(path)
+                    n_reset += 1
+                    assert not g_dir.exists()
+                else:
+                    log(f'kept: {g_dir}/ (inode={g_dir.stat().st_ino})')
 
-            if clone:
+            if (clone := not g_dir.exists()):
                 log()
                 cmd = ['git', 'clone', '--mirror', url['url']]
                 cwd = target_dir
-                n_cloned += 1
             else:
                 log(f' (inode={g_dir.stat().st_ino})')
                 cmd = ['git', 'remote', 'update']
                 cwd = g_dir
-                n_updated += 1
 
             print(f'subprocess.run({cmd}, cwd={cwd})')
             log(f'{"[ start git ]":-^80}')
@@ -90,15 +95,15 @@ def git_pull_gists(target_dir: pathlib.Path, *gh_usernames: str,
                 proc = subprocess.run(cmd, cwd=cwd, check=True)
             except subprocess.CalledProcessError as e:  # pragma: no cover
                 n_failed += 1
-                if clone:
-                    n_cloned -= 1
-                else:
-                    n_updated -= 1
                 log(f'{"[ end git ]":-^80}')
                 warnings.warn(str(e))
                 if not prompt_for_continuation():
                     return 'exiting'
             else:
+                if clone:
+                    n_cloned += 1
+                else:
+                    n_updated += 1
                 log(f'{"[ end git ]":-^80}')
                 log(f'returncode: {proc.returncode}')
 
@@ -119,45 +124,24 @@ def itergists(username: str):
     while url is not None:
         log(f'urllib.request.urlopen({url})')
         with urllib.request.urlopen(url) as u:
-            gists = json.load(u)
+            yield from json.load(u)
         links = [l.partition('; ') for l in u.info().get('Link', '').split(', ')]
         links = {r: u.partition('<')[2].partition('>')[0] for u, _, r in links}
         url = links.get('rel="next"')
 
-        yield from gists
 
-
-def parse_url(s: str):
+def parse_url(s: str, /) -> dict[str, str]:
     return re.search(r'(?P<url>.*/(?P<dir>[^/]+))$', s).groupdict()
 
 
-def removed_clone(path: pathlib.Path, *, reset: bool = False):
-    removed = clone = False
-    if path.exists():
-        if not path.is_dir():  # pragma: no cover
-            raise RuntimeError(f'path is not a directory: {path}')
-        if reset and prompt_for_deletion(path):
-            removed = clone = True
-    else:
-        clone = True
-    return removed, clone
-
-
-def prompt_for_deletion(path: pathlib.Path) -> bool:  # pragma: no cover
-    line = None
+def prompt_for_deletion(path: pathlib.Path, /) -> bool:  # pragma: no cover
+    line: str | None = None
     while line is None or (line and line not in ('y', 'yes')):
         line = input(f'delete {path}/? [(y)es=delete/ENTER=keep]: ')
-
-    if line in ('y', 'yes'):
-        log(f'shutil.rmtree({path})')
-        shutil.rmtree(path)
-        return True
-    else:
-        log(f'kept: {path}/ (inode={path.stat().st_ino})')
-        return False
+    return line in ('y', 'yes')
 
 
-def prompt_for_continuation():  # pragma: no cover
+def prompt_for_continuation() -> bool:  # pragma: no cover
     line = None
     while line is None or (line and line.strip().lower() not in ('q', 'quit')):
         if line is not None:

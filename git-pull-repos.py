@@ -17,7 +17,7 @@ import subprocess
 import sys
 
 
-def directory(s: str) -> pathlib.Path:
+def directory(s: str, /) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
     except (TypeError, ValueError):
@@ -57,11 +57,19 @@ def git_pull_repos(target_dir: pathlib.Path, *repo_urls: str,
         g_dir = target_dir / url['dir']
         log(f'target: {g_dir}/', end='')
 
-        (removed, clone) = removed_clone(g_dir, reset=reset)
-        if removed:
-            n_reset += 1
+        if reset and g_dir.exists():
+            if not path.is_dir():
+                raise RuntimeError(f'{g_dir} is not a directory')
+            if prompt_for_deletion(g_dir):
+                log(f'shutil.rmtree({g_dir})')
+                shutil.rmtree(path)
+                n_reset += 1
+                assert g_dir.exists()
+            else:
+                log(f'kept: {path}/ (inode={path.stat().st_ino})')
 
-        if clone:
+
+        if not g_dir.exists():
             log()
             cmd = ['git', 'clone', '--mirror', url['url']]
             cwd = target_dir
@@ -85,7 +93,7 @@ def git_pull_repos(target_dir: pathlib.Path, *repo_urls: str,
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def parse_url(s: str):
+def parse_url(s: str, /):
     if s.startswith('github.com:'):
         s = f'git@{s}'
     if not s.endswith('.git'):
@@ -93,30 +101,11 @@ def parse_url(s: str):
     return re.search(r'(?P<url>.*/(?P<dir>[^/]+))$', s).groupdict()
 
 
-def removed_clone(path: pathlib.Path, *, reset: bool = False):
-    removed = clone = False
-    if path.exists():
-        if not path.is_dir():
-            raise RuntimeError(f'path is not a directory: {path}')
-        if reset and prompt_for_deletion(path):
-            removed = clone = True
-    else:
-        clone = True
-    return removed, clone
-
-
-def prompt_for_deletion(path: pathlib.Path) -> bool:  # pragma: no cover
+def prompt_for_deletion(path: pathlib.Path, /) -> bool:  # pragma: no cover
     line = None
     while line is None or (line and line not in ('y', 'yes')):
         line = input(f'delete {path}/? [(y)es=delete/ENTER=keep]: ')
-
-    if line in ('y', 'yes'):
-        log(f'shutil.rmtree({path})')
-        shutil.rmtree(path)
-        return True
-    else:
-        log(f'kept: {path}/ (inode={path.stat().st_ino})')
-        return False
+    return line in ('y', 'yes')
 
 
 def main(args=None) -> str | None:

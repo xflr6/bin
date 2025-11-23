@@ -28,12 +28,18 @@ COMPRESS = {'.bz2': ['bzip2'],
             '.xz': ['xz'],
             '.zst': ['zstd']}
 
-CHMOD = stat.S_IRUSR
+MODE_MASK = 0o777
+assert stat.filemode(MODE_MASK) == '?rwxrwxrwx'
+assert MODE_MASK == stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
+
+CHMOD = 0o400
+assert stat.filemode(CHMOD) == '?r--------'
+assert CHMOD == stat.S_IRUSR
 
 SUBPROCESS_PATH = '/usr/bin:/bin'
 
 
-def directory(s: str) -> pathlib.Path:
+def directory(s: str, /) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
     except ValueError:
@@ -44,7 +50,7 @@ def directory(s: str) -> pathlib.Path:
     return result
 
 
-def template(s: str) -> str:
+def template(s: str, /) -> str:
     try:
         result = time.strftime(s)
     except ValueError:
@@ -57,17 +63,16 @@ def template(s: str) -> str:
     return result
 
 
-def mode(s: str, *,
-         _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO) -> int:
+def mode(s: str, /) -> int:
     try:
         result = int(s, 8)
     except ValueError:
         result = None
 
-    if result is None or not 0 <= result <= _mode_mask:
-        raise argparse.ArgumentTypeError(f'need octal int between {0:03o}'
-                                         f' and {_mode_mask:03o}: {s}')
-    return result
+    if result is None or not 0 <= result <= MODE_MASK:
+        raise argparse.ArgumentTypeError(f'need octal int between {oct(0)}'
+                                         f' and {oct(MODE_MASK)}: {s}')
+    return stat.S_IMODE(result)
 
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -141,21 +146,18 @@ def svn_dumpall(target_dir: pathlib.Path, *repo_dirs: pathlib.Path, name: str,
             n_found += 1
 
         dump_start = time.monotonic()
-        with open(dest_path, 'xb', **open_kwargs) as f:
+        with open(dest_path, mode='xb', **open_kwargs) as f:
             run_pipe(cmd + [d], *filter_cmds, stdout=f, check=True, **kwargs)
+        n_dumped += 1
         dump_stop = time.monotonic()
         log(f'time elapsed: {datetime.timedelta(seconds=dump_stop - dump_start)}')
-        n_dumped += 1
 
         if not dest_path.exists():
             return 'error: result file not found'
-
-        dest_size = dest_path.stat().st_size
+        n_bytes += (dest_size := dest_path.stat().st_size)
         print(f'{caption} > {dest_path} ({dest_size:_d} bytes)')
         if not dest_size:
             return 'error: result file is empty'
-        n_bytes += dest_size
-
         if found_size is not None:
             diff = dest_size - found_size
             log(f'size difference: {diff}' if diff else 'no size difference')
@@ -194,7 +196,7 @@ def pipe_args_kwargs(name, *,
     return cmd, filter_cmds, {'env': {'PATH': set_path}}
 
 
-def run_pipe(cmd, *filter_cmds, check: bool = False, **kwargs):
+def run_pipe(cmd, /, *filter_cmds, check: bool = False, **kwargs):
     procs = map_popen([cmd] + list(filter_cmds), **kwargs)
     with contextlib.ExitStack() as s:
         procs = [s.enter_context(p) for p in procs]
@@ -208,7 +210,7 @@ def run_pipe(cmd, *filter_cmds, check: bool = False, **kwargs):
                                                     output=out, stderr=err)
 
 
-def map_popen(commands, *, stdin=None, stdout=None, **kwargs):
+def map_popen(commands, /, *, stdin=None, stdout=None, **kwargs):
     for has_next, cmd in enumerate(commands, 1 - len(commands)):
         log(f'subprocess.Popen({cmd}, **{kwargs})',
             '| ' if has_next else f'> {stdout}\n', sep=' ', end='')

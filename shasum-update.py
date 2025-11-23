@@ -12,7 +12,7 @@ __copyright__ = 'Copyright (c) 2017,2020 Sebastian Bank'
 
 import argparse
 import codecs
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 import functools
 import hashlib
 import pathlib
@@ -22,7 +22,7 @@ import sys
 ENCODING = 'utf-8'
 
 
-def present_file(s: str) -> pathlib.Path:
+def present_file(s: str, /) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
     except ValueError:
@@ -33,14 +33,14 @@ def present_file(s: str) -> pathlib.Path:
     return result
 
 
-def encoding(s: str) -> str:
+def encoding(s: str, /) -> str:
     try:
         return codecs.lookup(s).name
     except LookupError:
         raise argparse.ArgumentTypeError(f'unknown encoding: {s}')
 
 
-def file_checksum_pattern(s: str):
+def file_checksum_pattern(s: str, /):
     try:
         result = re.compile(s, flags=re.DOTALL)
     except re.error as e:
@@ -51,19 +51,14 @@ def file_checksum_pattern(s: str):
     return result
 
 
-def present_file_glob(s: str) -> list[pathlib.Path]:
+def present_file_glob(s: str, /) -> list[pathlib.Path]:
     paths = list(pathlib.Path().glob(s))
     if not paths:
         raise argparse.ArgumentTypeError(f'no file(s) matched: {s}')
-
-    missing = [p for p in paths if not p.exists()]
-    if missing:
+    if (missing := [p for p in paths if not p.exists()]):
         raise argparse.ArgumentTypeError(f'file(s) not found: {missing}')
-
-    nonfiles = [p for p in paths if p.exists() and not p.is_file()]
-    if nonfiles:
+    if (nonfiles := [p for p in paths if p.exists() and not p.is_file()]):
         raise argparse.ArgumentTypeError(f'matched non-file(s): {nonfiles}')
-
     return paths
 
 
@@ -100,11 +95,12 @@ def shasum_update(*glob_paths: Sequence[pathlib.Path], target: pathlib.Path | No
     log(*(f'{f} {s}' for f, s in sums.items()))
 
     if target is not None:
-        updated = interpolate(target,
-                              pattern=pattern,
-                              sums=sums,
-                              encoding=encoding)
-
+        with open(target, encoding=encoding) as f:
+            text = f.read()
+        (text, updated) = interpolate(text, pattern=pattern, sums=sums)
+        if updated:
+            with open(target, mode='wt', encoding=encoding) as f:
+                f.write(text)
         log('\n%d updated%s' % (len(updated),
                                 (' %r' % updated) if updated else ''))
         if confirm and updated:
@@ -116,34 +112,24 @@ log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
 def sha256sum(filename, /) -> str:
-    with open(filename, 'rb') as f:
+    with open(filename, mode='rb') as f:
         s = hashlib.file_digest(f, hashlib.sha256)
     return s.hexdigest()
 
 
-def interpolate(filename, *, pattern, sums, encoding: str):
-    updated = []
+def interpolate(text: str, /, *, pattern: re.Pattern[str],
+                sums: Mapping[str, str]) -> tuple[str, list[str]]:
+    updated: list[str] = []
 
-    def repl(ma):
-        hash_ = sums[ma.group(1)]
-        if ma.group(2) != hash_:
-            updated.append(ma.group(1))
-        context = ma.string[ma.start():ma.start(2)]
-        return context + hash_
-
-    with open(filename, encoding=encoding) as f:
-        text = f.read()
+    def repl(ma: re.Match[str]) -> str:
+        if (hash_ := sums[ma[1]]) != ma[2]:
+            updated.append(ma[1])
+        return ma.string[ma.start():ma.start(2)] + hash_
 
     (text, n) = pattern.subn(repl, text)
-
     if n != len(sums):
         raise ValueError(f'mismatch {len(sums)} files but {n} pattern matches')
-
-    if updated:
-        with open(filename, 'wt', encoding=encoding) as f:
-            f.write(text)
-
-    return updated
+    return text, updated
 
 
 def main(args=None) -> str | None:

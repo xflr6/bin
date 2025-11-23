@@ -21,18 +21,22 @@ import time
 
 NAME_TEMPLATE = '%Y%m%d-%H%M.sfs'
 
+MODE_MASK = 0o777
+assert stat.filemode(MODE_MASK) == '?rwxrwxrwx'
+assert MODE_MASK == stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
+
+SET_UMASK = 0o177
+assert stat.filemode(SET_UMASK) == '?--xrwxrwx'
+assert SET_UMASK == stat.S_IXUSR | stat.S_IRWXG | stat.S_IRWXO
+
 CHMOD = 0o400
 assert stat.filemode(CHMOD) == '?r--------'
 assert CHMOD == stat.S_IRUSR
 
 SUBPROCESS_PATH = '/usr/bin'
 
-SET_UMASK = 0o177
-assert stat.filemode(SET_UMASK) == '?--xrwxrwx'
-assert SET_UMASK == stat.S_IXUSR | stat.S_IRWXG | stat.S_IRWXO
 
-
-def directory(s: str) -> pathlib.Path:
+def directory(s: str, /) -> pathlib.Path:
     try:
         result = pathlib.Path(s)
     except ValueError:
@@ -43,7 +47,7 @@ def directory(s: str) -> pathlib.Path:
     return result
 
 
-def template(s: str) -> str:
+def template(s: str, /) -> str:
     try:
         result = time.strftime(s)
     except ValueError:
@@ -54,7 +58,7 @@ def template(s: str) -> str:
     return result
 
 
-def present_file(s: str) -> pathlib.Path:
+def present_file(s: str, /) -> pathlib.Path:
     if not s:
         return None
     try:
@@ -67,7 +71,7 @@ def present_file(s: str) -> pathlib.Path:
     return result
 
 
-def user(s: str) -> str:
+def user(s: str, /) -> str:
     import pwd  # not on Windows
 
     try:
@@ -77,7 +81,7 @@ def user(s: str) -> str:
     return s
 
 
-def group(s: str) -> str:
+def group(s: str, /) -> str:
     import grp  # not on Windows
 
     try:
@@ -87,17 +91,16 @@ def group(s: str) -> str:
     return s
 
 
-def mode(s: str, *,
-         _mode_mask=stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO) -> int:
+def mode(s: str, /) -> int:
     try:
         result = int(s, 8)
     except ValueError:
         result = None
 
-    if result is None or not 0 <= result <= _mode_mask:
+    if result is None or not 0 <= result <= MODE_MASK:
         raise argparse.ArgumentTypeError(f'need octal int between {oct(0)}'
-                                         f' and {oct(_mode_mask)}: {s}')
-    return result
+                                         f' and {oct(MODE_MASK)}: {s}')
+    return stat.S_IMODE(result)
 
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -177,7 +180,6 @@ def squashfs_image(source_dir: pathlib.Path, dest_dir: pathlib.Path, *, name: st
 
     log(f'returncode: {proc.returncode}',
         f'time elapsed: {datetime.timedelta(seconds=stop - start)}')
-
     if not dest_path.exists():
         return 'error: result file not found'
     dest_stat = dest_path.stat()
@@ -195,21 +197,24 @@ def squashfs_image(source_dir: pathlib.Path, dest_dir: pathlib.Path, *, name: st
     log(format_permissions(dest_path.stat()))
 
     if ask_for_deletion:
-        prompt_for_deletion(dest_path)  # pragma: no cover
+        if prompt_for_deletion(dest_path):  # pragma: no cover
+            dest_path.unlink()
+            log(f'{dest_path} deleted.')
+        else:
+            log(f'kept {dest_path}.')
     return None
 
 
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def run_args_kwargs(source_dir, dest_path, *,
-                    exclude_file, comp, set_path, quiet):
+def run_args_kwargs(source_dir: pathlib.Path, dest_path: pathlib.Path, *,
+                    exclude_file: pathlib.Path | None,
+                    comp: str, set_path: str, quiet: bool):
     cmd = ['mksquashfs', source_dir, dest_path, '-noappend']
-
     if exclude_file is not None:
         log(f'mksquashfs exclude file: {exclude_file}')
         cmd.extend(['-ef', exclude_file])
-
     if comp is not None:
         log(f'mksquashfs compression: {comp}')
         cmd.extend(['-comp', comp])
@@ -218,34 +223,28 @@ def run_args_kwargs(source_dir, dest_path, *,
     # see https://docs.python.org/3/library/subprocess.html#subprocess.Popen
     kwargs = {'env': {'PATH': set_path}}
     if quiet:
-        kwargs['stdout'] = kwargs['stderr'] = subprocess.DEVNULL
+        kwargs.setdefault('stdout', subprocess.DEVNULL)
+        kwargs.setdefault('stderr', subprocess.DEVNULL)
 
     return cmd, kwargs
 
 
-def format_permissions(stat_result):
-    import grp  # not available on Windows
+def format_permissions(stat_result, /) -> str:
+    import grp  # not on Windows
     import pwd
 
-    owner = pwd.getpwuid(stat_result.st_uid).pw_name
-    group = grp.getgrgid(stat_result.st_gid).gr_name
-    mode = stat.filemode(stat_result.st_mode)
-    return f'file permissions: {mode} (owner={owner}, group={group})'
+    return (f'file permissions: {stat.filemode(stat_result.st_mode)}'
+            f' (owner={pwd.getpwuid(stat_result.st_uid).pw_name},'
+            f' group={grp.getgrgid(stat_result.st_gid).gr_name})')
 
 
-def prompt_for_deletion(path: pathlib.Path) -> bool:  # pragma: no cover
-    line = None
+def prompt_for_deletion(path: pathlib.Path, /) -> bool:  # pragma: no cover
+    line: str | None = None
     while line is None or (line and line.strip().lower() not in ('q', 'quit')):
         if line is not None:
             print('  (enter q(uit) or use CTRL-C to exit and keep the file)')
         line = input(f'to delete {path}, press enter [ENTER=delete]: ')
-    if line:
-        log(f'kept {path}.')
-        return False
-    else:
-        path.unlink()
-        log(f'{path} deleted.')
-        return True
+    return not line
 
 
 def main(args=None) -> str | None:
