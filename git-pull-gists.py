@@ -50,69 +50,67 @@ parser.add_argument('--detail', dest='quiet', action='store_false',
 parser.add_argument('--version', action='version', version=__version__)
 
 
-def git_pull_gists(target_dir: pathlib.Path, *gh_usernames: str,
+def git_pull_gists(target_dir: pathlib.Path, gh_username: str, *,
                    reset: bool) -> str | None:
-    for gh_username in gh_usernames:
-        print(f'pull all public gist repos of {gh_username}'
-              f' into: {target_dir}/')
+    print(f'pull all public gist repos of {gh_username}'
+          f' into: {target_dir}/')
 
-        gists = list(itergists(username=gh_username))
-        print(f'pull {len(gists)} repo(s) into: {target_dir}/')
+    gists = list(itergists(username=gh_username))
+    print(f'pull {len(gists)} repo(s) into: {target_dir}/')
 
-        n_reset = n_cloned = n_updated = n_failed = 0
-        for g in gists:
-            print()
-            url = g['git_push_url']
-            log(f'source: {url}')
+    n_reset = n_cloned = n_updated = n_failed = 0
+    for g in gists:
+        print()
+        url = g['git_push_url']
+        log(f'source: {url}')
 
-            url = parse_url(url)
-            g_dir = target_dir / url['dir']
-            log(f'target: {g_dir}/', end='')
+        url = parse_url(url)
+        g_dir = target_dir / url['dir']
+        log(f'target: {g_dir}/', end='')
 
-            if reset and g_dir.exists():
-                if not g_dir.is_dir():  # pragma: no cover
-                    raise RuntimeError(f'{g_dir} is not a directory')
-                if prompt_for_deletion(g_dir):
-                    log(f'shutil.rmtree({g_dir})')
-                    shutil.rmtree(path)
-                    n_reset += 1
-                    assert not g_dir.exists()
-                else:
-                    log(f'kept: {g_dir}/ (inode={g_dir.stat().st_ino})')
-
-            if (clone := not g_dir.exists()):
-                log()
-                cmd = ['git', 'clone', '--mirror', url['url']]
-                cwd = target_dir
+        if reset and g_dir.exists():
+            if not g_dir.is_dir():  # pragma: no cover
+                raise RuntimeError(f'{g_dir} is not a directory')
+            if prompt_for_deletion(g_dir):
+                log(f'shutil.rmtree({g_dir})')
+                shutil.rmtree(path)
+                n_reset += 1
+                assert not g_dir.exists()
             else:
-                log(f' (inode={g_dir.stat().st_ino})')
-                cmd = ['git', 'remote', 'update']
-                cwd = g_dir
+                log(f'kept: {g_dir}/ (inode={g_dir.stat().st_ino})')
 
-            print(f'subprocess.run({cmd}, cwd={cwd})')
-            log(f'{"[ start git ]":-^80}')
-            try:
-                proc = subprocess.run(cmd, cwd=cwd, check=True)
-            except subprocess.CalledProcessError as e:  # pragma: no cover
-                n_failed += 1
-                log(f'{"[ end git ]":-^80}')
-                warnings.warn(str(e))
-                if not prompt_for_continuation():
-                    return 'exiting'
+        if (clone := not g_dir.exists()):
+            log()
+            cmd = ['git', 'clone', '--mirror', url['url']]
+            cwd = target_dir
+        else:
+            log(f' (inode={g_dir.stat().st_ino})')
+            cmd = ['git', 'remote', 'update']
+            cwd = g_dir
+
+        print(f'subprocess.run({cmd}, cwd={cwd})')
+        log(f'{"[ start git ]":-^80}')
+        try:
+            proc = subprocess.run(cmd, cwd=cwd, check=True)
+        except subprocess.CalledProcessError as e:  # pragma: no cover
+            n_failed += 1
+            log(f'{"[ end git ]":-^80}')
+            warnings.warn(str(e))
+            if not prompt_for_continuation():
+                return 'exiting'
+        else:
+            if clone:
+                n_cloned += 1
             else:
-                if clone:
-                    n_cloned += 1
-                else:
-                    n_updated += 1
-                log(f'{"[ end git ]":-^80}')
-                log(f'returncode: {proc.returncode}')
+                n_updated += 1
+            log(f'{"[ end git ]":-^80}')
+            log(f'returncode: {proc.returncode}')
 
-        print('\ndone'
-              f'(reset={n_reset},'
-              f' cloned={n_cloned},'
-              f' updated={n_updated},'
-              f' failed={n_failed}).')
-
+    print('\ndone'
+          f'(reset={n_reset},'
+          f' cloned={n_cloned},'
+          f' updated={n_updated},'
+          f' failed={n_failed}).')
     return None
 
 
@@ -155,7 +153,11 @@ def main(args=None) -> str | None:
     if args.quiet:
         global log
         log = lambda *args, **kwargs: None
-    return git_pull_gists(args.target_dir, *args.gh_username, reset=args.reset)
+    for gh_username in args.gh_username:
+        result = git_pull_gists(args.target_dir, gh_username, reset=args.reset)
+        if result is not None:
+            return result
+    return None
 
 
 if __name__ == '__main__':  # pragma: no cover
