@@ -16,7 +16,7 @@ jobs:
           - python-version: "3.11"
     steps:
       - name: Checkout source repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
@@ -32,6 +32,6 @@ jobs:
       - name: Run tests
         run: python _run-tests.py
       - name: Upload test coverage
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
