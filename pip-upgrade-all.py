@@ -103,7 +103,6 @@ def user_confirmed(message: str, /, default: bool | None) -> bool:
     prompt = f'{message}? {hint}: '
     while (line := input(prompt)) not in possible_answers:
         print('  (enter y(es) or n(o), or use CTRL-C to exit)')
-        pass
     if not line:
         assert default is not None
         return default

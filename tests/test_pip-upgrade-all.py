@@ -24,9 +24,9 @@ def mock_input(monkeypatch, mocker):
 
 @pytest.mark.parametrize(
     'pip_list_out, input_answers, asked_packages, upgraded_packages',
-    [(PIP_LIST_STDOUT, ['yes', 'y', 'y', 'y'],
+    [(PIP_LIST_STDOUT, ['yes', 'y', '', 'y'],
       ['docutils', 'pandas', 'pytest'], ['docutils', 'pandas', 'pytest']),
-     (PIP_LIST_STDOUT, ['no', 'n', 'y', 'y'],
+     (PIP_LIST_STDOUT, ['no', 'n', 'y', 'yes'],
       ['docutils', 'pandas', 'pytest'], ['pytest']),
      (PIP_LIST_STDOUT, ['no', 'n', 'y', 'n'],
       ['docutils', 'pandas', 'pytest'], []),
