@@ -46,9 +46,8 @@ def pip_upgrade_all() -> str | None:
     print('', 'Packages to --upgrade:', sep='\n')
     names = [p.name for p in packages]
     cmd = [sys.executable, '-m', 'pip', 'install', '--upgrade'] + names
-    print(*names, sep='\n')
-    print()
-    if not user_confirmed(f'Run {cmd}', default=None):
+    print(*names, sep='\n', end='\n\n')
+    if not user_confirmed(f'Run {" ".join(cmd[2:])}', default=None):
         return 'Upgrade aborted on request.'
     run(cmd, capture_output=False)
 
@@ -56,20 +55,21 @@ def pip_upgrade_all() -> str | None:
 def outdated_packages() -> Iterator[str]:
     proc = run([sys.executable, '-m', 'pip', 'list', '--outdated'],
                capture_output=True)
-    print(proc.stdout.rstrip(), end='\n\n')
+    stdout = proc.stdout.rstrip()
+    print(stdout, end='\n\n')
+    if not stdout:
+        return
     (header, sep, *body) = proc.stdout.splitlines()
     assert re.fullmatch(r'Package +Version +Latest +Type', header)
     assert re.fullmatch(r'-+ -+ -+ -+', sep)
-    return map(OutdatedPackage.from_line, body)
+    yield from map(OutdatedPackage.from_line, body)
 
 
 def run(cmd: Sequence[str], /, *,
         capture_output: bool) -> subprocess.CompletedProcess[str]:
     print(f'subprocess.run({cmd})', file=sys.stderr)
-    kwargs = {'capture_output': capture_output}
-    if capture_output:
-        kwargs['encoding'] = 'utf-8'
-    return subprocess.run(cmd, check=True, **kwargs)
+    return subprocess.run(cmd, check=True, text=True,
+                          capture_output=capture_output)
 
 
 class OutdatedPackage(NamedTuple):
