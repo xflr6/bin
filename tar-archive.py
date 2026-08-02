@@ -322,11 +322,9 @@ def format_permissions(stat_result, /) -> str:
 
 
 def prompt_for_deletion(path: pathlib.Path, /) -> bool:  # pragma: no cover
-    line: str | None = None
-    while line is None or (line and line.strip().lower() not in ('q', 'quit')):
-        if line is not None:
-            print('  (enter q(uit) or use CTRL-C to exit and keep the file)')
-        line = input(f'to delete {path}, press enter [ENTER=delete]: ')
+    prompt = f'to delete {path}, press enter [ENTER=delete]: '
+    while (line := input(prompt)) and line.strip().lower() not in ('q', 'quit'):
+        print('  (enter q(uit) or use CTRL-C to exit and keep the file)')
     return not line
 
 

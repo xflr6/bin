@@ -140,11 +140,9 @@ def prompt_for_deletion(path: pathlib.Path, /) -> bool:  # pragma: no cover
 
 
 def prompt_for_continuation() -> bool:  # pragma: no cover
-    line = None
-    while line is None or (line and line.strip().lower() not in ('q', 'quit')):
-        if line is not None:
-            print('  (enter q(uit) or use CTRL-C to exit)')
-        line = input('to continue, press enter [ENTER=continue]: ')
+    prompt = 'to continue, press enter [ENTER=continue]: '
+    while (line := input(prompt)) and line.strip().lower() not in ('q', 'quit'):
+        print('  (enter q(uit) or use CTRL-C to exit)')
     return not line
 
 
