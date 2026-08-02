@@ -73,7 +73,7 @@ def git_pull_gists(target_dir: pathlib.Path, gh_username: str, *,
                 raise RuntimeError(f'{g_dir} is not a directory')
             if prompt_for_deletion(g_dir):
                 log(f'shutil.rmtree({g_dir})')
-                shutil.rmtree(path)
+                shutil.rmtree(g_dir)
                 n_reset += 1
                 assert not g_dir.exists()
             else:

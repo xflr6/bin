@@ -58,16 +58,15 @@ def git_pull_repos(target_dir: pathlib.Path, *repo_urls: str,
         log(f'target: {g_dir}/', end='')
 
         if reset and g_dir.exists():
-            if not path.is_dir():
+            if not g_dir.is_dir():
                 raise RuntimeError(f'{g_dir} is not a directory')
             if prompt_for_deletion(g_dir):
                 log(f'shutil.rmtree({g_dir})')
-                shutil.rmtree(path)
+                shutil.rmtree(g_dir)
                 n_reset += 1
                 assert g_dir.exists()
             else:
-                log(f'kept: {path}/ (inode={path.stat().st_ino})')
-
+                log(f'kept: {g_dir}/ (inode={g_dir.stat().st_ino})')
 
         if not g_dir.exists():
             log()
