@@ -184,6 +184,20 @@ options:
 ```
 
 
+### pip-upgrade-all.py
+
+```shell
+$ pip-upgrade-all.py --help
+usage: pip-upgrade-all.py [-h] [--version]
+
+Run pip list --outdated, ask for confirmation, and run pip install --upgrade.
+
+options:
+  -h, --help  show this help message and exit
+  --version   show program's version number and exit
+```
+
+
 ### serve-asciimation.py
 
 ```shell
