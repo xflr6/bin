@@ -135,7 +135,7 @@ def parse_url(s: str, /) -> dict[str, str]:
 def prompt_for_deletion(path: pathlib.Path, /) -> bool:  # pragma: no cover
     line: str | None = None
     while line is None or (line and line not in ('y', 'yes')):
-        line = input(f'delete {path}/? [(y)es=delete/ENTER=keep]: ')
+        line = input(f'delete {path}/? [y(es)=delete/ENTER=keep]: ')
     return line in ('y', 'yes')
 
 
