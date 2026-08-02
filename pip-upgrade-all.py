@@ -3,7 +3,6 @@
 """Run pip list --outdated, ask for confirmation, and run pip install --upgrade.
 
 References:
-
 - https://pip.pypa.io/en/stable/user_guide/#using-pip-from-your-program
 """
 
