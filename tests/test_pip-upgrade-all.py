@@ -57,7 +57,8 @@ def test_main(capsys, mocker, mock_run, mock_input, pip_list_out, input_answers,
         assert result is None
 
     (out, _) = capsys.readouterr()
-    assert out.startswith(pip_list_out)
+    assert out.startswith('Fetch --outdated packages to --upgrade...\n'
+                          + pip_list_out)
 
     list_call = mocker.call([mocker.ANY, '-m', 'pip', 'list', '--outdated'],
                             check=True, text=True, capture_output=True)

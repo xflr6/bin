@@ -21,53 +21,40 @@ import sys
 from typing import Self, NamedTuple
 import os
 
-ROW_PATTERN = re.compile(textwrap.dedent(r'''
-                                         (?P<package>[\w.-]+)
-                                         [ ]+
-                                         (?P<version>\S+)
-                                         [ ]+
-                                         (?P<latest>\S+)
-                                         [ ]+
-                                         (?P<type>[\w]+)
-                                         ''').strip(),
-                         flags=re.VERBOSE | re.ASCII)
-
-
-parser = argparse.ArgumentParser(description=__doc__.partition('\n')[0])
-
-parser.add_argument('--version', action='version', version=__version__)
-
 
 def pip_upgrade_all() -> str | None:
+    print('Fetch --outdated packages to --upgrade...')
     candidates = outdated_packages()
-    if not (packages := [c for c in candidates if c. ask_for_confirmation()]):
+    if not (packages := [p for p in candidates if p.ask_for_confirmation()]):
         print('', 'No packages to --upgrade, exiting.', sep='\n')
         return None
 
     print('', 'Packages to --upgrade:', sep='\n')
     names = [p.name for p in packages]
     print(*names, sep='\n', end='\n\n')
-    args = ['install', '--upgrade'] + names
-    if not user_confirmed(f'Run pip {" ".join(args)}', default=None):
+    pip_args = ['install', '--upgrade'] + names
+    if not user_confirmed(f'Run pip {" ".join(pip_args)}'):
         return 'Upgrade aborted on request.'
-    run_pip(args, capture_stdout=False)
+
+    run_pip(pip_args)
+    return None
 
 
 def outdated_packages() -> Iterator[str]:
-    stdout = run_pip(['list', '--outdated'], capture_stdout=True).rstrip()
-    print(stdout, end='\n\n')
-    if not stdout:
+    if not (stdout := run_pip(['list', '--outdated'], capture_stdout=True)):
         return iter([])
+    print(stdout, end='\n\n')
     (header, sep, *body) = stdout.splitlines()
     assert re.fullmatch(r'Package +Version +Latest +Type', header)
     assert re.fullmatch(r'-+ -+ -+ -+', sep)
     return map(OutdatedPackage.from_line, body)
 
 
-def run_pip(args: Sequence[str], /, *, capture_stdout: bool) -> str | None:
+def run_pip(args: Sequence[str], /, *,
+            capture_stdout: bool = False) -> str | None:
     cmd = [sys.executable, '-m', 'pip'] + args
     proc = run(cmd, capture_output=capture_stdout)
-    return proc.stdout if capture_stdout else None
+    return proc.stdout.rstrip() if capture_stdout else None
 
 
 def run(cmd: Sequence[str | os.PathLike[str]], /, *,
@@ -84,7 +71,16 @@ class OutdatedPackage(NamedTuple):
     latest: str
     type: str
 
-    _pattern = ROW_PATTERN
+    _pattern = re.compile(textwrap.dedent(r'''
+                                          (?P<package>[\w.-]+)
+                                          [ ]+
+                                          (?P<version>\S+)
+                                          [ ]+
+                                          (?P<latest>\S+)
+                                          [ ]+
+                                          (?P<type>[\w]+)
+                                          ''').strip(),
+                          flags=re.VERBOSE | re.ASCII)
 
     @classmethod
     def from_line(cls, line: str, /) -> Self:
@@ -92,17 +88,17 @@ class OutdatedPackage(NamedTuple):
             raise ValueError(f'failed to parse {line=}')
         return cls(ma['package'], ma['version'], ma['latest'], ma['type'])
 
-    def ask_for_confirmation(self) -> bool:
+    def ask_for_confirmation(self, *, default: bool | None = True) -> bool:
         message = (f'Upgrade {self.name}={self.version}'
                    f' to {self.latest} ({self.type})')
-        return user_confirmed(message, default=True)
+        return user_confirmed(message, default=default)
 
 
-def user_confirmed(message: str, /, default: bool | None) -> bool:
+def user_confirmed(message: str, /, *, default: bool | None = None) -> bool:
     possible_answers = ('y', 'yes', 'n', 'no')
     if default is not None:
-        hint = '[yes]/no' if default else 'yes/[no]'
         possible_answers = ('',) + possible_answers
+        hint = '[yes]/no' if default else 'yes/[no]'
     else:
         hint = 'yes/no'
 
@@ -111,15 +107,17 @@ def user_confirmed(message: str, /, default: bool | None) -> bool:
         print('  (enter y(es) or n(o), or use CTRL-C to exit)')
 
     if not line:
-        assert default is not None
+        assert default is not None, "implied by '' in possible_answers"
         return default
     return line.startswith('y')
 
 
 def main(args: Sequence[str] | None = None) -> str | None:
+    parser = argparse.ArgumentParser(description=__doc__.partition('\n')[0])
+    parser.add_argument('--version', action='version', version=__version__)
     args = parser.parse_args(args)
     return pip_upgrade_all()
 
 
 if __name__ == '__main__':
-    parser.exit(main())
+    sys.exit(main())
