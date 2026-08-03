@@ -19,6 +19,7 @@ import textwrap
 import subprocess
 import sys
 from typing import Self, NamedTuple
+import os
 
 ROW_PATTERN = re.compile(textwrap.dedent(r'''
                                          (?P<package>[\w.-]+)
@@ -42,29 +43,34 @@ def pip_upgrade_all() -> str | None:
     if not (packages := [c for c in candidates if c. ask_for_confirmation()]):
         print('', 'No packages to --upgrade, exiting.', sep='\n')
         return None
+
     print('', 'Packages to --upgrade:', sep='\n')
     names = [p.name for p in packages]
-    cmd = [sys.executable, '-m', 'pip', 'install', '--upgrade'] + names
     print(*names, sep='\n', end='\n\n')
-    if not user_confirmed(f'Run {" ".join(cmd[2:])}', default=None):
+    args = ['install', '--upgrade'] + names
+    if not user_confirmed(f'Run pip {" ".join(args)}', default=None):
         return 'Upgrade aborted on request.'
-    run(cmd, capture_output=False)
+    run_pip(args, capture_stdout=False)
 
 
 def outdated_packages() -> Iterator[str]:
-    proc = run([sys.executable, '-m', 'pip', 'list', '--outdated'],
-               capture_output=True)
-    stdout = proc.stdout.rstrip()
+    stdout = run_pip(['list', '--outdated'], capture_stdout=True).rstrip()
     print(stdout, end='\n\n')
     if not stdout:
-        return
-    (header, sep, *body) = proc.stdout.splitlines()
+        return iter([])
+    (header, sep, *body) = stdout.splitlines()
     assert re.fullmatch(r'Package +Version +Latest +Type', header)
     assert re.fullmatch(r'-+ -+ -+ -+', sep)
-    yield from map(OutdatedPackage.from_line, body)
+    return map(OutdatedPackage.from_line, body)
 
 
-def run(cmd: Sequence[str], /, *,
+def run_pip(args: Sequence[str], /, *, capture_stdout: bool) -> str | None:
+    cmd = [sys.executable, '-m', 'pip'] + args
+    proc = run(cmd, capture_output=capture_stdout)
+    return proc.stdout if capture_stdout else None
+
+
+def run(cmd: Sequence[str | os.Pathlike[str]], /, *,
         capture_output: bool) -> subprocess.CompletedProcess[str]:
     print(f'subprocess.run({cmd})', file=sys.stderr)
     return subprocess.run(cmd, check=True, text=True,
@@ -73,12 +79,12 @@ def run(cmd: Sequence[str], /, *,
 
 class OutdatedPackage(NamedTuple):
 
-    _pattern = ROW_PATTERN
-
     name: str
     version: str
     latest: str
     type: str
+
+    _pattern = ROW_PATTERN
 
     @classmethod
     def from_line(cls, line: str, /) -> Self:
@@ -99,9 +105,11 @@ def user_confirmed(message: str, /, default: bool | None) -> bool:
         possible_answers = ('',) + possible_answers
     else:
         hint = 'yes/no'
+
     prompt = f'{message}? {hint}: '
     while (line := input(prompt)) not in possible_answers:
         print('  (enter y(es) or n(o), or use CTRL-C to exit)')
+
     if not line:
         assert default is not None
         return default
