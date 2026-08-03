@@ -43,6 +43,7 @@ def pip_upgrade_all() -> str | None:
 def outdated_packages() -> Iterator[str]:
     if not (stdout := run_pip(['list', '--outdated'], capture_stdout=True)):
         return iter([])
+
     print(stdout, end='\n\n')
     (header, sep, *body) = stdout.splitlines()
     assert re.fullmatch(r'Package +Version +Latest +Type', header)
@@ -88,10 +89,12 @@ class OutdatedPackage(NamedTuple):
             raise ValueError(f'failed to parse {line=}')
         return cls(ma['package'], ma['version'], ma['latest'], ma['type'])
 
+    @property
+    def message(self) -> str:
+        return f'Upgrade {self.name}={self.version} to {self.latest} ({self.type})'
+
     def ask_for_confirmation(self, *, default: bool | None = True) -> bool:
-        message = (f'Upgrade {self.name}={self.version}'
-                   f' to {self.latest} ({self.type})')
-        return user_confirmed(message, default=default)
+        return user_confirmed(self.message, default=default)
 
 
 def user_confirmed(message: str, /, *, default: bool | None = None) -> bool:
