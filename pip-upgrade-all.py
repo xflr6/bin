@@ -14,12 +14,12 @@ __copyright__ = 'Copyright (c) 2026 Sebastian Bank'
 
 import argparse
 from collections.abc import Iterator, Sequence
+import os
 import re
-import textwrap
 import subprocess
 import sys
+import textwrap
 from typing import Self, NamedTuple
-import os
 
 
 def pip_upgrade_all() -> str | None:
