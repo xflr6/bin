@@ -70,7 +70,7 @@ def run_pip(args: Sequence[str], /, *, capture_stdout: bool) -> str | None:
     return proc.stdout if capture_stdout else None
 
 
-def run(cmd: Sequence[str | os.Pathlike[str]], /, *,
+def run(cmd: Sequence[str | os.PathLike[str]], /, *,
         capture_output: bool) -> subprocess.CompletedProcess[str]:
     print(f'subprocess.run({cmd})', file=sys.stderr)
     return subprocess.run(cmd, check=True, text=True,
