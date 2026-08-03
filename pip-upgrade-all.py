@@ -6,6 +6,8 @@ References:
 - https://pip.pypa.io/en/stable/user_guide/#using-pip-from-your-program
 """
 
+from __future__ import annotations
+
 __title__ = 'pip-upgrade-all.py'
 __version__ = '0.1.dev0'
 __author__ = 'Sebastian Bank <sebastian.bank@uni-leipzig.de>'
@@ -40,15 +42,12 @@ def pip_upgrade_all() -> str | None:
     return None
 
 
-def outdated_packages() -> Iterator[str]:
+def outdated_packages() -> Iterator[OutdatedPackage]:
     if not (stdout := run_pip(['list', '--outdated'], capture_stdout=True)):
         return iter([])
 
     print(stdout, end='\n\n')
-    (header, sep, *body) = stdout.splitlines()
-    assert re.fullmatch(r'Package +Version +Latest +Type', header)
-    assert re.fullmatch(r'-+ -+ -+ -+', sep)
-    return map(OutdatedPackage.from_line, body)
+    return OutdatedPackage.iter_from_table(stdout)
 
 
 def run_pip(args: Sequence[str], /, *,
@@ -82,6 +81,13 @@ class OutdatedPackage(NamedTuple):
                                           (?P<type>[\w]+)
                                           ''').strip(),
                           flags=re.VERBOSE | re.ASCII)
+
+    @classmethod
+    def iter_from_table(cls, stdout: str, /) -> Iterator[Self]:
+        (header, sep, *body) = stdout.splitlines()
+        assert re.fullmatch(r'Package +Version +Latest +Type', header)
+        assert re.fullmatch(r'-+ -+ -+ -+', sep)
+        return map(cls.from_line, body)
 
     @classmethod
     def from_line(cls, line: str, /) -> Self:
