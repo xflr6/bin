@@ -24,6 +24,12 @@ import textwrap
 from typing import Self, NamedTuple
 
 
+def parse_args(args: Sequence[str] | None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__.partition('\n')[0])
+    parser.add_argument('--version', action='version', version=__version__)
+    return parser.parse_args(args)
+
+
 def pip_upgrade_all() -> str | None:
     print('Fetch --outdated packages to --upgrade...')
     candidates = outdated_packages()
@@ -45,7 +51,6 @@ def pip_upgrade_all() -> str | None:
 def outdated_packages() -> Iterator[OutdatedPackage]:
     if not (stdout := run_pip(['list', '--outdated'], capture_stdout=True)):
         return iter([])
-
     print(stdout, end='\n\n')
     return OutdatedPackage.iter_from_table(stdout)
 
@@ -122,11 +127,9 @@ def user_confirmed(message: str, /, *, default: bool | None = None) -> bool:
 
 
 def main(args: Sequence[str] | None = None) -> str | None:
-    parser = argparse.ArgumentParser(description=__doc__.partition('\n')[0])
-    parser.add_argument('--version', action='version', version=__version__)
-    args = parser.parse_args(args)
+    parse_args(args)
     return pip_upgrade_all()
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no-cover
     sys.exit(main())
