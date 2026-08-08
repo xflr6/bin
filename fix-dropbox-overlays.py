@@ -9,7 +9,7 @@ __license__ = 'MIT, see LICENSE.txt'
 __copyright__ = 'Copyright (c) 2020-2021 Sebastian Bank'
 
 import argparse
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Sequence
 import functools
 import itertools
 import pprint
@@ -21,12 +21,12 @@ KEY = r'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Sh
 COMPUTER_NAME = None  # local
 
 
-parser = argparse.ArgumentParser(description=__doc__)
-
-parser.add_argument('--dry-run', action='store_true',
-                    help="show what would be changed (don't write to registry)")
-
-parser.add_argument('--version', action='version', version=__version__)
+def parse_args(args: Sequence[str] | None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--dry-run', action='store_true',
+                        help="show what would be changed (don't write to registry)")
+    parser.add_argument('--version', action='version', version=__version__)
+    return parser.parse_args(args)
 
 
 def fix_dropbox_overlays(*, dry_run: bool) -> None:
@@ -105,10 +105,10 @@ def plain_name(indent: int, name: str) -> str:
     return ' ' * indent + name
 
 
-def main(args=None) -> None:
-    args = parser.parse_args(args)
+def main(args: Sequence[str] | None = None) -> None:
+    args = parse_args(args)
     return fix_dropbox_overlays(dry_run=args.dry_run)
 
 
 if __name__ == '__main__':  # pragma: no cover
-    parser.exit(main())
+    sys.exit(main())
