@@ -28,16 +28,14 @@ ENCODING = 'utf-8'
 GZIP = 'gzip'
 
 
-parser = argparse.ArgumentParser(description=__doc__)
-
-parser.add_argument('page_title', help='title of the page on MediaWiki')
-
-parser.add_argument('search_string', help='string to match page wikitext')
-
-parser.add_argument('--export-url', metavar='URL', default=EXPORT_URL,
-                    help=f'MediaWiki instance export url (default: {EXPORT_URL})')
-
-parser.add_argument('--version', action='version', version=__version__)
+def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('page_title', help='title of the page on MediaWiki')
+    parser.add_argument('search_string', help='string to match page wikitext')
+    parser.add_argument('--export-url', metavar='URL', default=EXPORT_URL,
+                        help=f'MediaWiki instance export url (default: {EXPORT_URL})')
+    parser.add_argument('--version', action='version', version=__version__)
+    return parser.parse_args(args)
 
 
 log = functools.partial(print, file=sys.stderr, sep='\n')
@@ -80,7 +78,7 @@ def elem_findtext(elem, *tags, prefix=None, **kwargs):
 
 
 def main(args=None) -> str | None:
-    args = parser.parse_args(args)
+    args = parse_args(args)
     log(f'export url: {args.export_url}',
         f'title: {args.page_title}', '')
 
@@ -122,4 +120,4 @@ def main(args=None) -> str | None:
 
 
 if __name__ == '__main__':  # pragma: no cover
-    parser.exit(main())
+    sys.exit(main())

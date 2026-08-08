@@ -6,9 +6,12 @@ import pytest
 git_pull_repos = importlib.import_module('git-pull-repos')
 
 
-def test_directory():
-    with pytest.raises(argparse.ArgumentTypeError):
-        git_pull_repos.directory(None)
+def test_parse_args_raises_with_nonexisting_target_dir():
+    target_dir = 'nonexisting'
+    with pytest.raises(SystemExit, match=r'^2$') as e:
+        git_pull_repos.parse_args(['--target_dir', target_dir])
+    (_, loc, _) = e.getrepr().chain[0]
+    assert loc.message.endswith(f'not a present directory: {target_dir}')
 
 
 @pytest.mark.parametrize('s, expected', [

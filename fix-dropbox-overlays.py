@@ -21,7 +21,7 @@ KEY = r'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Sh
 COMPUTER_NAME = None  # local
 
 
-def parse_args(args: Sequence[str] | None) -> argparse.Namespace:
+def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dry-run', action='store_true',
                         help="show what would be changed (don't write to registry)")

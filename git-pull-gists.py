@@ -22,32 +22,29 @@ import warnings
 GISTS = 'https://api.github.com/users/{username}/gists'
 
 
-def directory(s: str, /) -> pathlib.Path:
-    try:
-        result = pathlib.Path(s)
-    except ValueError:
-        result = None
+def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
 
-    if result is None or not result.is_dir():
-        raise argparse.ArgumentTypeError(f'not a present directory: {s}')
-    return result
+    def directory(s: str, /) -> pathlib.Path:
+        try:
+            result = pathlib.Path(s)
+        except ValueError:
+            result = None
 
+        if result is None or not result.is_dir():
+            raise argparse.ArgumentTypeError(f'not a present directory: {s}')
+        return result
 
-parser = argparse.ArgumentParser(description=__doc__)
-
-parser.add_argument('target_dir', type=directory,
-                    help='output directory for writing/updating bare Git clones')
-
-parser.add_argument('gh_username', nargs='+',
-                    help='name of the GitHub user account')
-
-parser.add_argument('--reset', action='store_true',
-                    help='delete present Git clones first')
-
-parser.add_argument('--detail', dest='quiet', action='store_false',
-                    help='show detailed info for each clone/update')
-
-parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument('target_dir', type=directory,
+                        help='output directory for writing/updating bare Git clones')
+    parser.add_argument('gh_username', nargs='+',
+                        help='name of the GitHub user account')
+    parser.add_argument('--reset', action='store_true',
+                        help='delete present Git clones first')
+    parser.add_argument('--detail', dest='quiet', action='store_false',
+                        help='show detailed info for each clone/update')
+    parser.add_argument('--version', action='version', version=__version__)
+    return parser.parse_args(args)
 
 
 def git_pull_gists(target_dir: pathlib.Path, gh_username: str, *,
@@ -147,7 +144,7 @@ def prompt_for_continuation() -> bool:  # pragma: no cover
 
 
 def main(args=None) -> str | None:
-    args = parser.parse_args(args)
+    args = parse_args(args)
     if args.quiet:
         global log
         log = lambda *args, **kwargs: None
@@ -159,4 +156,4 @@ def main(args=None) -> str | None:
 
 
 if __name__ == '__main__':  # pragma: no cover
-    parser.exit(main())
+    sys.exit(main())

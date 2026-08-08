@@ -24,7 +24,7 @@ import textwrap
 from typing import Self, NamedTuple
 
 
-def parse_args(args: Sequence[str] | None) -> argparse.Namespace:
+def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.partition('\n')[0])
     parser.add_argument('--version', action='version', version=__version__)
     return parser.parse_args(args)
