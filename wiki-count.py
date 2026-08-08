@@ -9,6 +9,7 @@ __license__ = 'MIT, see LICENSE.txt'
 __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
+from collections.abc import Sequence
 import builtins
 import bz2
 import collections
@@ -70,7 +71,8 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
                         help='path to MediaWiki XML export (format: .xml.bz2)')
     parser.add_argument('--tag', default=PAGE_TAG,
                         help=f'end tag to count (default: {PAGE_TAG})')
-    parser.add_argument('--stats', dest='simple_stats', action='store_false',                    help='also compute and display page edit statistics')
+    parser.add_argument('--stats', dest='simple_stats', action='store_false',
+                        help='also compute and display page edit statistics')
     parser.add_argument('--stats-top', dest='most_common_n',
                         metavar='N', type=positive_int, default=MOST_COMMON_N,
                         help='show top N users edits and lines'
@@ -201,7 +203,7 @@ def lines_changed(a: str, b: str, *,
     return total
 
 
-def main(args=None) -> str | None:
+def main(args: Sequence[str] | None = None) -> str | None:
     args = parse_args(args)
     log(f'filename: {args.filename}', '')
 

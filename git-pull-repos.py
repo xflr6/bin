@@ -9,6 +9,7 @@ __license__ = 'MIT, see LICENSE.txt'
 __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
+from collections.abc import Sequence
 import functools
 import pathlib
 import re
@@ -104,7 +105,7 @@ def prompt_for_deletion(path: pathlib.Path, /) -> bool:  # pragma: no cover
     return line in ('y', 'yes')
 
 
-def main(args=None) -> str | None:
+def main(args: Sequence[str] | None = None) -> str | None:
     args = parse_args(args)
     if args.quiet:
         global log

@@ -9,6 +9,7 @@ __license__ = 'MIT, see LICENSE.txt'
 __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
+from collections.abc import Sequence
 import functools
 import gzip
 import re
@@ -77,7 +78,7 @@ def elem_findtext(elem, *tags, prefix=None, **kwargs):
     return dict(zip(tags, values))
 
 
-def main(args=None) -> str | None:
+def main(args: Sequence[str] | None = None) -> str | None:
     args = parse_args(args)
     log(f'export url: {args.export_url}',
         f'title: {args.page_title}', '')
