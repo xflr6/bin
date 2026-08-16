@@ -10,6 +10,7 @@ __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
 import contextlib
+from collections.abc import Sequence
 import datetime
 import functools
 import os
@@ -39,76 +40,66 @@ assert CHMOD == stat.S_IRUSR
 SUBPROCESS_PATH = '/usr/bin:/bin'
 
 
-def directory(s: str, /) -> pathlib.Path:
-    try:
-        result = pathlib.Path(s)
-    except ValueError:
-        result = None
+def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
 
-    if result is None or not result.is_dir():
-        raise argparse.ArgumentTypeError(f'not a present directory: {s}')
-    return result
+    def directory(s: str, /) -> pathlib.Path:
+        try:
+            result = pathlib.Path(s)
+        except ValueError:
+            result = None
 
+        if result is None or not result.is_dir():
+            raise argparse.ArgumentTypeError(f'not a present directory: {s}')
+        return result
 
-def template(s: str, /) -> str:
-    try:
-        result = time.strftime(s)
-    except ValueError:
-        result = None
+    def template(s: str, /) -> str:
+        try:
+            result = time.strftime(s)
+        except ValueError:
+            result = None
 
-    if not result:
-        raise argparse.ArgumentTypeError(f'invalid or empty template: {s}')
-    elif pathlib.Path(result).parent.name:
-        raise argparse.ArgumentTypeError(f'template contains directory: {s}')
-    return result
+        if not result:
+            raise argparse.ArgumentTypeError(f'invalid or empty template: {s}')
+        elif pathlib.Path(result).parent.name:
+            raise argparse.ArgumentTypeError(f'template contains directory: {s}')
+        return result
 
+    def mode(s: str, /) -> int:
+        try:
+            result = int(s, 8)
+        except ValueError:
+            result = None
 
-def mode(s: str, /) -> int:
-    try:
-        result = int(s, 8)
-    except ValueError:
-        result = None
+        if result is None or not 0 <= result <= MODE_MASK:
+            raise argparse.ArgumentTypeError(f'need octal int between {oct(0)}'
+                                             f' and {oct(MODE_MASK)}: {s}')
+        return stat.S_IMODE(result)
 
-    if result is None or not 0 <= result <= MODE_MASK:
-        raise argparse.ArgumentTypeError(f'need octal int between {oct(0)}'
-                                         f' and {oct(MODE_MASK)}: {s}')
-    return stat.S_IMODE(result)
-
-
-parser = argparse.ArgumentParser(description=__doc__)
-
-parser.add_argument('target_dir', type=directory,
-                    help='output directory for writing SVN dump file(s)')
-
-parser.add_argument('repo_dir', nargs='+', type=directory,
-                    help='input SVN repository directory')
-
-parser.add_argument('--name', metavar='TEMPLATE', type=template,
-                    default=NAME_TEMPLATE,
-                    help=f'dump file name time.strftime() format string template'
-                         f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
-
-parser.add_argument('--no-auto-compress', dest='auto_compress', action='store_false',
-                    help='never compress dump file(s)'
-                         ' (default: auto-compress if --name ends with any of:'
-                         f" {', '.join(COMPRESS)})")
-
-parser.add_argument('--no-deltas', dest='deltas', action='store_false',
-                    help="don't pass --deltas to svnadmin dump")
-
-parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
-                    help=f'dump file(s) chmod (default: {CHMOD:03o})')
-
-parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
-                    help=f'PATH for subprocess(es) (default: {SUBPROCESS_PATH})')
-
-parser.add_argument('--detail', action='store_true',
-                    help='include detail infos for each repository')
-
-parser.add_argument('--verbose', dest='quiet', action='store_false',
-                    help="don't pass --quiet to svnadmin dump")
-
-parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument('target_dir', type=directory,
+                        help='output directory for writing SVN dump file(s)')
+    parser.add_argument('repo_dir', nargs='+', type=directory,
+                        help='input SVN repository directory')
+    parser.add_argument('--name', metavar='TEMPLATE', type=template,
+                        default=NAME_TEMPLATE,
+                        help=f'dump file name time.strftime() format string template'
+                             f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
+    parser.add_argument('--no-auto-compress', dest='auto_compress', action='store_false',
+                        help='never compress dump file(s)'
+                             ' (default: auto-compress if --name ends with any of:'
+                             f" {', '.join(COMPRESS)})")
+    parser.add_argument('--no-deltas', dest='deltas', action='store_false',
+                        help="don't pass --deltas to svnadmin dump")
+    parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
+                        help=f'dump file(s) chmod (default: {CHMOD:03o})')
+    parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
+                        help=f'PATH for subprocess(es) (default: {SUBPROCESS_PATH})')
+    parser.add_argument('--detail', action='store_true',
+                        help='include detail infos for each repository')
+    parser.add_argument('--verbose', dest='quiet', action='store_false',
+                        help="don't pass --quiet to svnadmin dump")
+    parser.add_argument('--version', action='version', version=__version__)
+    return parser.parse_args(args)
 
 
 def svn_dumpall(target_dir: pathlib.Path, *repo_dirs: pathlib.Path, name: str,
@@ -223,7 +214,7 @@ def map_popen(commands, /, *, stdin=None, stdout=None, **kwargs):
 
 
 def main(args=None) -> str | None:
-    args = parser.parse_args(args)
+    args = parse_args(args)
     if not args.detail:
         global log
         log = lambda *args, **kwargs: None
@@ -236,4 +227,4 @@ def main(args=None) -> str | None:
 
 
 if __name__ == '__main__':  # pragma: no cover
-    parser.exit(main())
+    sys.exit(main())
