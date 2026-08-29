@@ -105,7 +105,9 @@ class OutdatedPackage(NamedTuple):
 
     @property
     def message(self) -> str:
-        return f'Upgrade {self.name}={self.version} to {self.latest} ({self.type})'
+        return (f'Upgrade {self.name}'
+                f' from {self.version} to {self.latest}'
+                f' ({self.type})')
 
     def ask_for_confirmation(self, *, default: bool | None = True) -> bool:
         return user_confirmed(self.message, default=default)
