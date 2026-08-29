@@ -57,7 +57,7 @@ def test_main(capsys, mocker, mock_run, mock_input, pip_list_out, input_answers,
         assert result is None
 
     (out, _) = capsys.readouterr()
-    assert out.startswith('Fetch --outdated packages to --upgrade...\n'
+    assert out.startswith('Fetch pip list --outdated packages to pip install --upgrade...\n'
                           + pip_list_out)
 
     list_call = mocker.call([mocker.ANY, '-m', 'pip', 'list', '--outdated'],
@@ -68,7 +68,7 @@ def test_main(capsys, mocker, mock_run, mock_input, pip_list_out, input_answers,
     if not asked_packages or not upgraded_packages:
         assert mock_run.mock_calls == [list_call]
         if not asked_packages:
-            assert out.rstrip().endswith('No packages to --upgrade, exiting.')
+            assert out.rstrip().endswith('No packages to pip install --upgrade, exiting.')
         return
     assert mock_run.mock_calls == [list_call, install_call]
 

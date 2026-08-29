@@ -40,14 +40,14 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
 
 
 def pip_upgrade_all(*, exclude: Sequence[str] | None) -> str | None:
-    print('Fetch --outdated packages to --upgrade...')
+    print('Fetch pip list --outdated packages to pip install --upgrade...')
     exclude = set(exclude or [])
     candidates = [p for p in outdated_packages() if p.name not in exclude]
     if not (packages := [p for p in candidates if p.ask_for_confirmation()]):
-        print('', 'No packages to --upgrade, exiting.', sep='\n')
+        print('', 'No packages to pip install --upgrade, exiting.', sep='\n')
         return None
 
-    print('', 'Packages to --upgrade:', sep='\n')
+    print('', 'Packages to pip install --upgrade:', sep='\n')
     names = [p.name for p in packages]
     print(*names, sep='\n', end='\n\n')
     pip_args = ['install', '--upgrade'] + names
