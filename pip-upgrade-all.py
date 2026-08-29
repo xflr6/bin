@@ -26,13 +26,16 @@ from typing import Self, NamedTuple
 
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.partition('\n')[0])
+    parser.add_argument('--exclude', nargs='+', metavar='PKG',
+                        help='package name(s) to exclude from upgrade.')
     parser.add_argument('--version', action='version', version=__version__)
     return parser.parse_args(args)
 
 
-def pip_upgrade_all() -> str | None:
+def pip_upgrade_all(*, exclude: Sequence[str] | None) -> str | None:
     print('Fetch --outdated packages to --upgrade...')
-    candidates = outdated_packages()
+    exclude = set(exclude or [])
+    candidates = [p for p in outdated_packages() if p.name not in exclude]
     if not (packages := [p for p in candidates if p.ask_for_confirmation()]):
         print('', 'No packages to --upgrade, exiting.', sep='\n')
         return None
@@ -127,8 +130,8 @@ def user_confirmed(message: str, /, *, default: bool | None = None) -> bool:
 
 
 def main(args: Sequence[str] | None = None) -> str | None:
-    parse_args(args)
-    return pip_upgrade_all()
+    args = parse_args(args)
+    return pip_upgrade_all(exclude=args.exclude)
 
 
 if __name__ == '__main__':  # pragma: no-cover

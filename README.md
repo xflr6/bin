@@ -188,13 +188,15 @@ options:
 
 ```shell
 $ pip-upgrade-all.py --help
-usage: pip-upgrade-all.py [-h] [--version]
+usage: pip-upgrade-all.py [-h] [--exclude PKG [PKG ...]] [--version]
 
 Run pip list --outdated, ask for confirmation, and run pip install --upgrade.
 
 options:
-  -h, --help  show this help message and exit
-  --version   show program's version number and exit
+  -h, --help            show this help message and exit
+  --exclude PKG [PKG ...]
+                        package name(s) to exclude from upgrade.
+  --version             show program's version number and exit
 ```
 
 
