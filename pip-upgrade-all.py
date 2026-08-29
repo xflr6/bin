@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["packaging>=20"]
+# ///
 
 """Run pip list --outdated, ask for confirmation, and run pip install --upgrade.
 
@@ -16,12 +20,15 @@ __copyright__ = 'Copyright (c) 2026 Sebastian Bank'
 
 import argparse
 from collections.abc import Iterator, Sequence
+import enum
 import os
 import re
 import subprocess
 import sys
 import textwrap
 from typing import Self, NamedTuple
+
+import packaging.version
 
 
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
@@ -105,12 +112,37 @@ class OutdatedPackage(NamedTuple):
 
     @property
     def message(self) -> str:
-        return (f'Upgrade {self.name}'
+        return (f'[{self.update.name}] Upgrade {self.name}'
                 f' from {self.version} to {self.latest}'
                 f' ({self.type})')
 
-    def ask_for_confirmation(self, *, default: bool | None = True) -> bool:
-        return user_confirmed(self.message, default=default)
+    @property
+    def update(self) -> Update:
+        (old, new) = map(Version, (self.version, self.latest))
+        return Update.from_versions(old=old, new=new)
+
+    def ask_for_confirmation(self) -> bool:
+        return user_confirmed(self.message, default=self.update is Update.PATCH)
+
+
+Version = packaging.version.Version
+
+
+class Update(enum.Enum):
+
+    @classmethod
+    def from_versions(cls, *, old: Version, new: Version) -> Self:
+        pairs = zip(*((v.epoch, v.major, v.minor, v.micro) for v in (old, new)))
+        for (old_number, new_number), result in zip(pairs, cls):
+            if old_number != new_number:
+                return result
+        return cls.OTHER
+
+    EPOCH = 0
+    MAJOR = 1
+    MINOR = 2
+    PATCH = 3
+    OTHER = 4
 
 
 def user_confirmed(message: str, /, *, default: bool | None = None) -> bool:
@@ -136,7 +168,7 @@ def main(args: Sequence[str] | None = None) -> str | None:
     try:
         return pip_upgrade_all(exclude=args.exclude)
     except KeyboardInterrupt:
-         return 'Aborted with CTRL-C.'
+        return 'Aborted with CTRL-C.'
 
 
 if __name__ == '__main__':  # pragma: no-cover

@@ -25,7 +25,7 @@ def mock_input(monkeypatch, mocker):
 @pytest.mark.parametrize(
     'pip_list_out, input_answers, asked_packages, upgraded_packages',
     [(PIP_LIST_STDOUT, ['yes', 'y', '', 'y'],
-      ['docutils', 'pandas', 'pytest'], ['docutils', 'pandas', 'pytest']),
+      ['docutils', 'pandas', 'pytest'], ['docutils', 'pandas']),
      (PIP_LIST_STDOUT, ['no', 'n', 'y', 'yes'],
       ['docutils', 'pandas', 'pytest'], ['pytest']),
      (PIP_LIST_STDOUT, ['no', 'n', 'y', 'n'],
@@ -76,6 +76,8 @@ def test_main(capsys, mocker, mock_run, mock_input, pip_list_out, input_answers,
     assert mock_input.mock_calls == input_calls
     (*list_prompts, install_prompt) = [c.args[0] for c in mock_input.mock_calls]
     for prompt, package in zip(list_prompts, asked_packages, strict=True):
-        assert prompt.startswith(f'Upgrade {package} from')
+        assert prompt.startswith(('[MAJOR] ', '[MINOR] '))
+        (*_, msg) = prompt.partition(' ')
+        assert msg.startswith(f'Upgrade {package} from')
     assert install_prompt.startswith(
         f'Run pip install --upgrade {" ".join(upgraded_packages)}')

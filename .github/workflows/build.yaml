@@ -27,7 +27,7 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           echo "::endgroup::"
           echo "::group::Run pip install pytest>=5.1 mock>=4 pytest-mock>=2 pytest-cov"
-          pip install "pytest>=5.1" "mock>=4" "pytest-mock>=2" pytest-cov
+          pip install "pytest>=5.1" "mock>=4" "pytest-mock>=2" pytest-cov "packaging>=20"
           echo "::endgroup::"
       - name: Run tests
         run: python _run-tests.py
