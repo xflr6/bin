@@ -133,7 +133,10 @@ def user_confirmed(message: str, /, *, default: bool | None = None) -> bool:
 
 def main(args: Sequence[str] | None = None) -> str | None:
     args = parse_args(args)
-    return pip_upgrade_all(exclude=args.exclude)
+    try:
+        return pip_upgrade_all(exclude=args.exclude)
+    except KeyboardInterrupt:
+         return 'Aborted with CTRL-C.'
 
 
 if __name__ == '__main__':  # pragma: no-cover
