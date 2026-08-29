@@ -111,15 +111,15 @@ class OutdatedPackage(NamedTuple):
         return cls(ma['package'], ma['version'], ma['latest'], ma['type'])
 
     @property
+    def update(self) -> Update:
+        (old, new) = map(Version, (self.version, self.latest))
+        return Update.from_versions(old=old, new=new)
+
+    @property
     def message(self) -> str:
         return (f'[{self.update.name}] Upgrade {self.name}'
                 f' from {self.version} to {self.latest}'
                 f' ({self.type})')
-
-    @property
-    def update(self) -> Update:
-        (old, new) = map(Version, (self.version, self.latest))
-        return Update.from_versions(old=old, new=new)
 
     def ask_for_confirmation(self) -> bool:
         return user_confirmed(self.message, default=self.update is Update.PATCH)
