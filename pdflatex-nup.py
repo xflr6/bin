@@ -33,14 +33,14 @@ SCALE = '1.01'
 
 LANDSCAPE = {'l': True, 'p': False, 'a': None}
 
-TEMPLATE = r'''
+TEMPLATE = string.Template(r'''
 \documentclass[paper=$paper,paper=$orientation]{scrartcl}
 \usepackage{pdfpages}  % https://www.ctan.org/pkg/pdfpages
 \pagestyle{empty}
 \begin{document}
 \includepdfmerge[nup=$nup,openright=$openright,scale=$scale,frame=$frame]{$filename,$pages}
 \end{document}
-'''.lstrip()
+'''.lstrip())
 
 OPEN_KWARGS = {'encoding': 'utf-8', 'newline': '\n'}
 
@@ -184,8 +184,7 @@ def render_template(nup_x: int, nup_y: int, *,
                     openright, scale, frame) -> str:
     if landscape is None:
         landscape = nup_x > nup_y
-    template = string.Template(TEMPLATE)
-    return template.substitute(paper=paper,
+    return TEMPLATE.substitute(paper=paper,
                                orientation='landscape' if landscape else 'portrait',
                                nup=f'{nup_x:d}x{nup_y:d}',
                                filename=filename,
