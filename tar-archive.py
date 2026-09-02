@@ -215,10 +215,10 @@ def iterpaths(path: pathlib.Path, /, *,
     with open(path, encoding=encoding) as f:
         for line in f:
             if (line := line.strip()) and not line.startswith('#'):
-                yield path
+                yield pathlib.Path(line)
 
 
-def make_exclude_match(exclude_paths: Iterable[pathlib.Path] | None):
+def make_exclude_match(exclude_paths: Iterable[pathlib.Path] | None, /):
     if exclude_paths is None:
         return lambda x: False
 
