@@ -9,7 +9,7 @@ __license__ = 'MIT, see LICENSE.txt'
 __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Sequence
 import datetime
 import functools
 import os
@@ -40,109 +40,100 @@ SUBPROCESS_PATH = '/usr/bin:/bin'
 ENCODING = 'utf-8'
 
 
-def directory(s: str, /) -> pathlib.Path:
-    try:
-        result = pathlib.Path(s)
-    except ValueError:
-        result = None
+def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
 
-    if result is None or not result.is_dir():
-        raise argparse.ArgumentTypeError(f'not a present directory: {s}')
-    return result
+    def directory(s: str, /) -> pathlib.Path:
+        try:
+            result = pathlib.Path(s)
+        except ValueError:
+            result = None
+        if result is None or not result.is_dir():
+            raise argparse.ArgumentTypeError(f'not a present directory: {s}')
+        return result
 
+    parser.add_argument('source_dir', type=directory,
+                        help='input root directory to archive')
 
-def template(s: str, /) -> str:
-    try:
-        result = time.strftime(s)
-    except ValueError:
-        result = None
+    parser.add_argument('dest_dir', type=directory,
+                        help='output directory for writing the tar archive file')
 
-    if not result:
-        raise argparse.ArgumentTypeError(f'invalid or empty template: {s}')
-    return result
+    def template(s: str, /) -> str:
+        try:
+            result = time.strftime(s)
+        except ValueError:
+            result = None
+        if not result:
+            raise argparse.ArgumentTypeError(f'invalid or empty template: {s}')
+        return result
 
+    parser.add_argument('--name', metavar='TEMPLATE', type=template,
+                        default=NAME_TEMPLATE,
+                        help='archive file name time.strftime() format string template'
+                             f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
 
-def exclude_file(s: str, /) -> pathlib.Path:
-    if not s:
-        return None
-    try:
-        path = pathlib.Path(s)
-    except ValueError:
-        path = None
+    def exclude_file(s: str, /) -> pathlib.Path | None:
+        if not s:
+            return None
+        try:
+            path = pathlib.Path(s)
+        except ValueError:
+            path = None
+        if path is None or not path.is_file():
+            raise argparse.ArgumentTypeError(f'not a present file: {s}')
+        return path
 
-    if path is None or not path.is_file():
-        raise argparse.ArgumentTypeError(f'not a present file: {s}')
-    return path
+    parser.add_argument('--exclude-file', metavar='PATH', type=exclude_file,
+                        help='path to file with one line per excluded dir/file')
 
+    parser.add_argument('--no-auto-compress', dest='auto_compress', action='store_false',
+                        help="don't pass --auto-compress to tar")
 
-def user(s: str, /) -> str:
-    import pwd
+    def user(s: str, /) -> str:
+        import pwd
+        try:
+            pwd.getpwnam(s)
+        except KeyError:
+            raise argparse.ArgumentTypeError(f'unknown user: {s}')
+        return s
 
-    try:
-        pwd.getpwnam(s)
-    except KeyError:
-        raise argparse.ArgumentTypeError(f'unknown user: {s}')
-    return s
+    parser.add_argument('--owner', type=user, help='archive file owner')
 
+    def group(s: str, /) -> str:
+        import grp
+        try:
+            grp.getgrnam(s)
+        except KeyError:
+            raise argparse.ArgumentTypeError(f'unknown group: {s}')
+        return s
 
-def group(s: str, /) -> str:
-    import grp
+    parser.add_argument('--group', type=group, help='archive file group')
 
-    try:
-        grp.getgrnam(s)
-    except KeyError:
-        raise argparse.ArgumentTypeError(f'unknown group: {s}')
-    return s
+    def mode(s: str, /) -> int:
+        try:
+            result = int(s, 8)
+        except ValueError:
+            result = None
+        if result is None or not 0 <= result <= MODE_MASK:
+            raise argparse.ArgumentTypeError(f'need octal int between {oct(0)}'
+                                             f' and {oct(MODE_MASK)}: {s}')
+        return stat.S_IMODE(result)
 
+    parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
+                        help=f'archive file chmod (default: {CHMOD:03o})')
 
-def mode(s: str, /) -> int:
-    try:
-        result = int(s, 8)
-    except ValueError:
-        result = None
+    parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
+                        help=f'PATH for tar subprocess (default: {SUBPROCESS_PATH})')
 
-    if result is None or not 0 <= result <= MODE_MASK:
-        raise argparse.ArgumentTypeError(f'need octal int between {oct(0)}'
-                                         f' and {oct(MODE_MASK)}: {s}')
-    return stat.S_IMODE(result)
+    parser.add_argument('--set-umask', metavar='MASK', type=mode, default=SET_UMASK,
+                        help=f'umask for tar subprocess (default: {SET_UMASK:03o})')
 
+    parser.add_argument('--ask-for-deletion', action='store_true',
+                        help='prompt for archive file deletion before exit')
 
-parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--version', action='version', version=__version__)
 
-parser.add_argument('source_dir', type=directory,
-                    help='input root directory to archive')
-
-parser.add_argument('dest_dir', type=directory,
-                    help='output directory for writing the tar archive file')
-
-parser.add_argument('--name', metavar='TEMPLATE', type=template,
-                    default=NAME_TEMPLATE,
-                    help='archive file name time.strftime() format string template'
-                         f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
-
-parser.add_argument('--exclude-file', metavar='PATH', type=exclude_file,
-                    help='path to file with one line per excluded dir/file')
-
-parser.add_argument('--no-auto-compress', dest='auto_compress', action='store_false',
-                    help="don't pass --auto-compress to tar")
-
-parser.add_argument('--owner', type=user, help='archive file owner')
-
-parser.add_argument('--group', type=group, help='archive file group')
-
-parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
-                    help=f'archive file chmod (default: {CHMOD:03o})')
-
-parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
-                    help=f'PATH for tar subprocess (default: {SUBPROCESS_PATH})')
-
-parser.add_argument('--set-umask', metavar='MASK', type=mode, default=SET_UMASK,
-                    help=f'umask for tar subprocess (default: {SET_UMASK:03o})')
-
-parser.add_argument('--ask-for-deletion', action='store_true',
-                    help='prompt for archive file deletion before exit')
-
-parser.add_argument('--version', action='version', version=__version__)
+    return parser.parse_args(args)
 
 
 def tar_archive(source_dir: pathlib.Path, dest_dir: pathlib.Path, *, name: str,
@@ -328,8 +319,8 @@ def prompt_for_deletion(path: pathlib.Path, /) -> bool:  # pragma: no cover
     return not line
 
 
-def main(args=None) -> str | None:
-    args = parser.parse_args(args)
+def main(args: Sequence[str] | None = None) -> str | None:
+    args = parse_args(args)
     return tar_archive(args.source_dir, args.dest_dir, name=args.name,
                        exclude_file=args.exclude_file,
                        auto_compress=args.auto_compress,
@@ -342,4 +333,4 @@ def main(args=None) -> str | None:
 
 
 if __name__ == '__main__':  # pragma: no cover
-    parser.exit(main())
+    sys.exit(main())
