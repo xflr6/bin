@@ -46,7 +46,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def make_request(url: str, title: str, *,
+def make_request(url: str, /, title: str, *,
                  encoding: str = ENCODING) -> urllib.request.Request:
     post = {'pages': title, 'wpDownload': 1}
     data = urllib.parse.urlencode(post).encode(encoding)
@@ -54,7 +54,7 @@ def make_request(url: str, title: str, *,
     return urllib.request.Request(url, data=data, **kwargs)
 
 
-def parse_response(resp, *, encoding: str = ENCODING) -> etree.ElementTree:
+def parse_response(resp, /, *, encoding: str = ENCODING) -> etree.ElementTree:
     info = resp.info()
     headers = {h: info.get(h) for h in ('content-type',
                                         'content-disposition',
@@ -70,13 +70,13 @@ def parse_response(resp, *, encoding: str = ENCODING) -> etree.ElementTree:
         return etree.parse(f)
 
 
-def extract_ns(tag: str) -> str:
+def extract_ns(tag: str, /) -> str:
     ns = tag.partition('{')[2].partition('}')[0]
     assert tag.startswith('{%s}' % ns)
     return ns
 
 
-def elem_findtext(elem, *tags, prefix=None, **kwargs):
+def elem_findtext(elem, /, *tags, prefix=None, **kwargs):
     prefix = prefix + ':' if prefix is not None else ''
     values = (elem.findtext(prefix + t, **kwargs) for t in tags)
     return dict(zip(tags, values))

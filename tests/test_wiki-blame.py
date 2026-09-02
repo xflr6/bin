@@ -30,7 +30,7 @@ def test_main(capsys, mocker, http_resp):
         'content-disposition': 'attachment;filename=spam.xml',
         'content-encoding': 'gzip'}
 
-    with gzip.open(http_resp, 'wt', encoding=ENCODING) as f:
+    with gzip.open(http_resp, mode='wt', encoding=ENCODING) as f:
         f.write(EXPORT)
 
     http_resp.seek(0)

@@ -63,7 +63,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('--format', metavar='TMPL', default=FORMAT,
                         help=f'log format (default: {FORMAT.replace("%", "%%")})')
 
-    def datefmt(s: str) -> str:
+    def datefmt(s: str, /) -> str:
         try:
             time.strftime(s)
         except ValueError:
@@ -81,7 +81,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('--icmpfmt', metavar='TMPL', default=ICMP_INFO,
                         help=f'log format (default: {ICMP_INFO.replace("%", "%%")})')
 
-    def user(s: str) -> str:
+    def user(s: str, /) -> str:
         try:
             import pwd
         except ImportError:
@@ -95,7 +95,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
                         help='user to setuid to after binding'
                              f' (default: {SETUID})')
 
-    def directory(s: str):
+    def directory(s: str, /):
         try:
             return pathlib.Path(s)
         except ValueError:
@@ -108,7 +108,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('--no-hardening', dest='hardening', action='store_false',
                         help="don't give up privileges (ignore --setuid and --chroot)")
 
-    def encoding(s: str) -> str:
+    def encoding(s: str, /) -> str:
         try:
             return codecs.lookup(s).name
         except LookupError:
@@ -118,7 +118,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
                         help='try to decode data with this encoding'
                              f' (default: {ENCODING})')
 
-    def positive_int(s: str) -> int:
+    def positive_int(s: str, /) -> int:
         try:
             result = int(s)
         except ValueError:
@@ -172,7 +172,7 @@ def configure_logging(filename=None, *,
 def register_signal_handler(*signums):
     assert signums
 
-    def decorator(func):
+    def decorator(func, /):
         for s in signums:
             signal.signal(s, func)
         return func
@@ -185,7 +185,7 @@ class DataMixin:
     __slots__ = ()
 
     @classmethod
-    def from_bytes(cls, b: bytes):
+    def from_bytes(cls, b: bytes, /):
         return cls.from_buffer_copy(b)
 
     def __repr__(self) -> str:
@@ -207,7 +207,7 @@ class DataMixin:
 
 class MappingProxy:
 
-    def __init__(self, delegate) -> None:
+    def __init__(self, delegate, /) -> None:
         self._delegate = delegate
 
     def __getitem__(self, key):
@@ -230,8 +230,7 @@ def validate_checksum(header, *, index=None, bytes=None):
         ints = array.array('H', ints)
         ints.extend(b_ints)
 
-    result = rfc1071_checksum(ints)
-    if result:
+    if (result := rfc1071_checksum(ints)):
         if index is None:
             msg = f'non-zero result 0x{result:04x}'
         else:
@@ -243,12 +242,10 @@ def validate_checksum(header, *, index=None, bytes=None):
     return result
 
 
-def rfc1071_checksum(ints):
+def rfc1071_checksum(ints, /):
     val = sum(ints)
-
     while val >> 16:
         val = (val >> 16) + (val & 0xffff)
-
     return ~val & 0xffff
 
 
@@ -318,7 +315,7 @@ class IPFlags(collections.namedtuple('_IPFlags', ['res', 'df', 'mf'])):
     __slots__ = ()
 
     @classmethod
-    def from_int(cls, i: int):
+    def from_int(cls, i: int, /):
 
         def iterbools(i, mask):
             while mask:
@@ -345,7 +342,7 @@ class ICMPPacket(DataMixin, ctypes.BigEndianStructure):
                 ('seq_num', H16)]
 
     @classmethod
-    def from_bytes(cls, b):
+    def from_bytes(cls, b, /):
         inst = super().from_bytes(b)
         inst.payload = bytes(b[8:])
         return inst
@@ -368,7 +365,7 @@ class ICMPPacket(DataMixin, ctypes.BigEndianStructure):
     def timeval(self):
         return self.get_timeval(min=None, max=None)
 
-    def get_timeval(self, min: int = 0, max: int = DATETIME_MAX):
+    def get_timeval(self, *, min: int = 0, max: int = DATETIME_MAX):
         payload = self.payload
         for cls in (Timeval64, Timeval32):
             try:

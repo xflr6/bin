@@ -37,7 +37,7 @@ TEXT_PATH = f'{PREFIX}:text'
 
 DISPLAY_PATH = f'{PREFIX}:title'
 
-DISPLAY_AFTER = 1000
+DISPLAY_AFTER = 1_000
 
 MOST_COMMON_N = 100
 
@@ -63,14 +63,13 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('--stats', dest='simple_stats', action='store_false',
                         help='also compute and display page edit statistics')
 
-    def positive_int(s: str) -> int | None:
+    def positive_int(s: str, /) -> int | None:
         if s is None or not s.strip():
             return None
         try:
             result = int(s)
         except ValueError:
             result = None
-
         if result is None or not result > 0:
             raise argparse.ArgumentTypeError(f'need positive int: {s}')
         return result
@@ -99,20 +98,20 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def extract_ns(tag: str) -> str:
+def extract_ns(tag: str, /) -> str:
     ns = tag.partition('{')[2].partition('}')[0]
     assert tag.startswith('{%s}' % ns)
     return ns
 
 
-def make_epath(s: str, namespace_map, *, optional: bool = False):
+def make_epath(s: str, /, namespace_map, *, optional: bool = False):
     s = s.strip()
     if optional and not s:
         return None
     assert s
 
     def repl(ma):
-        ns = ma.group('ns')
+        ns = ma['ns']
         try:
             ns = namespace_map[ns]
         except KeyError:
@@ -122,20 +121,20 @@ def make_epath(s: str, namespace_map, *, optional: bool = False):
     return re.sub(r'(?P<boundary>^|/)(?P<ns>\w+):', repl, s)
 
 
-def iterelements(pairs, tag, *, exclude_with):
+def iterelements(pairs, /, tag, *, exclude_with):
     for event, elem in pairs:
         if elem.tag == tag and event == 'end' and elem.find(exclude_with) is None:
             yield elem
 
 
-def make_display_func(display_epath):
+def make_display_func(display_epath, /):
     if display_epath is None:
         return lambda n, _: log(f'{n:,}')
     else:
         return lambda n, elem: log(f'{n:,}\t{elem.findtext(display_epath)}')
 
 
-def count_elements(root, elements, *,
+def count_elements(root, /, elements, *,
                    display_after, display_epath, stop_after) -> int:
     if display_after in (None, 0):
         if stop_after is not None:
@@ -145,20 +144,16 @@ def count_elements(root, elements, *,
     display_func = make_display_func(display_epath)
 
     count = 0
-
     for count, elem in enumerate(elements, start=1):
         if not count % display_after:
             display_func(count, elem)
-
         root.clear()  # free memory
-
         if count == stop_after:
             break
-
     return count
 
 
-def count_edits(root, pages, *,
+def count_edits(root, /, pages, *,
                 display_after, display_epath, stop_after,
                 rev_epath, user_epath, text_epath) -> int:
     display_func = make_display_func(display_epath)
@@ -166,7 +161,6 @@ def count_edits(root, pages, *,
     (n_edits, n_lines) = (collections.Counter() for _ in range(2))
 
     count = 0
-
     for count, p in enumerate(pages, start=1):
         if not count % display_after:
             display_func(count, p)
@@ -184,26 +178,22 @@ def count_edits(root, pages, *,
                 old_text = new_text
 
         root.clear()  # free memory
-
         if count == stop_after:
             break
-
     return count, n_edits, n_lines
 
 
-def lines_changed(a: str, b: str, *,
+def lines_changed(a: str, b: str, /, *,
                   _n_lines_factor={'insert': 2, 'replace': 1,
                                    'delete': 0, 'equal': 0}) -> int:
     matcher = difflib.SequenceMatcher(None, a.splitlines(), b.splitlines())
 
     total = 0
-
     for tiijj in matcher.get_opcodes():
         factor = _n_lines_factor[tiijj[0]]
         if factor:
             n_lines = tiijj[4] - tiijj[3]
             total += n_lines * factor
-
     if total:
         total = 1 + total // 2
     return total
@@ -222,7 +212,7 @@ def main(args: Sequence[str] | None = None) -> str | None:
     start = time.monotonic()
 
     log(f'{open_module.__name__}.open({args.filename!r})')
-    with open_module.open(args.filename, 'rb') as f:
+    with open_module.open(args.filename, mode='rb') as f:
         pairs = etree.iterparse(f, events=('start', 'end'))
 
         (_, root) = next(pairs)

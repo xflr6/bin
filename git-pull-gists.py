@@ -118,7 +118,7 @@ def git_pull_gists(target_dir: pathlib.Path, gh_username: str, *,
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def itergists(username: str):
+def itergists(*, username: str):
     url = GISTS.format(username=username)
     while url is not None:
         log(f'urllib.request.urlopen({url})')

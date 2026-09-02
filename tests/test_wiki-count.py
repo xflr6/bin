@@ -24,7 +24,8 @@ ENCODING = 'utf-8'
 def test_main(capsys, tmp_path):
     export = tmp_path / 'spamwiki-latest-pages-articles.xml.bz2'
 
-    with export.open('wb') as z, bz2.open(z, 'wt', encoding=ENCODING) as f:
+    with (export.open(mode='wb') as z,
+          bz2.open(z, mode='wt', encoding=ENCODING) as f):
         f.write(EXPORT)
 
     assert wiki_count.main([str(export),

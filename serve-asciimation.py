@@ -57,7 +57,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('--host', metavar='IP', default=HOST,
                         help=f'address to listen on (default: {HOST})')
 
-    def port(s: str) -> int:
+    def port(s: str, /) -> int:
         port = int(s) if s.isdigit() else socket.getservbyname(s)
         if not 1 <= port <= 2**16:
             raise argparse.ArgumentTypeError(f'invalid port: {s}')
@@ -67,7 +67,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
                         help='TCP port number or name to listen on'
                              f' (default: {PORT})')
 
-    def fps(s: str) -> int:
+    def fps(s: str, /) -> int:
         try:
             fps = int(s)
         except ValueError:
@@ -79,7 +79,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('--fps', metavar='N', type=fps, default=FPS,
                         help=f'frames (1-100) per second to generate (default: {FPS})')
 
-    def user(s: str) -> str:
+    def user(s: str, /) -> str:
         try:
             import pwd
         except ImportError:
@@ -93,7 +93,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
                         help='user to setuid to after binding'
                              f' (default: {SETUID})')
 
-    def directory(s: str):
+    def directory(s: str, /):
         try:
             return pathlib.Path(s)
         except ValueError:
@@ -122,28 +122,26 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     return args
 
 
-def read_page_bytes(url: str = URL, *,
+def read_page_bytes(url: str = URL, /, *,
                     cache_path: pathlib.Path = CACHE) -> bytes:
     if not cache_path.exists():
         logging.info('download %r into %r', url, cache_path)
         with (urllib.request.urlopen(url) as src,
-              gzip.open(cache_path, 'wb') as dst):
+              gzip.open(cache_path, mode='wb') as dst):
             shutil.copyfileobj(src, dst)
 
     logging.debug('read %r', cache_path)
-    with gzip.open(cache_path, 'rb') as f:
+    with gzip.open(cache_path, mode='rb') as f:
         result = f.read()
     return result
 
 
-def extract_film(page_bytes, *, encoding: str = 'unicode_escape'):
-    raw = FILM.search(page_bytes).group('film')
-    if raw.endswith(b'\\n\xff\\n'):
-        raw = raw[:-3]
+def extract_film(page_bytes, /, *, encoding: str = 'unicode_escape'):
+    raw = FILM.search(page_bytes)['film'].removesuffix(b'\\n\xff\\n')
     return raw.decode(encoding)
 
 
-def generate_frames(film, *, screen_size=(80, 24), frame_size=(67, 13)):
+def generate_frames(film, /, *, screen_size=(80, 24), frame_size=(67, 13)):
     duration = operator.methodcaller('group', 1)
     lines = operator.methodcaller('group', *range(2, 15))
     centerframe = get_centerframe_func(screen_size=screen_size,
@@ -177,14 +175,13 @@ def iterframes():
         page = read_page_bytes()
         film = extract_film(page)
         FRAMES = list(generate_frames(film))
-
     return iter(FRAMES)
 
 
 def register_signal_handler(*signums):
     assert signums
 
-    def decorator(func):
+    def decorator(func, /):
         for s in signums:
             logging.debug('signal.signal(%s, ...)', s)
             signal.signal(s, func)

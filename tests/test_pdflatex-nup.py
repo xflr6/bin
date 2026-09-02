@@ -1,5 +1,5 @@
 import importlib
-import re
+import textwrap
 
 import pytest
 
@@ -21,7 +21,7 @@ def test_main(tmp_path, mocker, completed_proc, keep, encoding='utf-8'):
     def run(*args, **kwargs):
         nonlocal doc, newlines
 
-        with open(tex_path, encoding=encoding, newline='') as f:
+        with tex_path.open(encoding=encoding, newline='') as f:
             doc = f.read()
 
         newlines = f.newlines
@@ -43,21 +43,15 @@ def test_main(tmp_path, mocker, completed_proc, keep, encoding='utf-8'):
                               '--no-openright']
                              + (['--keep'] if keep else [])) is None
 
-    doc = re.sub(r'\s', '', doc)
-    assert doc == ('\\documentclass['
-                       'paper=legal,'
-                       'paper=landscape'
-                   ']{scrartcl}'
-                       '\\usepackage{pdfpages}'
-                       '\\pagestyle{empty}'
-                   '\\begin{document}'
-                       '\\includepdfmerge['
-                           'nup=2x1,'
-                           'openright=false,'
-                           'scale=.942,'
-                           'frame=false'
-                       ']{spam.pdf,1-42}'
-                   '\\end{document}')
+    assert doc == textwrap.dedent(
+        r'''
+        \documentclass[paper=legal,paper=landscape]{scrartcl}
+        \usepackage{pdfpages}  % https://www.ctan.org/pkg/pdfpages
+        \pagestyle{empty}
+        \begin{document}
+        \includepdfmerge[nup=2x1,openright=false,scale=.942,frame=false]{spam.pdf,1-42}
+        \end{document}
+        ''').lstrip()
 
     assert newlines == '\n'
 

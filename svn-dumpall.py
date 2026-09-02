@@ -84,7 +84,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
 
     def mode(s: str, /) -> int:
         try:
-            result = int(s, 8)
+            result = int(s, base=8)
         except ValueError:
             result = None
         if result is None or not 0 <= result <= MODE_MASK:
@@ -199,7 +199,7 @@ def run_pipe(cmd, /, *filter_cmds, check: bool = False, **kwargs):
         procs = [s.enter_context(p) for p in procs]
 
         log('returncode(s): ', end='')
-        for has_next, p in enumerate(reversed(procs), 1 - len(procs)):
+        for has_next, p in enumerate(reversed(procs), start=1 - len(procs)):
             (out, err) = p.communicate()
             log(f'{p.args[0]}={p.returncode}', end=', ' if has_next else '\n')
             if check and p.returncode:
@@ -208,7 +208,7 @@ def run_pipe(cmd, /, *filter_cmds, check: bool = False, **kwargs):
 
 
 def map_popen(commands, /, *, stdin=None, stdout=None, **kwargs):
-    for has_next, cmd in enumerate(commands, 1 - len(commands)):
+    for has_next, cmd in enumerate(commands, start=1 - len(commands)):
         log(f'subprocess.Popen({cmd}, **{kwargs})',
             '| ' if has_next else f'> {stdout}\n', sep=' ', end='')
         proc = subprocess.Popen(cmd,

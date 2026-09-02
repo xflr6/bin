@@ -82,9 +82,9 @@ def iterchanges(keys: Iterable[str], /) -> Iterator[tuple[str, str | None]]:
     pairs = map(indent_name, keys)
     pairs = sorted(pairs, key=lambda x: (-x[0], x[1]))
 
-    grouped = itertools.groupby(pairs, lambda x: x[0])
+    grouped = itertools.groupby(pairs, key=lambda x: x[0])
     grouped = [(indent, [n for _, n in g]) for indent, g in grouped]
-    for (x_indent, x_name), (y_indent, y_name) in itertools.combinations(grouped, 2):
+    for (x_indent, x_name), (y_indent, y_name) in itertools.combinations(grouped, r=2):
         if x_name[:len(y_name)] == y_name:
             break
     else:

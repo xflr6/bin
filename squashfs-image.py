@@ -108,10 +108,9 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
 
     def mode(s: str, /) -> int:
         try:
-            result = int(s, 8)
+            result = int(s, base=8)
         except ValueError:
             result = None
-
         if result is None or not 0 <= result <= MODE_MASK:
             raise argparse.ArgumentTypeError(f'need octal int between {oct(0)}'
                                              f' and {oct(MODE_MASK)}: {s}')
@@ -206,10 +205,10 @@ def run_args_kwargs(source_dir: pathlib.Path, dest_path: pathlib.Path, *,
     cmd = ['mksquashfs', source_dir, dest_path, '-noappend']
     if exclude_file is not None:
         log(f'mksquashfs exclude file: {exclude_file}')
-        cmd.extend(['-ef', exclude_file])
+        cmd += ['-ef', exclude_file]
     if comp is not None:
         log(f'mksquashfs compression: {comp}')
-        cmd.extend(['-comp', comp])
+        cmd += ['-comp', comp]
 
     # CAVEAT: env cannot override PATH on Windows
     # see https://docs.python.org/3/library/subprocess.html#subprocess.Popen

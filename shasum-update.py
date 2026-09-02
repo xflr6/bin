@@ -91,12 +91,10 @@ def shasum_update(*glob_paths: Sequence[pathlib.Path], target: pathlib.Path | No
     log(*(f'{f} {s}' for f, s in sums.items()))
 
     if target is not None:
-        with open(target, encoding=encoding) as f:
-            text = f.read()
+        text = target.read_text(encoding=encoding)
         (text, updated) = interpolate(text, pattern=pattern, sums=sums)
         if updated:
-            with open(target, mode='wt', encoding=encoding) as f:
-                f.write(text)
+            target.write_text(text, encoding=encoding)
         log('\n%d updated%s' % (len(updated),
                                 (' %r' % updated) if updated else ''))
         if confirm and updated:
@@ -107,8 +105,8 @@ def shasum_update(*glob_paths: Sequence[pathlib.Path], target: pathlib.Path | No
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def sha256sum(filename, /) -> str:
-    with open(filename, mode='rb') as f:
+def sha256sum(filepath: pathlib.Path, /) -> str:
+    with filepath.open(mode='rb') as f:
         s = hashlib.file_digest(f, hashlib.sha256)
     return s.hexdigest()
 

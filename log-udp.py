@@ -44,7 +44,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('--host', metavar='IP', default=HOST,
                         help=f'address to listen on (default: {HOST})')
 
-    def port(s: str) -> int:
+    def port(s: str, /) -> int:
         port = int(s) if s.isdigit() else socket.getservbyname(s)
         if not 1 <= port <= 2**16:
             raise argparse.ArgumentTypeError(f'invalid port: {s}')
@@ -61,19 +61,18 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
                         help='log format string'
                              f' (default: {FORMAT.replace("%", "%%")})')
 
-    def datefmt(s: str) -> str:
+    def datefmt(s: str, /) -> str:
         try:
             time.strftime(s)
         except ValueError:
             raise argparse.ArgumentTypeError(f'invalid datefmt: {s}')
-        else:
-            return s
+        return s
 
     parser.add_argument('--datefmt', metavar='TMPL', type=datefmt, default=DATEFMT,
                         help='log time.strftime() format string'
                              f' (default: {DATEFMT.replace("%", "%%")})')
 
-    def user(s: str) -> str:
+    def user(s: str, /) -> str:
         try:
             import pwd
         except ImportError:
@@ -87,7 +86,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
                         help='user to setuid to after binding'
                              f' (default: {SETUID})')
 
-    def directory(s: str):
+    def directory(s: str, /):
         try:
             return pathlib.Path(s)
         except ValueError:
@@ -100,7 +99,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('--no-hardening', dest='hardening', action='store_false',
                         help="don't give up privileges (ignore --setuid and --chroot)")
 
-    def encoding(s: str) -> str:
+    def encoding(s: str, /) -> str:
         try:
             return codecs.lookup(s).name
         except LookupError:
@@ -158,13 +157,13 @@ def register_signal_handler(*signums):
     return decorator
 
 
-def itertail(iterable, *, n: int):
+def itertail(iterable, /, *, n: int):
     if n is not None:
         iterable = collections.deque(iterable, n)
     return iterable
 
 
-def serve_forever(s, *, encoding: str, bufsize: int = 1_024):
+def serve_forever(s, /, *, encoding: str, bufsize: int = 1_024):
     buf = bytearray(bufsize)
 
     while True:

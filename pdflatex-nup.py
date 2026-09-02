@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Compile a 2up version of a PDF file using LaTeX pdfpages' \\includepdfmerge.
+r"""Compile a 2up version of a PDF file using LaTeX pdfpages' \includepdfmerge.
 
 See also https://github.com/DavidFirth/pdfjam
 """
@@ -33,20 +33,14 @@ SCALE = '1.01'
 
 LANDSCAPE = {'l': True, 'p': False, 'a': None}
 
-TEMPLATE = ('\\documentclass['  # http://www.ctan.org/pkg/pdfpages'
-                'paper=$paper,'
-                'paper=$orientation'
-            ']{scrartcl}\n'
-                '\\usepackage{pdfpages}\n'
-                '\\pagestyle{empty}\n'
-            '\\begin{document}\n'
-                '\\includepdfmerge['
-                    'nup=$nup,'
-                    'openright=$openright,'
-                    'scale=$scale,'
-                    'frame=$frame'
-                ']{$filename,$pages}\n'
-            '\\end{document}\n')
+TEMPLATE = r'''
+\documentclass[paper=$paper,paper=$orientation]{scrartcl}
+\usepackage{pdfpages}  % https://www.ctan.org/pkg/pdfpages
+\pagestyle{empty}
+\begin{document}
+\includepdfmerge[nup=$nup,openright=$openright,scale=$scale,frame=$frame]{$filename,$pages}
+\end{document}
+'''.lstrip()
 
 OPEN_KWARGS = {'encoding': 'utf-8', 'newline': '\n'}
 
@@ -54,7 +48,7 @@ OPEN_KWARGS = {'encoding': 'utf-8', 'newline': '\n'}
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
 
-    def present_pdf_file(s: str) -> pathlib.Path:
+    def present_pdf_file(s: str, /) -> pathlib.Path:
         try:
             result = pathlib.Path(s)
         except ValueError:
@@ -68,7 +62,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('pdf_file', type=present_pdf_file,
                         help='name of the source PDF file for \\includepdfmerge')
 
-    def template(s: str) -> str:
+    def template(s: str, /) -> str:
         try:
             value = s.format(stem='')
         except (KeyError, IndexError):
@@ -86,7 +80,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('--paper', metavar='SIZE', default=PAPER,
                         help=f'output LaTeX paper size (default: {PAPER})')
 
-    def nup(s: str) -> tuple[int, int]:
+    def nup(s: str, /) -> tuple[int, int]:
         nups = None, None
         fields = tuple(f.strip() or None for f in s.strip().lower().partition('x'))
         if all(fields):
@@ -94,7 +88,6 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
                 nups = tuple(map(int, fields[::2]))
             except ValueError:
                 pass
-
         if not all(nups) or not all(n > 0 for n in nups):
             raise argparse.ArgumentTypeError(f'invalid nup: {s} (e.g: 2x2)')
         (x, y) = nups
@@ -109,7 +102,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('--orient', choices=list(LANDSCAPE), default=ORIENT,
                         help=f'l(andscape), p(ortrait), a(uto) (default: {ORIENT})')
 
-    def factor(s: str) -> str:
+    def factor(s: str, /) -> str:
         try:
             value = float(s)
         except ValueError:
@@ -134,7 +127,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     return parser.parse_args(args)
 
 
-def pdflatex_nup(pdf_file: pathlib.Path, *, name: str,
+def pdflatex_nup(pdf_file: pathlib.Path, /, *, name: str,
                  paper: str,
                  nup_x: int, nup_y: int,
                  pages: str,
@@ -159,7 +152,7 @@ def pdflatex_nup(pdf_file: pathlib.Path, *, name: str,
                           frame=frame)
 
     log(f'{doc_path!r}.write_text(..., **{OPEN_KWARGS})')
-    with doc_path.open('wt', **OPEN_KWARGS) as f:
+    with doc_path.open(mode='wt', **OPEN_KWARGS) as f:
         f.write(doc)
 
     cmd = ['pdflatex', '-interaction=batchmode', doc_path.name]
@@ -191,17 +184,15 @@ def render_template(nup_x: int, nup_y: int, *,
                     openright, scale, frame) -> str:
     if landscape is None:
         landscape = nup_x > nup_y
-
     template = string.Template(TEMPLATE)
-    context = {'paper': paper,
-               'orientation': 'landscape' if landscape else 'portrait',
-               'nup': f'{nup_x:d}x{nup_y:d}',
-               'filename': filename,
-               'pages': pages,
-               'scale': scale,
-               'openright': 'true' if openright else 'false',
-               'frame': 'true' if frame else 'false'}
-    return template.substitute(context)
+    return template.substitute(paper=paper,
+                               orientation='landscape' if landscape else 'portrait',
+                               nup=f'{nup_x:d}x{nup_y:d}',
+                               filename=filename,
+                               pages=pages,
+                               scale=scale,
+                               openright='true' if openright else 'false',
+                               frame='true' if frame else 'false')
 
 
 def main(args: Sequence[str] | None = None) -> str | None:

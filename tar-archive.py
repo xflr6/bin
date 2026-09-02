@@ -111,7 +111,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
 
     def mode(s: str, /) -> int:
         try:
-            result = int(s, 8)
+            result = int(s, base=8)
         except ValueError:
             result = None
         if result is None or not 0 <= result <= MODE_MASK:
@@ -202,7 +202,7 @@ log = functools.partial(print, file=sys.stderr, sep='\n')
 
 def iterpaths(path: pathlib.Path, /, *,
               encoding: str = ENCODING) -> Iterator[pathlib.Path]:
-    with open(path, encoding=encoding) as f:
+    with path.open(encoding=encoding) as f:
         for line in f:
             if (line := line.strip()) and not line.startswith('#'):
                 yield pathlib.Path(line)
@@ -220,7 +220,7 @@ def make_exclude_match(exclude_paths: Iterable[pathlib.Path] | None, /):
     for parts in sorted(patterns):
         (root, *parts) = parts
         root = tree[root]
-        for has_next, p in enumerate(parts, 1 - len(parts)):
+        for has_next, p in enumerate(parts, start=1 - len(parts)):
             if p in root:
                 assert (root[p] is not None) == bool(has_next)
             else:

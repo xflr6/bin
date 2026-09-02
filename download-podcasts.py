@@ -43,7 +43,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('podcasts', metavar='section', nargs='*',
                         help='config section name of podcast to download')
 
-    def present_file(s: str) -> pathlib.Path:
+    def present_file(s: str, /) -> pathlib.Path:
         try:
             result = pathlib.Path(s)
         except ValueError:
@@ -58,7 +58,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
                              ' result paths relative to its directory'
                              f' (default: {CONFIG_FILE})')
 
-    def encoding(s: str) -> str:
+    def encoding(s: str, /) -> str:
         try:
             return codecs.lookup(s).name
         except LookupError:
@@ -87,7 +87,7 @@ class ConfigParser(configparser.ConfigParser):
     DEFAULTSECT: str = configparser.DEFAULTSECT
 
     @classmethod
-    def from_path(cls, path: pathlib.Path, *,
+    def from_path(cls, path: pathlib.Path, /, *,
                   encoding: str = ENCODING) -> ConfigParser:
         inst = cls()
         with path.open(encoding=encoding) as f:
@@ -103,7 +103,7 @@ class Subscriptions:
 
     _limit = 'limit'
 
-    def __init__(self, config_path: pathlib.Path = CONFIG_FILE, *,
+    def __init__(self, config_path: pathlib.Path = CONFIG_FILE, /, *,
                  encoding: str = ENCODING) -> None:
         self._config_path = config_path
         self._config = ConfigParser.from_path(config_path)
@@ -176,7 +176,7 @@ class Subscriptions:
     __iter__ = podcasts
 
 
-def parse_xml(url: str, *,
+def parse_xml(url: str, /, *,
               require_root_tag: str | None = 'rss',
               verbose: bool = True):
     if verbose:
@@ -189,7 +189,7 @@ def parse_xml(url: str, *,
     return tree
 
 
-async def parse_xml_async(url: str, *,
+async def parse_xml_async(url: str, /, *,
                           require_root_tag: str | None = 'rss',
                           verbose: bool = True):
     import aiohttp
@@ -208,7 +208,7 @@ async def parse_xml_async(url: str, *,
     return tree
 
 
-def _verify_tree(tree, *, require_root_tag: str | None) -> None:
+def _verify_tree(tree, /, *, require_root_tag: str | None) -> None:
     if require_root_tag is not None:
         root = tree.getroot()
         if root.tag != require_root_tag:
@@ -216,37 +216,29 @@ def _verify_tree(tree, *, require_root_tag: str | None) -> None:
                                f' (required: {require_root_tag!r})')
 
 
-def get_channel_items(url: str, *, limit: int | None):
+def get_channel_items(url: str, /, *, limit: int | None):
     limit = _verify_limit(limit)
     items = []
     while limit is None or len(items) < limit:
         tree = parse_xml(url)
         channel = tree.find('channel')
         items.extend(channel.iterfind('item'))
-
-        next_link = channel.find('atom:link[@rel="next"]', _NS)
-        if next_link is None:
+        if (next_link := channel.find('atom:link[@rel="next"]', _NS)) is None:
             break
-
         url = next_link.attrib['href']
-
     return channel, items
 
 
-async def get_channel_items_async(url: str, *, limit: int | None):
+async def get_channel_items_async(url: str, /, *, limit: int | None):
     limit = _verify_limit(limit)
     items = []
     while limit is None or len(items) < limit:
         tree = await parse_xml_async(url)
         channel = tree.find('channel')
         items.extend(channel.iterfind('item'))
-
-        next_link = channel.find('atom:link[@rel="next"]', _NS)
-        if next_link is None:
+        if (next_link := channel.find('atom:link[@rel="next"]', _NS)) is None:
             break
-
         url = next_link.attrib['href']
-
     return channel, items
 
 
@@ -265,7 +257,7 @@ class Podcast(list):
     ignore_file = staticmethod(lambda filename: False)
 
     @classmethod
-    def from_url(cls, url: str, *,
+    def from_url(cls, url: str, /, *,
                  directory, limit: int | None = None,
                  ignore_size=r'', ignore_file=r'',
                  override_filename: str | None = None) -> Podcast:
@@ -335,15 +327,14 @@ class Podcast(list):
 
 class Episode:
 
-    def __init__(self, podcast: Podcast, item,
-                 *, override_filename: str | None = None) -> None:
+    def __init__(self, podcast: Podcast, item, *,
+                 override_filename: str | None = None) -> None:
         self.podcast = podcast
         self.title = item.findtext('title')
         self.description = item.findtext('description', '')
         self.duration = item.findtext('itunes:duration', None, _NS)
 
-        pub_date = item.findtext('pubDate')
-        if pub_date is not None:
+        if (pub_date := item.findtext('pubDate')) is not None:
             published = email.utils.parsedate_to_datetime(pub_date)
             if published.tzinfo is None:
                 published = published.replace(tzinfo=datetime.UTC)
@@ -385,7 +376,7 @@ class Episode:
         return target
 
 
-def human_size(n_bytes: int) -> str:
+def human_size(n_bytes: int, /) -> str:
     for x in ('bytes', 'KiB', 'MiB', 'GiB', 'TiB'):
         if n_bytes < 1024:
             return f'{n_bytes:.1f} {x}'
@@ -393,14 +384,13 @@ def human_size(n_bytes: int) -> str:
             n_bytes /= 1024
 
 
-def urlretrieve(url: str, filename):
+def urlretrieve(url: str, /, filename):
     pos = 0
 
     def progress_func(gotblocks, blocksize, totalsize):
         nonlocal pos
 
-        newpos = gotblocks * blocksize * 100 // totalsize
-        if newpos > pos:
+        if (newpos := gotblocks * blocksize * 100 // totalsize) > pos:
             print(f'\b\b\b\b{newpos:3d}%', end='', file=sys.stdout, flush=True)
             pos = newpos
 
