@@ -26,7 +26,6 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             result = pathlib.Path(s)
         except (TypeError, ValueError):
             result = None
-
         if result is None or not result.is_dir():
             raise argparse.ArgumentTypeError(f'not a present directory: {s}')
         return result
@@ -66,7 +65,7 @@ def git_pull_repos(target_dir: pathlib.Path, *repo_urls: str,
                 log(f'shutil.rmtree({g_dir})')
                 shutil.rmtree(g_dir)
                 n_reset += 1
-                assert g_dir.exists()
+                assert not g_dir.exists()
             else:
                 log(f'kept: {g_dir}/ (inode={g_dir.stat().st_ino})')
 
