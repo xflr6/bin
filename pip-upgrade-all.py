@@ -28,13 +28,15 @@ import sys
 import textwrap
 from typing import Self, NamedTuple
 
-import packaging.version
+from packaging.version import Version
 
 
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.partition('\n')[0])
+
     parser.add_argument('--exclude', nargs='+', metavar='PKG',
                         help='package name(s) to exclude from upgrade.')
+
     parser.add_argument('--version', action='version', version=__version__)
     return parser.parse_args(args)
 
@@ -123,9 +125,6 @@ class OutdatedPackage(NamedTuple):
 
     def ask_for_confirmation(self) -> bool:
         return user_confirmed(self.message, default=self.update is Update.PATCH)
-
-
-Version = packaging.version.Version
 
 
 class Update(enum.Enum):

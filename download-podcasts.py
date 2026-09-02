@@ -13,7 +13,7 @@ __copyright__ = 'Copyright (c) 2020-2021 Sebastian Bank'
 import argparse
 import asyncio
 import codecs
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 import configparser
 import datetime
 import email.utils
@@ -37,50 +37,49 @@ _NS = {'atom': 'http://www.w3.org/2005/Atom',
        'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd'}
 
 
-def present_file(s: str) -> pathlib.Path:
-    try:
-        result = pathlib.Path(s)
-    except ValueError:
-        result = None
+def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
 
-    if result is None or not result.is_file():
-        raise argparse.ArgumentTypeError(f'not a present file: {s}')
-    return result
+    parser.add_argument('podcasts', metavar='section', nargs='*',
+                        help='config section name of podcast to download')
 
+    def present_file(s: str) -> pathlib.Path:
+        try:
+            result = pathlib.Path(s)
+        except ValueError:
+            result = None
+        if result is None or not result.is_file():
+            raise argparse.ArgumentTypeError(f'not a present file: {s}')
+        return result
 
-def encoding(s: str) -> str:
-    try:
-        return codecs.lookup(s).name
-    except LookupError:
-        raise argparse.ArgumentTypeError(f'unknown encoding: {s}')
+    parser.add_argument('--config', metavar='PATH',
+                        type=present_file, default=str(CONFIG_FILE),
+                        help='INI file with one section per podcast subscription,'
+                             ' result paths relative to its directory'
+                             f' (default: {CONFIG_FILE})')
 
+    def encoding(s: str) -> str:
+        try:
+            return codecs.lookup(s).name
+        except LookupError:
+            raise argparse.ArgumentTypeError(f'unknown encoding: {s}')
 
-parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--encoding', metavar='NAME',
+                        type=encoding, default=ENCODING,
+                        help=f'config file encoding (default: {ENCODING})')
 
-parser.add_argument('podcasts', metavar='section', nargs='*',
-                    help='config section name of podcast to download')
+    parser.add_argument('--limit', metavar='N', type=int, default=None,
+                        help='number of episodes to download'
+                             ' (overrides --config file)')
 
-parser.add_argument('--config', metavar='PATH',
-                    type=present_file, default=str(CONFIG_FILE),
-                    help='INI file with one section per podcast subscription,'
-                         ' result paths relative to its directory'
-                         f' (default: {CONFIG_FILE})')
+    parser.add_argument('--serial', dest='parallel', action='store_false',
+                        help="don't parallelize downloads from different sections")
 
-parser.add_argument('--encoding', metavar='NAME',
-                    type=encoding, default=ENCODING,
-                    help=f'config file encoding (default: {ENCODING})')
+    parser.add_argument('--verbose', action='store_true',
+                        help='log skipping of downloads that match present files')
 
-parser.add_argument('--limit', metavar='N', type=int, default=None,
-                    help='number of episodes to download'
-                         ' (overrides --config file)')
-
-parser.add_argument('--serial', dest='parallel', action='store_false',
-                    help="don't parallelize downloads from different sections")
-
-parser.add_argument('--verbose', action='store_true',
-                    help='log skipping of downloads that match present files')
-
-parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument('--version', action='version', version=__version__)
+    return parser.parse_args(args)
 
 
 class ConfigParser(configparser.ConfigParser):
@@ -408,8 +407,8 @@ def urlretrieve(url: str, filename):
     return urllib.request.urlretrieve(url, filename, progress_func)
 
 
-def main(args=None) -> None:
-    args = parser.parse_args(args)
+def main(args: Sequence[str] | None = None) -> None:
+    args = parse_args(args)
 
     print(f'Config: {args.config} ({args.config.stat().st_size:_d} bytes)')
     subscribed = Subscriptions(args.config, encoding=args.encoding)
@@ -449,4 +448,4 @@ def main(args=None) -> None:
 
 
 if __name__ == '__main__':
-    parser.exit(main())
+    sys.exit(main())

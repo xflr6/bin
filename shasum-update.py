@@ -22,66 +22,62 @@ import sys
 ENCODING = 'utf-8'
 
 
-def present_file(s: str, /) -> pathlib.Path:
-    try:
-        result = pathlib.Path(s)
-    except ValueError:
-        result = None
+def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
 
-    if result is None or not result.is_file():
-        raise argparse.ArgumentTypeError(f'not a present file: {s}')
-    return result
+    def present_file_glob(s: str, /) -> list[pathlib.Path]:
+        paths = list(pathlib.Path().glob(s))
+        if not paths:
+            raise argparse.ArgumentTypeError(f'no file(s) matched: {s}')
+        if (missing := [p for p in paths if not p.exists()]):
+            raise argparse.ArgumentTypeError(f'file(s) not found: {missing}')
+        if (nonfiles := [p for p in paths if p.exists() and not p.is_file()]):
+            raise argparse.ArgumentTypeError(f'matched non-file(s): {nonfiles}')
+        return paths
 
+    parser.add_argument('glob', nargs='+', type=present_file_glob,
+                        help='glob pattern of file(s) to checksum')
 
-def encoding(s: str, /) -> str:
-    try:
-        return codecs.lookup(s).name
-    except LookupError:
-        raise argparse.ArgumentTypeError(f'unknown encoding: {s}')
+    def present_file(s: str, /) -> pathlib.Path:
+        try:
+            result = pathlib.Path(s)
+        except ValueError:
+            result = None
+        if result is None or not result.is_file():
+            raise argparse.ArgumentTypeError(f'not a present file: {s}')
+        return result
 
+    parser.add_argument('--target', metavar='TEXT_FILE', type=present_file,
+                        help='path to the text file to be updated')
 
-def file_checksum_pattern(s: str, /):
-    try:
-        result = re.compile(s, flags=re.DOTALL)
-    except re.error as e:
-        raise argparse.ArgumentTypeError(f'invalid regex pattern: {s} ({e!r})')
+    def encoding(s: str, /) -> str:
+        try:
+            return codecs.lookup(s).name
+        except LookupError:
+            raise argparse.ArgumentTypeError(f'unknown encoding: {s}')
 
-    if result.groups != 2:
-        argparse.ArgumentTypeError(f'need exactly 2 groups: {s}')
-    return result
+    parser.add_argument('--encoding', metavar='NAME', type=encoding,
+                        default=ENCODING,
+                        help='target text file read/write encoding'
+                             f' (default: {ENCODING})')
 
+    def file_checksum_pattern(s: str, /):
+        try:
+            result = re.compile(s, flags=re.DOTALL)
+        except re.error as e:
+            raise argparse.ArgumentTypeError(f'invalid regex pattern: {s} ({e!r})')
+        if result.groups != 2:
+            argparse.ArgumentTypeError(f'need exactly 2 groups: {s}')
+        return result
 
-def present_file_glob(s: str, /) -> list[pathlib.Path]:
-    paths = list(pathlib.Path().glob(s))
-    if not paths:
-        raise argparse.ArgumentTypeError(f'no file(s) matched: {s}')
-    if (missing := [p for p in paths if not p.exists()]):
-        raise argparse.ArgumentTypeError(f'file(s) not found: {missing}')
-    if (nonfiles := [p for p in paths if p.exists() and not p.is_file()]):
-        raise argparse.ArgumentTypeError(f'matched non-file(s): {nonfiles}')
-    return paths
+    parser.add_argument('--pattern', metavar='REGEX', type=file_checksum_pattern,
+                        help='re.sub() pattern with file and checksum group')
 
+    parser.add_argument('--confirm', action='store_true',
+                        help='prompt for confirmation before exit when updated')
 
-parser = argparse.ArgumentParser(description=__doc__)
-
-parser.add_argument('glob', nargs='+', type=present_file_glob,
-                    help='glob pattern of file(s) to checksum')
-
-parser.add_argument('--target', metavar='TEXT_FILE', type=present_file,
-                    help='path to the text file to be updated')
-
-parser.add_argument('--encoding', metavar='NAME', type=encoding,
-                    default=ENCODING,
-                    help='target text file read/write encoding'
-                         f' (default: {ENCODING})')
-
-parser.add_argument('--pattern', metavar='REGEX', type=file_checksum_pattern,
-                    help='re.sub() pattern with file and checksum group')
-
-parser.add_argument('--confirm', action='store_true',
-                    help='prompt for confirmation before exit when updated')
-
-parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument('--version', action='version', version=__version__)
+    return parser.parse_args(args)
 
 
 def shasum_update(*glob_paths: Sequence[pathlib.Path], target: pathlib.Path | None,
@@ -132,8 +128,8 @@ def interpolate(text: str, /, *, pattern: re.Pattern[str],
     return text, updated
 
 
-def main(args=None) -> str | None:
-    args = parser.parse_args(args)
+def main(args: Sequence[str] | None = None) -> str | None:
+    args = parse_args(args)
     return shasum_update(*args.glob, target=args.target,
                          encoding=args.encoding,
                          pattern=args.pattern,
@@ -141,4 +137,4 @@ def main(args=None) -> str | None:
 
 
 if __name__ == '__main__':  # pragma: no cover
-    parser.exit(main())
+    sys.exit(main())

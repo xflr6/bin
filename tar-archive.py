@@ -132,7 +132,6 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
                         help='prompt for archive file deletion before exit')
 
     parser.add_argument('--version', action='version', version=__version__)
-
     return parser.parse_args(args)
 
 

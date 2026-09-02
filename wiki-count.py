@@ -54,10 +54,18 @@ SUFFIX_OPEN_MODULE = {'.bz2': bz2,
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
 
+    parser.add_argument('filename', type=pathlib.Path,
+                        help='path to MediaWiki XML export (format: .xml.bz2)')
+
+    parser.add_argument('--tag', default=PAGE_TAG,
+                        help=f'end tag to count (default: {PAGE_TAG})')
+
+    parser.add_argument('--stats', dest='simple_stats', action='store_false',
+                        help='also compute and display page edit statistics')
+
     def positive_int(s: str) -> int | None:
         if s is None or not s.strip():
             return None
-
         try:
             result = int(s)
         except ValueError:
@@ -67,25 +75,23 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             raise argparse.ArgumentTypeError(f'need positive int: {s}')
         return result
 
-    parser.add_argument('filename', type=pathlib.Path,
-                        help='path to MediaWiki XML export (format: .xml.bz2)')
-    parser.add_argument('--tag', default=PAGE_TAG,
-                        help=f'end tag to count (default: {PAGE_TAG})')
-    parser.add_argument('--stats', dest='simple_stats', action='store_false',
-                        help='also compute and display page edit statistics')
     parser.add_argument('--stats-top', dest='most_common_n',
                         metavar='N', type=positive_int, default=MOST_COMMON_N,
                         help='show top N users edits and lines'
                              f' (default: {MOST_COMMON_N})')
+
     parser.add_argument('--display', metavar='PATH', default=DISPLAY_PATH,
                         help='ElementPath to log in sub-total'
                              f' (default: {DISPLAY_PATH})')
+
     parser.add_argument('--display-after', metavar='N', type=positive_int,
                         default=DISPLAY_AFTER,
                         help='log sub-total after N tags'
                              f' (default: {DISPLAY_AFTER})')
+
     parser.add_argument('--stop-after', metavar='N', type=positive_int,
                         help='stop after N tags')
+
     parser.add_argument('--version', action='version', version=__version__)
     return parser.parse_args(args)
 

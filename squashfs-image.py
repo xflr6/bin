@@ -9,6 +9,7 @@ __license__ = 'MIT, see LICENSE.txt'
 __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
+from collections.abc import Sequence
 import datetime
 import functools
 import os
@@ -36,115 +37,106 @@ assert CHMOD == stat.S_IRUSR
 SUBPROCESS_PATH = '/usr/bin'
 
 
-def directory(s: str, /) -> pathlib.Path:
-    try:
-        result = pathlib.Path(s)
-    except ValueError:
-        result = None
+def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
 
-    if result is None or not result.is_dir():
-        raise argparse.ArgumentTypeError(f'not a present directory: {s}')
-    return result
+    def directory(s: str, /) -> pathlib.Path:
+        try:
+            result = pathlib.Path(s)
+        except ValueError:
+            result = None
+        if result is None or not result.is_dir():
+            raise argparse.ArgumentTypeError(f'not a present directory: {s}')
+        return result
 
+    parser.add_argument('source_dir', type=directory,
+                        help='input root directory to image')
 
-def template(s: str, /) -> str:
-    try:
-        result = time.strftime(s)
-    except ValueError:
-        result = None
+    parser.add_argument('dest_dir', type=directory,
+                        help='output directory for writing the SquashFS image file')
 
-    if not result:
-        raise argparse.ArgumentTypeError(f'invalid or empty template: {s}')
-    return result
+    def template(s: str, /) -> str:
+        try:
+            result = time.strftime(s)
+        except ValueError:
+            result = None
+        if not result:
+            raise argparse.ArgumentTypeError(f'invalid or empty template: {s}')
+        return result
 
+    parser.add_argument('--name', metavar='TEMPLATE', type=template,
+                        default=NAME_TEMPLATE,
+                        help='image file name time.strftime() format string template'
+                             f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
 
-def present_file(s: str, /) -> pathlib.Path:
-    if not s:
-        return None
-    try:
-        result = pathlib.Path(s)
-    except ValueError:
-        result = None
+    def present_file(s: str, /) -> pathlib.Path:
+        if not s:
+            return None
+        try:
+            result = pathlib.Path(s)
+        except ValueError:
+            result = None
+        if result is None or not result.is_file():
+            raise argparse.ArgumentTypeError(f'not a present file: {s}')
+        return result
 
-    if result is None or not result.is_file():
-        raise argparse.ArgumentTypeError(f'not a present file: {s}')
-    return result
+    parser.add_argument('--exclude-file', metavar='PATH', type=present_file,
+                        help='path to file with one line per excluded dir/file')
 
+    parser.add_argument('--comp', choices=('gzip', 'lz4', 'lzo', 'xz', 'zstd'),
+                        help='compression (use mksquashfs default if omitted)')
 
-def user(s: str, /) -> str:
-    import pwd  # not on Windows
+    def user(s: str, /) -> str:
+        import pwd  # not on Windows
+        try:
+            pwd.getpwnam(s)
+        except KeyError:
+            raise argparse.ArgumentTypeError(f'unknown user: {s}')
+        return s
 
-    try:
-        pwd.getpwnam(s)
-    except KeyError:
-        raise argparse.ArgumentTypeError(f'unknown user: {s}')
-    return s
+    parser.add_argument('--owner', type=user, help='image file owner')
 
+    def group(s: str, /) -> str:
+        import grp  # not on Windows
+        try:
+            grp.getgrnam(s)
+        except KeyError:
+            raise argparse.ArgumentTypeError(f'unknown group: {s}')
+        return s
 
-def group(s: str, /) -> str:
-    import grp  # not on Windows
+    parser.add_argument('--group', type=group, help='image file group')
 
-    try:
-        grp.getgrnam(s)
-    except KeyError:
-        raise argparse.ArgumentTypeError(f'unknown group: {s}')
-    return s
+    def mode(s: str, /) -> int:
+        try:
+            result = int(s, 8)
+        except ValueError:
+            result = None
 
+        if result is None or not 0 <= result <= MODE_MASK:
+            raise argparse.ArgumentTypeError(f'need octal int between {oct(0)}'
+                                             f' and {oct(MODE_MASK)}: {s}')
+        return stat.S_IMODE(result)
 
-def mode(s: str, /) -> int:
-    try:
-        result = int(s, 8)
-    except ValueError:
-        result = None
+    parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
+                        help=f'image file chmod (default: {CHMOD:03o})')
 
-    if result is None or not 0 <= result <= MODE_MASK:
-        raise argparse.ArgumentTypeError(f'need octal int between {oct(0)}'
-                                         f' and {oct(MODE_MASK)}: {s}')
-    return stat.S_IMODE(result)
+    parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
+                        help='PATH for mksquashfs subprocess'
+                             f' (default: {SUBPROCESS_PATH})')
 
+    parser.add_argument('--set-umask', metavar='MASK', type=mode,
+                        default=SET_UMASK,
+                        help='umask for mksquashfs subprocess'
+                             f' (default: {SET_UMASK:03o})')
 
-parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--quiet', action='store_true',
+                        help='suppress stdout and stderr of mksquashfs subprocess')
 
-parser.add_argument('source_dir', type=directory,
-                    help='input root directory to image')
+    parser.add_argument('--ask-for-deletion', action='store_true',
+                        help='prompt for image file deletion before exit')
 
-parser.add_argument('dest_dir', type=directory,
-                    help='output directory for writing the SquashFS image file')
-
-parser.add_argument('--name', metavar='TEMPLATE', type=template,
-                    default=NAME_TEMPLATE,
-                    help='image file name time.strftime() format string template'
-                         f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
-
-parser.add_argument('--exclude-file', metavar='PATH', type=present_file,
-                    help='path to file with one line per excluded dir/file')
-
-parser.add_argument('--comp', choices=('gzip', 'lz4', 'lzo', 'xz', 'zstd'),
-                    help='compression (use mksquashfs default if omitted)')
-
-parser.add_argument('--owner', type=user, help='image file owner')
-
-parser.add_argument('--group', type=group, help='image file group')
-
-parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
-                    help=f'image file chmod (default: {CHMOD:03o})')
-
-parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
-                    help='PATH for mksquashfs subprocess'
-                         f' (default: {SUBPROCESS_PATH})')
-
-parser.add_argument('--set-umask', metavar='MASK', type=mode,
-                    default=SET_UMASK,
-                    help='umask for mksquashfs subprocess'
-                         f' (default: {SET_UMASK:03o})')
-
-parser.add_argument('--quiet', action='store_true',
-                    help='suppress stdout and stderr of mksquashfs subprocess')
-
-parser.add_argument('--ask-for-deletion', action='store_true',
-                    help='prompt for image file deletion before exit')
-
-parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument('--version', action='version', version=__version__)
+    return parser.parse_args(args)
 
 
 def squashfs_image(source_dir: pathlib.Path, dest_dir: pathlib.Path, *, name: str,
@@ -245,8 +237,8 @@ def prompt_for_deletion(path: pathlib.Path, /) -> bool:  # pragma: no cover
     return not line
 
 
-def main(args=None) -> str | None:
-    args = parser.parse_args(args)
+def main(args: Sequence[str] | None = None) -> str | None:
+    args = parse_args(args)
     return squashfs_image(args.source_dir, args.dest_dir, name=args.name,
                           exclude_file=args.exclude_file,
                           comp=args.comp,
@@ -260,4 +252,4 @@ def main(args=None) -> str | None:
 
 
 if __name__ == '__main__':  # pragma: no cover
-    parser.exit(main())
+    sys.exit(main())

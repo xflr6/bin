@@ -10,6 +10,7 @@ __copyright__ = 'Copyright (c) 2017,2020 Sebastian Bank'
 
 import asyncio
 import argparse
+from collections.abc import Sequence
 import functools
 import gzip
 import logging
@@ -50,71 +51,75 @@ FRAMES = None
 ENCODING = 'utf-8'
 
 
-def port(s: str) -> int:
-    port = int(s) if s.isdigit() else socket.getservbyname(s)
+def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
 
-    if not 1 <= port <= 2**16:
-        raise argparse.ArgumentTypeError(f'invalid port: {s}')
-    return port
+    parser.add_argument('--host', metavar='IP', default=HOST,
+                        help=f'address to listen on (default: {HOST})')
 
+    def port(s: str) -> int:
+        port = int(s) if s.isdigit() else socket.getservbyname(s)
+        if not 1 <= port <= 2**16:
+            raise argparse.ArgumentTypeError(f'invalid port: {s}')
+        return port
 
-def fps(s: str) -> int:
-    try:
-        fps = int(s)
-    except ValueError:
-        fps = None
+    parser.add_argument('--port', metavar='SERVICE', type=port, default=PORT,
+                        help='TCP port number or name to listen on'
+                             f' (default: {PORT})')
 
-    if fps is None or not (1 <= fps <= 100):
-        raise argparse.ArgumentTypeError(f'invalid fps: {s}')
-    return fps
+    def fps(s: str) -> int:
+        try:
+            fps = int(s)
+        except ValueError:
+            fps = None
+        if fps is None or not (1 <= fps <= 100):
+            raise argparse.ArgumentTypeError(f'invalid fps: {s}')
+        return fps
 
+    parser.add_argument('--fps', metavar='N', type=fps, default=FPS,
+                        help=f'frames (1-100) per second to generate (default: {FPS})')
 
-def user(s: str) -> str:
-    try:
-        import pwd
-    except ImportError:
-        return None
+    def user(s: str) -> str:
+        try:
+            import pwd
+        except ImportError:
+            return None
+        try:
+            return pwd.getpwnam(s)
+        except KeyError:
+            return s
 
-    try:
-        return pwd.getpwnam(s)
-    except KeyError:
-        return s
+    parser.add_argument('--setuid', metavar='USER', type=user, default=SETUID,
+                        help='user to setuid to after binding'
+                             f' (default: {SETUID})')
 
+    def directory(s: str):
+        try:
+            return pathlib.Path(s)
+        except ValueError:
+            return s
 
-def directory(s: str):
-    try:
-        return pathlib.Path(s)
-    except ValueError:
-        return s
+    parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
+                        help='directory to chroot into after binding'
+                             f' (default: {CHROOT})')
 
+    parser.add_argument('--no-hardening', dest='hardening', action='store_false',
+                        help="don't give up privileges (ignore --setuid and --chroot)")
 
-parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--verbose', action='store_true',
+                        help='increase stdout logging level to DEBUG')
 
-parser.add_argument('--host', metavar='IP', default=HOST,
-                    help=f'address to listen on (default: {HOST})')
-
-parser.add_argument('--port', metavar='SERVICE', type=port, default=PORT,
-                    help='TCP port number or name to listen on'
-                         f' (default: {PORT})')
-
-parser.add_argument('--fps', metavar='N', type=fps, default=FPS,
-                    help=f'frames (1-100) per second to generate (default: {FPS})')
-
-parser.add_argument('--setuid', metavar='USER', type=user, default=SETUID,
-                    help='user to setuid to after binding'
-                         f' (default: {SETUID})')
-
-parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
-                    help='directory to chroot into after binding'
-                         f' (default: {CHROOT})')
-
-parser.add_argument('--no-hardening', dest='hardening', action='store_false',
-                    help="don't give up privileges (ignore --setuid and --chroot)")
-
-parser.add_argument('--verbose', action='store_true',
-                    help='increase stdout logging level to DEBUG')
-
-parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument('--version', action='version', version=__version__)
+    args = parser.parse_args(args)
+    if args.hardening:
+        if platform.system() == 'Windows':  # pragma: no cover
+            raise NotImplementedError('require --no-hardening under Windows')
+        if args.setuid is None or isinstance(args.setuid, str):
+            parser.error(f'unknown --setuid user: {args.setuid}')
+        if (args.chroot is None or isinstance(args.chroot, str)
+            or not args.chroot.is_dir()):
+            parser.error(f'not a present --chroot directory: {args.chroot}')
+    return args
 
 
 def read_page_bytes(url: str = URL, *,
@@ -221,16 +226,8 @@ async def handle_connect(reader, writer, *, sleep_delay,
         raise
 
 
-def main(args=None) -> str | None:
-    args = parser.parse_args(args)
-    if args.hardening:
-        if platform.system() == 'Windows':  # pragma: no cover
-            raise NotImplementedError('require --no-hardening under Windows')
-        if args.setuid is None or isinstance(args.setuid, str):
-            parser.error(f'unknown --setuid user: {args.setuid}')
-        if (args.chroot is None or isinstance(args.chroot, str)
-            or not args.chroot.is_dir()):
-            parser.error(f'not a present --chroot directory: {args.chroot}')
+def main(args: Sequence[str] | None = None) -> str | None:
+    args = parse_args(args)
 
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format='%(asctime)s %(message)s',
@@ -285,4 +282,4 @@ def main(args=None) -> str | None:
 
 
 if __name__ == '__main__':  # pragma: no cover
-    parser.exit(main())
+    sys.exit(main())

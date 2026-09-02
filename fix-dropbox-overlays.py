@@ -23,8 +23,10 @@ COMPUTER_NAME = None  # local
 
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+
     parser.add_argument('--dry-run', action='store_true',
                         help="show what would be changed (don't write to registry)")
+
     parser.add_argument('--version', action='version', version=__version__)
     return parser.parse_args(args)
 

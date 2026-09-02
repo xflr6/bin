@@ -11,6 +11,7 @@ __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 import argparse
 import codecs
 import collections
+from collections.abc import Sequence
 import logging
 import os
 import pathlib
@@ -37,87 +38,91 @@ ENCODING = 'utf-8'
 TIMEZONE = pathlib.Path('/etc/timezone')
 
 
-def port(s: str) -> int:
-    port = int(s) if s.isdigit() else socket.getservbyname(s)
+def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
 
-    if not 1 <= port <= 2**16:
-        raise argparse.ArgumentTypeError(f'invalid port: {s}')
-    return port
+    parser.add_argument('--host', metavar='IP', default=HOST,
+                        help=f'address to listen on (default: {HOST})')
 
+    def port(s: str) -> int:
+        port = int(s) if s.isdigit() else socket.getservbyname(s)
+        if not 1 <= port <= 2**16:
+            raise argparse.ArgumentTypeError(f'invalid port: {s}')
+        return port
 
-def datefmt(s: str) -> str:
-    try:
-        time.strftime(s)
-    except ValueError:
-        raise argparse.ArgumentTypeError(f'invalid datefmt: {s}')
-    else:
-        return s
+    parser.add_argument('--port', metavar='SERVICE', type=port, default=PORT,
+                        help='UDP port number or name to listen on'
+                             f' (default: {PORT})')
 
+    parser.add_argument('--file', metavar='LOGFILE', type=pathlib.Path,
+                        help='file to write log to (log only to stdout by default)')
 
-def user(s: str) -> str:
-    try:
-        import pwd
-    except ImportError:
-        return None
+    parser.add_argument('--format', metavar='TMPL', default=FORMAT,
+                        help='log format string'
+                             f' (default: {FORMAT.replace("%", "%%")})')
 
-    try:
-        return pwd.getpwnam(s)
-    except KeyError:
-        return s
+    def datefmt(s: str) -> str:
+        try:
+            time.strftime(s)
+        except ValueError:
+            raise argparse.ArgumentTypeError(f'invalid datefmt: {s}')
+        else:
+            return s
 
+    parser.add_argument('--datefmt', metavar='TMPL', type=datefmt, default=DATEFMT,
+                        help='log time.strftime() format string'
+                             f' (default: {DATEFMT.replace("%", "%%")})')
 
-def directory(s: str):
-    try:
-        return pathlib.Path(s)
-    except ValueError:
-        return s
+    def user(s: str) -> str:
+        try:
+            import pwd
+        except ImportError:
+            return None
+        try:
+            return pwd.getpwnam(s)
+        except KeyError:
+            return s
 
+    parser.add_argument('--setuid', metavar='USER', type=user, default=SETUID,
+                        help='user to setuid to after binding'
+                             f' (default: {SETUID})')
 
-def encoding(s: str) -> str:
-    try:
-        return codecs.lookup(s).name
-    except LookupError:
-        raise argparse.ArgumentTypeError(f'unknown encoding: {s}')
+    def directory(s: str):
+        try:
+            return pathlib.Path(s)
+        except ValueError:
+            return s
 
+    parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
+                        help='directory to chroot into after binding'
+                             f' (default: {CHROOT})')
 
-parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--no-hardening', dest='hardening', action='store_false',
+                        help="don't give up privileges (ignore --setuid and --chroot)")
 
-parser.add_argument('--host', metavar='IP', default=HOST,
-                    help=f'address to listen on (default: {HOST})')
+    def encoding(s: str) -> str:
+        try:
+            return codecs.lookup(s).name
+        except LookupError:
+            raise argparse.ArgumentTypeError(f'unknown encoding: {s}')
 
-parser.add_argument('--port', metavar='SERVICE', type=port, default=PORT,
-                    help='UDP port number or name to listen on'
-                         f' (default: {PORT})')
+    parser.add_argument('--encoding', metavar='NAME', type=encoding, default=ENCODING,
+                        help=f'encoding of UDP messages (default: {ENCODING})')
 
-parser.add_argument('--file', metavar='LOGFILE', type=pathlib.Path,
-                    help='file to write log to (log only to stdout by default)')
+    parser.add_argument('--verbose', action='store_true',
+                        help='increase stdout logging level to DEBUG')
 
-parser.add_argument('--format', metavar='TMPL', default=FORMAT,
-                    help='log format string'
-                         f' (default: {FORMAT.replace("%", "%%")})')
-
-parser.add_argument('--datefmt', metavar='TMPL', type=datefmt, default=DATEFMT,
-                    help='log time.strftime() format string'
-                         f' (default: {DATEFMT.replace("%", "%%")})')
-
-parser.add_argument('--setuid', metavar='USER', type=user, default=SETUID,
-                    help='user to setuid to after binding'
-                         f' (default: {SETUID})')
-
-parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
-                    help='directory to chroot into after binding'
-                         f' (default: {CHROOT})')
-
-parser.add_argument('--no-hardening', dest='hardening', action='store_false',
-                    help="don't give up privileges (ignore --setuid and --chroot)")
-
-parser.add_argument('--encoding', metavar='NAME', type=encoding, default=ENCODING,
-                    help=f'encoding of UDP messages (default: {ENCODING})')
-
-parser.add_argument('--verbose', action='store_true',
-                    help='increase stdout logging level to DEBUG')
-
-parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument('--version', action='version', version=__version__)
+    args = parser.parse_args(args)
+    if args.hardening:
+        if platform.system() == 'Windows':  # pragma: no cover
+            raise NotImplementedError('require --no-hardening under Windows')
+        if args.setuid is None or isinstance(args.setuid, str):
+            parser.error(f'unknown --setuid user: {args.setuid}')
+        if (args.chroot is None or isinstance(args.chroot, str)
+            or not args.chroot.is_dir()):
+            parser.error(f'not a present --chroot directory: {args.chroot}')
+    return args
 
 
 def configure_logging(filename=None, *,
@@ -178,16 +183,8 @@ def serve_forever(s, *, encoding: str, bufsize: int = 1_024):
         logging.info('%s:%d %s', host, port, msg)
 
 
-def main(args=None) -> str | None:
-    args = parser.parse_args(args)
-    if args.hardening:
-        if platform.system() == 'Windows':  # pragma: no cover
-            raise NotImplementedError('require --no-hardening under Windows')
-        if args.setuid is None or isinstance(args.setuid, str):
-            parser.error(f'unknown --setuid user: {args.setuid}')
-        if (args.chroot is None or isinstance(args.chroot, str)
-            or not args.chroot.is_dir()):
-            parser.error(f'not a present --chroot directory: {args.chroot}')
+def main(args: Sequence[str] | None = None) -> str | None:
+    args = parse_args(args)
 
     configure_logging(args.file,
                       level='DEBUG' if args.verbose else 'INFO',
@@ -241,4 +238,4 @@ def main(args=None) -> str | None:
 
 
 if __name__ == '__main__':  # pragma: no cover
-    parser.exit(main())
+    sys.exit(main())

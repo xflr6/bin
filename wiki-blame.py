@@ -31,10 +31,14 @@ GZIP = 'gzip'
 
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+
     parser.add_argument('page_title', help='title of the page on MediaWiki')
+
     parser.add_argument('search_string', help='string to match page wikitext')
+
     parser.add_argument('--export-url', metavar='URL', default=EXPORT_URL,
                         help=f'MediaWiki instance export url (default: {EXPORT_URL})')
+
     parser.add_argument('--version', action='version', version=__version__)
     return parser.parse_args(args)
 

@@ -31,19 +31,22 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             result = pathlib.Path(s)
         except ValueError:
             result = None
-
         if result is None or not result.is_dir():
             raise argparse.ArgumentTypeError(f'not a present directory: {s}')
         return result
 
     parser.add_argument('target_dir', type=directory,
                         help='output directory for writing/updating bare Git clones')
+
     parser.add_argument('gh_username', nargs='+',
                         help='name of the GitHub user account')
+
     parser.add_argument('--reset', action='store_true',
                         help='delete present Git clones first')
+
     parser.add_argument('--detail', dest='quiet', action='store_false',
                         help='show detailed info for each clone/update')
+
     parser.add_argument('--version', action='version', version=__version__)
     return parser.parse_args(args)
 

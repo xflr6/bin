@@ -12,6 +12,7 @@ import array
 import argparse
 import codecs
 import collections
+from collections.abc import Sequence
 import ctypes
 import datetime
 import logging
@@ -50,96 +51,100 @@ DATETIME_MAX = (datetime.datetime.max
                 - datetime.datetime(1970, 1, 1)).total_seconds()
 
 
-def datefmt(s: str) -> str:
-    try:
-        time.strftime(s)
-    except ValueError:
-        raise argparse.ArgumentTypeError(f'invalid datefmt: {s}')
-    else:
-        return s
+def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
 
+    parser.add_argument('--host', metavar='IP', default=HOST,
+                        help=f'address to listen on (default: {HOST})')
 
-def user(s: str) -> str:
-    try:
-        import pwd
-    except ImportError:
-        return None
+    parser.add_argument('--file', metavar='LOGFILE', type=pathlib.Path,
+                        help='file to write log to (log only to stdout by default)')
 
-    try:
-        return pwd.getpwnam(s)
-    except KeyError:
-        return s
+    parser.add_argument('--format', metavar='TMPL', default=FORMAT,
+                        help=f'log format (default: {FORMAT.replace("%", "%%")})')
 
+    def datefmt(s: str) -> str:
+        try:
+            time.strftime(s)
+        except ValueError:
+            raise argparse.ArgumentTypeError(f'invalid datefmt: {s}')
+        else:
+            return s
 
-def directory(s: str):
-    try:
-        return pathlib.Path(s)
-    except ValueError:
-        return s
+    parser.add_argument('--datefmt', metavar='TMPL', type=datefmt, default=DATEFMT,
+                        help='log time.strftime() format'
+                             f' (default: {DATEFMT.replace("%", "%%")})')
 
+    parser.add_argument('--ipfmt', metavar='TMPL', default=IP_INFO,
+                        help=f'log format (default: {IP_INFO.replace("%", "%%")})')
 
-def encoding(s: str) -> str:
-    try:
-        return codecs.lookup(s).name
-    except LookupError:
-        raise argparse.ArgumentTypeError(f'unknown encoding: {s}')
+    parser.add_argument('--icmpfmt', metavar='TMPL', default=ICMP_INFO,
+                        help=f'log format (default: {ICMP_INFO.replace("%", "%%")})')
 
+    def user(s: str) -> str:
+        try:
+            import pwd
+        except ImportError:
+            return None
+        try:
+            return pwd.getpwnam(s)
+        except KeyError:
+            return s
 
-def positive_int(s: str) -> int:
-    try:
-        result = int(s)
-    except ValueError:
-        result = None
+    parser.add_argument('--setuid', metavar='USER', type=user, default=SETUID,
+                        help='user to setuid to after binding'
+                             f' (default: {SETUID})')
 
-    if result is None or not result > 0:
-        raise argparse.ArgumentTypeError(f'need positive int: {s}')
-    return result
+    def directory(s: str):
+        try:
+            return pathlib.Path(s)
+        except ValueError:
+            return s
 
+    parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
+                        help='directory to chroot into after binding'
+                             f' (default: {CHROOT})')
 
-parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--no-hardening', dest='hardening', action='store_false',
+                        help="don't give up privileges (ignore --setuid and --chroot)")
 
-parser.add_argument('--host', metavar='IP', default=HOST,
-                    help=f'address to listen on (default: {HOST})')
+    def encoding(s: str) -> str:
+        try:
+            return codecs.lookup(s).name
+        except LookupError:
+            raise argparse.ArgumentTypeError(f'unknown encoding: {s}')
 
-parser.add_argument('--file', metavar='LOGFILE', type=pathlib.Path,
-                    help='file to write log to (log only to stdout by default)')
+    parser.add_argument('--encoding', metavar='NAME', type=encoding, default=ENCODING,
+                        help='try to decode data with this encoding'
+                             f' (default: {ENCODING})')
 
-parser.add_argument('--format', metavar='TMPL', default=FORMAT,
-                    help=f'log format (default: {FORMAT.replace("%", "%%")})')
+    def positive_int(s: str) -> int:
+        try:
+            result = int(s)
+        except ValueError:
+            result = None
+        if result is None or not result > 0:
+            raise argparse.ArgumentTypeError(f'need positive int: {s}')
+        return result
 
-parser.add_argument('--datefmt', metavar='TMPL', type=datefmt, default=DATEFMT,
-                    help='log time.strftime() format'
-                         f' (default: {DATEFMT.replace("%", "%%")})')
+    parser.add_argument('--max-size', metavar='N', type=positive_int, default=MAX_SIZE,
+                        help='payload byte limit for packages to process'
+                             f' (default: {MAX_SIZE})')
 
-parser.add_argument('--ipfmt', metavar='TMPL', default=IP_INFO,
-                    help=f'log format (default: {IP_INFO.replace("%", "%%")})')
+    parser.add_argument('--verbose', action='store_true',
+                        help='increase stdout logging level to DEBUG')
 
-parser.add_argument('--icmpfmt', metavar='TMPL', default=ICMP_INFO,
-                    help=f'log format (default: {ICMP_INFO.replace("%", "%%")})')
-
-parser.add_argument('--setuid', metavar='USER', type=user, default=SETUID,
-                    help='user to setuid to after binding'
-                         f' (default: {SETUID})')
-
-parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
-                    help='directory to chroot into after binding'
-                         f' (default: {CHROOT})')
-
-parser.add_argument('--no-hardening', dest='hardening', action='store_false',
-                    help="don't give up privileges (ignore --setuid and --chroot)")
-
-parser.add_argument('--encoding', metavar='NAME', type=encoding, default=ENCODING,
-                    help='try to decode data with this encoding'
-                         f' (default: {ENCODING})')
-
-parser.add_argument('--max-size', metavar='N', type=positive_int, default=MAX_SIZE,
-                    help='payload byte limit for packages to process'
-                         f' (default: {MAX_SIZE})')
-
-parser.add_argument('--verbose', action='store_true',
-                    help='increase stdout logging level to DEBUG')
-
-parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument('--version', action='version', version=__version__)
+    args = parser.parse_args(args)
+    if args.hardening:
+        if platform.system() == 'Windows':  # pragma: no cover
+            raise NotImplementedError('require --no-hardening under Windows')
+        if args.setuid is None or isinstance(args.setuid, str):
+            parser.error(f'unknown --setuid user: {args.setuid}')
+        if (args.chroot is None or isinstance(args.chroot, str)
+            or not args.chroot.is_dir()):
+            parser.error(f'not a present --chroot directory: {args.chroot}')
+    return args
 
 
 def configure_logging(filename=None, *,
@@ -470,16 +475,8 @@ def serve_forever(s, *, max_size, encoding, ip_tmpl, icmp_tmpl):
                                      'icmp': icmp.format(icmp_tmpl)})
 
 
-def main(args=None) -> str | None:
-    args = parser.parse_args(args)
-    if args.hardening:
-        if platform.system() == 'Windows':  # pragma: no cover
-            raise NotImplementedError('require --no-hardening under Windows')
-        if args.setuid is None or isinstance(args.setuid, str):
-            parser.error(f'unknown --setuid user: {args.setuid}')
-        if (args.chroot is None or isinstance(args.chroot, str)
-            or not args.chroot.is_dir()):
-            parser.error(f'not a present --chroot directory: {args.chroot}')
+def main(args: Sequence[str] | None = None) -> str | None:
+    args = parse_args(args)
 
     configure_logging(args.file,
                       level='DEBUG' if args.verbose else 'INFO',
@@ -526,4 +523,4 @@ def main(args=None) -> str | None:
 
 
 if __name__ == '__main__':  # pragma: no cover
-    parser.exit(main())
+    sys.exit(main())

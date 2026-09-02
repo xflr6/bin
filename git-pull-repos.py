@@ -33,11 +33,15 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
 
     parser.add_argument('target_dir', type=directory,
                         help='output directory for writing/updating bare Git clones')
+
     parser.add_argument('repo_url', nargs='+', help='input Git repository URL')
+
     parser.add_argument('--reset', action='store_true',
                         help='delete present Git clones first')
+
     parser.add_argument('--detail', dest='quiet', action='store_false',
                         help='show detailed info for each clone/update')
+
     parser.add_argument('--version', action='version', version=__version__)
     return parser.parse_args(args)
 

@@ -12,6 +12,7 @@ __license__ = 'MIT, see LICENSE.txt'
 __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
+from collections.abc import Sequence
 import functools
 import pathlib
 import string
@@ -50,92 +51,87 @@ TEMPLATE = ('\\documentclass['  # http://www.ctan.org/pkg/pdfpages'
 OPEN_KWARGS = {'encoding': 'utf-8', 'newline': '\n'}
 
 
-def present_pdf_file(s: str) -> pathlib.Path:
-    try:
-        result = pathlib.Path(s)
-    except ValueError:
-        result = None
+def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
 
-    if result is None or not result.is_file():
-        raise argparse.ArgumentTypeError(f'not a present file: {s}')
-    elif result.suffix.lower() != '.pdf':
-        raise argparse.ArgumentTypeError(f'not a pdf file: {s}')
-    return result
-
-
-def template(s: str) -> str:
-    try:
-        value = s.format(stem='')
-    except (KeyError, IndexError):
-        value = None
-
-    if not value:
-        raise argparse.ArgumentTypeError(f'invalid or empty template: {s}')
-    elif pathlib.Path(value).parent.name:
-        raise argparse.ArgumentTypeError(f'template contains directory: {s}')
-    return s
-
-
-def nup(s: str) -> tuple[int, int]:
-    nups = None, None
-    fields = tuple(f.strip() or None for f in s.strip().lower().partition('x'))
-    if all(fields):
+    def present_pdf_file(s: str) -> pathlib.Path:
         try:
-            nups = tuple(map(int, fields[::2]))
+            result = pathlib.Path(s)
         except ValueError:
-            pass
+            result = None
+        if result is None or not result.is_file():
+            raise argparse.ArgumentTypeError(f'not a present file: {s}')
+        elif result.suffix.lower() != '.pdf':
+            raise argparse.ArgumentTypeError(f'not a pdf file: {s}')
+        return result
 
-    if not all(nups) or not all(n > 0 for n in nups):
-        raise argparse.ArgumentTypeError(f'invalid nup: {s} (e.g: 2x2)')
-    (x, y) = nups
-    return argparse.Namespace(x=x, y=y)
+    parser.add_argument('pdf_file', type=present_pdf_file,
+                        help='name of the source PDF file for \\includepdfmerge')
 
+    def template(s: str) -> str:
+        try:
+            value = s.format(stem='')
+        except (KeyError, IndexError):
+            value = None
+        if not value:
+            raise argparse.ArgumentTypeError(f'invalid or empty template: {s}')
+        elif pathlib.Path(value).parent.name:
+            raise argparse.ArgumentTypeError(f'template contains directory: {s}')
+        return s
 
-def factor(s: str) -> str:
-    try:
-        value = float(s)
-    except ValueError:
-        value = None
+    parser.add_argument('--name', metavar='TMPL', type=template,
+                        default=NAME_TEMPLATE,
+                        help=f'template for nup PDF file (default: {NAME_TEMPLATE})')
 
-    if not value or not 0 < value <= 10:
-        raise argparse.ArgumentTypeError(f'invalid or zero factor: {s}')
-    return s.strip()
+    parser.add_argument('--paper', metavar='SIZE', default=PAPER,
+                        help=f'output LaTeX paper size (default: {PAPER})')
 
+    def nup(s: str) -> tuple[int, int]:
+        nups = None, None
+        fields = tuple(f.strip() or None for f in s.strip().lower().partition('x'))
+        if all(fields):
+            try:
+                nups = tuple(map(int, fields[::2]))
+            except ValueError:
+                pass
 
-parser = argparse.ArgumentParser(description=__doc__)
+        if not all(nups) or not all(n > 0 for n in nups):
+            raise argparse.ArgumentTypeError(f'invalid nup: {s} (e.g: 2x2)')
+        (x, y) = nups
+        return argparse.Namespace(x=x, y=y)
 
-parser.add_argument('pdf_file', type=present_pdf_file,
-                    help='name of the source PDF file for \\includepdfmerge')
+    parser.add_argument('--nup', metavar='XxY', type=nup, default=NUP,
+                        help=f'nup option for \\includepdfmerge (default: {NUP})')
 
-parser.add_argument('--name', metavar='TMPL', type=template,
-                    default=NAME_TEMPLATE,
-                    help=f'template for nup PDF file (default: {NAME_TEMPLATE})')
+    parser.add_argument('--pages', metavar='RANGE', default=PAGES,
+                        help=f'pages option for \\includepdfmerge (default: {PAGES})')
 
-parser.add_argument('--paper', metavar='SIZE', default=PAPER,
-                    help=f'output LaTeX paper size (default: {PAPER})')
+    parser.add_argument('--orient', choices=list(LANDSCAPE), default=ORIENT,
+                        help=f'l(andscape), p(ortrait), a(uto) (default: {ORIENT})')
 
-parser.add_argument('--nup', metavar='XxY', type=nup, default=NUP,
-                    help=f'nup option for \\includepdfmerge (default: {NUP})')
+    def factor(s: str) -> str:
+        try:
+            value = float(s)
+        except ValueError:
+            value = None
+        if not value or not 0 < value <= 10:
+            raise argparse.ArgumentTypeError(f'invalid or zero factor: {s}')
+        return s.strip()
 
-parser.add_argument('--pages', metavar='RANGE', default=PAGES,
-                    help=f'pages option for \\includepdfmerge (default: {PAGES})')
+    parser.add_argument('--scale', metavar='FACTOR', type=factor, default=SCALE,
+                        help=f'scale option for \\includepdfmerge (default: {SCALE})')
 
-parser.add_argument('--orient', choices=list(LANDSCAPE), default=ORIENT,
-                    help=f'l(andscape), p(ortrait), a(uto) (default: {ORIENT})')
+    parser.add_argument('--no-frame', dest='frame', action='store_false',
+                        help="don't pass frame option to \\includepdfmerge")
 
-parser.add_argument('--scale', metavar='FACTOR', type=factor, default=SCALE,
-                    help=f'scale option for \\includepdfmerge (default: {SCALE})')
+    parser.add_argument('--no-openright', dest='openright', action='store_false',
+                        help="don't pass openright option to \\includepdfmerge")
 
-parser.add_argument('--no-frame', dest='frame', action='store_false',
-                    help="don't pass frame option to \\includepdfmerge")
+    parser.add_argument('--keep', dest='clean_up', action='store_false',
+                        help="don't delete intermediate files (*.tex, *.log, etc.)")
 
-parser.add_argument('--no-openright', dest='openright', action='store_false',
-                    help="don't pass openright option to \\includepdfmerge")
-
-parser.add_argument('--keep', dest='clean_up', action='store_false',
-                    help="don't delete intermediate files (*.tex, *.log, etc.)")
-
-parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument('--version', action='version', version=__version__)
+    return parser.parse_args(args)
 
 
 def pdflatex_nup(pdf_file: pathlib.Path, *, name: str,
@@ -208,8 +204,8 @@ def render_template(nup_x: int, nup_y: int, *,
     return template.substitute(context)
 
 
-def main(args=None) -> str | None:
-    args = parser.parse_args(args)
+def main(args: Sequence[str] | None = None) -> str | None:
+    args = parse_args(args)
     return pdflatex_nup(args.pdf_file, name=args.name,
                         paper=args.paper,
                         nup_x=args.nup.x, nup_y=args.nup.y,
@@ -222,4 +218,4 @@ def main(args=None) -> str | None:
 
 
 if __name__ == '__main__':  # pragma: no cover
-    parser.exit(main())
+    sys.exit(main())

@@ -48,56 +48,62 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             result = pathlib.Path(s)
         except ValueError:
             result = None
-
         if result is None or not result.is_dir():
             raise argparse.ArgumentTypeError(f'not a present directory: {s}')
         return result
+
+    parser.add_argument('target_dir', type=directory,
+                        help='output directory for writing SVN dump file(s)')
+
+    parser.add_argument('repo_dir', nargs='+', type=directory,
+                        help='input SVN repository directory')
 
     def template(s: str, /) -> str:
         try:
             result = time.strftime(s)
         except ValueError:
             result = None
-
         if not result:
             raise argparse.ArgumentTypeError(f'invalid or empty template: {s}')
         elif pathlib.Path(result).parent.name:
             raise argparse.ArgumentTypeError(f'template contains directory: {s}')
         return result
 
+    parser.add_argument('--name', metavar='TEMPLATE', type=template,
+                        default=NAME_TEMPLATE,
+                        help=f'dump file name time.strftime() format string template'
+                             f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
+
+    parser.add_argument('--no-auto-compress', dest='auto_compress', action='store_false',
+                        help='never compress dump file(s)'
+                             ' (default: auto-compress if --name ends with any of:'
+                             f" {', '.join(COMPRESS)})")
+
+    parser.add_argument('--no-deltas', dest='deltas', action='store_false',
+                        help="don't pass --deltas to svnadmin dump")
+
     def mode(s: str, /) -> int:
         try:
             result = int(s, 8)
         except ValueError:
             result = None
-
         if result is None or not 0 <= result <= MODE_MASK:
             raise argparse.ArgumentTypeError(f'need octal int between {oct(0)}'
                                              f' and {oct(MODE_MASK)}: {s}')
         return stat.S_IMODE(result)
 
-    parser.add_argument('target_dir', type=directory,
-                        help='output directory for writing SVN dump file(s)')
-    parser.add_argument('repo_dir', nargs='+', type=directory,
-                        help='input SVN repository directory')
-    parser.add_argument('--name', metavar='TEMPLATE', type=template,
-                        default=NAME_TEMPLATE,
-                        help=f'dump file name time.strftime() format string template'
-                             f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
-    parser.add_argument('--no-auto-compress', dest='auto_compress', action='store_false',
-                        help='never compress dump file(s)'
-                             ' (default: auto-compress if --name ends with any of:'
-                             f" {', '.join(COMPRESS)})")
-    parser.add_argument('--no-deltas', dest='deltas', action='store_false',
-                        help="don't pass --deltas to svnadmin dump")
     parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
                         help=f'dump file(s) chmod (default: {CHMOD:03o})')
+
     parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
                         help=f'PATH for subprocess(es) (default: {SUBPROCESS_PATH})')
+
     parser.add_argument('--detail', action='store_true',
                         help='include detail infos for each repository')
+
     parser.add_argument('--verbose', dest='quiet', action='store_false',
                         help="don't pass --quiet to svnadmin dump")
+
     parser.add_argument('--version', action='version', version=__version__)
     return parser.parse_args(args)
 
@@ -213,7 +219,7 @@ def map_popen(commands, /, *, stdin=None, stdout=None, **kwargs):
         stdin = proc.stdout
 
 
-def main(args=None) -> str | None:
+def main(args: Sequence[str] | None = None) -> str | None:
     args = parse_args(args)
     if not args.detail:
         global log
