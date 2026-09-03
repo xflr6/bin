@@ -20,13 +20,15 @@ __copyright__ = 'Copyright (c) 2026 Sebastian Bank'
 
 import argparse
 from collections.abc import Iterator, Sequence
+import dataclasses
 import enum
+import functools
 import os
 import re
 import subprocess
 import sys
 import textwrap
-from typing import Self, NamedTuple
+from typing import Self
 
 from packaging.version import Version
 
@@ -42,10 +44,13 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
 
 
 def pip_upgrade_all(*, exclude: Sequence[str] | None) -> str | None:
-    print('Fetch pip list --outdated packages to pip install --upgrade...')
-    exclude = set(exclude or [])
-    candidates = [p for p in outdated_packages() if p.name not in exclude]
-    if not (packages := [p for p in candidates if p.ask_for_confirmation()]):
+    print('Fetch pip list --outdated packages eligible for pip install --upgrade...')
+    candidates = outdated_packages()
+    if exclude:
+        exclude = set(exclude)
+        candidates = (p for p in candidates if p.name not in exclude)
+    packages = [p for p in candidates if p.ask_for_confirmation()]
+    if not packages:
         print('', 'No packages to pip install --upgrade, exiting.', sep='\n')
         return None
 
@@ -61,7 +66,8 @@ def pip_upgrade_all(*, exclude: Sequence[str] | None) -> str | None:
 
 
 def outdated_packages() -> Iterator[OutdatedPackage]:
-    if not (stdout := run_pip(['list', '--outdated'], capture_stdout=True)):
+    stdout = run_pip(['list', '--outdated'], capture_stdout=True)
+    if not stdout:
         return iter([])
     print(stdout, end='\n\n')
     return OutdatedPackage.iter_from_table(stdout)
@@ -69,9 +75,11 @@ def outdated_packages() -> Iterator[OutdatedPackage]:
 
 def run_pip(args: Sequence[str], /, *,
             capture_stdout: bool = False) -> str | None:
-    cmd = [sys.executable, '-m', 'pip'] + args
+    cmd = [sys.executable, '-m', 'pip'] + list(args)
     proc = run(cmd, capture_output=capture_stdout)
-    return proc.stdout.rstrip() if capture_stdout else None
+    if capture_stdout:
+        return proc.stdout.rstrip()
+    return None
 
 
 def run(cmd: Sequence[str | os.PathLike[str]], /, *,
@@ -81,21 +89,19 @@ def run(cmd: Sequence[str | os.PathLike[str]], /, *,
                           capture_output=capture_output)
 
 
-class OutdatedPackage(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class OutdatedPackage:
 
     name: str
-    version: str
-    latest: str
+    version: Version
+    latest: Version
     type: str
 
     _pattern = re.compile(textwrap.dedent(r'''
-                                          (?P<package>[\w.-]+)
-                                          [ ]+
-                                          (?P<version>\S+)
-                                          [ ]+
-                                          (?P<latest>\S+)
-                                          [ ]+
-                                          (?P<type>[\w]+)
+                                          (?P<package>[\w.-]+) [ ]+
+                                          (?P<version>\S+)     [ ]+
+                                          (?P<latest>\S+)      [ ]+
+                                          (?P<type>\w+)
                                           ''').strip(),
                           flags=re.VERBOSE | re.ASCII)
 
@@ -110,12 +116,11 @@ class OutdatedPackage(NamedTuple):
     def from_line(cls, line: str, /) -> Self:
         if (ma := cls._pattern.fullmatch(line)) is None:
             raise ValueError(f'failed to parse {line=}')
-        return cls(ma['package'], ma['version'], ma['latest'], ma['type'])
+        return cls(ma['package'], Version(ma['version']), Version(ma['latest']), ma['type'])
 
-    @property
+    @functools.cached_property
     def update(self) -> Update:
-        (old, new) = map(Version, (self.version, self.latest))
-        return Update.from_versions(old=old, new=new)
+        return Update.from_versions(old=self.version, new=self.latest)
 
     @property
     def message(self) -> str:
