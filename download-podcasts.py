@@ -82,6 +82,45 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     return parser.parse_args(args)
 
 
+def download_podcasts(*,
+                      config: pathlib.Path,
+                      podcasts: Sequence[str],
+                      encoding: str,
+                      limit: int,
+                      parallel: bool,
+                      verbose: bool) -> list[tuple[Podcast, Episode]]:
+    print(f'Config: {config} ({config.stat().st_size:_d} bytes)')
+    subscribed = Subscriptions(config, encoding=encoding)
+    print(subscribed)
+
+    kwargs = {'select_sections': podcasts} if podcasts else {}
+    print(f'Download RSS feed XML for {subscribed.count(**kwargs)} active subscriptions...')
+    podcasts = list(subscribed.podcasts(use_async=parallel, **kwargs))
+    print(f'parsed {sum(map(len, podcasts))} episode descriptions.\n')
+
+    downloaded = []
+    if parallel:
+        async def download_async(p):
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(None,
+                                              lambda p: list(p.download_episodes()),
+                                              p)
+
+        async def download(podcasts):
+            tasks = [download_async(p) for p in podcasts]
+            return await asyncio.gather(*tasks)
+
+        result = asyncio.run(download(podcasts))
+        downloaded.extend((p, e) for p, r in zip(podcasts, result) for e in r)
+    else:
+        for p in podcasts:
+            episodes = p.download_episodes(verbose=verbose)
+            downloaded.extend((p, e) for e in episodes)
+            print()
+    print()
+    return downloaded
+
+
 class ConfigParser(configparser.ConfigParser):
 
     DEFAULTSECT: str = configparser.DEFAULTSECT
@@ -399,40 +438,14 @@ def urlretrieve(url: str, /, filename):
 
 def main(args: Sequence[str] | None = None) -> None:
     args = parse_args(args)
-
-    print(f'Config: {args.config} ({args.config.stat().st_size:_d} bytes)')
-    subscribed = Subscriptions(args.config, encoding=args.encoding)
-    print(subscribed)
-
-    kwargs = {'select_sections': args.podcasts} if args.podcasts else {}
-    print(f'Download RSS feed XML for {subscribed.count(**kwargs)} active subscriptions...')
-    podcasts = list(subscribed.podcasts(use_async=args.parallel, **kwargs))
-    print(f'parsed {sum(map(len, podcasts))} episode descriptions.\n')
-
-    downloaded = []
-    if args.parallel:
-        async def download_async(p):
-            loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(None,
-                                              lambda p: list(p.download_episodes()),
-                                              p)
-
-        async def download(podcasts):
-            tasks = [download_async(p) for p in podcasts]
-            return await asyncio.gather(*tasks)
-
-        result = asyncio.run(download(podcasts))
-        downloaded.extend((p, e) for p, r in zip(podcasts, result) for e in r)
-    else:
-        for p in podcasts:
-            episodes = p.download_episodes(verbose=args.verbose)
-            downloaded.extend((p, e) for e in episodes)
-            print()
-    print()
-
+    downloaded = download_podcasts(config=args.config,
+                                   podcasts=args.podcasts,
+                                   encoding=args.encoding,
+                                   limit=args.limit,
+                                   parallel=args.parallel,
+                                   verbose=args.verbose)
     for p, e in downloaded:
         print(f'{p.title} -- {e.title}')
-
     input('Press any key to end...')
     return None
 
