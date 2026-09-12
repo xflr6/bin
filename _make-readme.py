@@ -3,7 +3,6 @@
 """Insert --help output of *.py as usage into README.md file."""
 
 import pathlib
-import platform
 import subprocess
 import sys
 
