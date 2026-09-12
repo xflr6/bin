@@ -10,7 +10,7 @@ __copyright__ = 'Copyright (c) 2017,2020 Sebastian Bank'
 
 import asyncio
 import argparse
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 import functools
 import gzip
 import logging
@@ -37,7 +37,7 @@ CHROOT = '/tmp'
 
 SETUID = 'nobody'
 
-URL = 'http://www.asciimation.co.nz'
+URL = 'https://www.asciimation.co.nz'
 
 CACHE = (pathlib.Path(__file__).parent / 'asciimation.html.gz').resolve()
 
@@ -148,7 +148,7 @@ def serve_asciimation(*,
                         datefmt='%b %d %H:%M:%S')
 
     @register_signal_handler(signal.SIGINT, signal.SIGTERM)
-    def handle_with_exit(signum, _):
+    def handle_with_exit(signum: int, _):
         sys.exit(f'received signal.{signal.Signals(signum).name}')
 
     logging.info('start asciimation server on %s port %s', host, port)
@@ -175,9 +175,10 @@ def serve_asciimation(*,
         os.setgroups([])
         os.setuid(setuid.pw_uid)
 
-    logging.debug('asyncio.run(serve_forever(sock=%r))', s)
+    kwargs = {'fps': fps}
+    logging.debug('asyncio.run(serve_forever(%r, **%r))', s, kwargs)
     try:
-        asyncio.run(serve_forever(sock=s, fps=fps))
+        asyncio.run(serve_forever(s, **kwargs))
     except socket.error:  # pragma: no cover
         logging.exception('socket.error')
         return 'socket error'
@@ -193,7 +194,7 @@ def serve_asciimation(*,
     return None
 
 
-def register_signal_handler(*signums):
+def register_signal_handler(*signums: signal.Signals | int):
     assert signums
 
     def decorator(func, /):
@@ -205,7 +206,7 @@ def register_signal_handler(*signums):
     return decorator
 
 
-def iterframes():
+def iterframes() -> Iterator[tuple[int, str]]:
     global FRAMES
 
     if FRAMES is None:
@@ -230,12 +231,14 @@ def read_page_bytes(url: str = URL, /, *,
     return result
 
 
-def extract_film(page_bytes, /, *, encoding: str = 'unicode_escape'):
+def extract_film(page_bytes: bytes, /, *, encoding: str = 'unicode_escape') -> str:
     raw = FILM.search(page_bytes)['film'].removesuffix(b'\\n\xff\\n')
     return raw.decode(encoding)
 
 
-def generate_frames(film, /, *, screen_size=(80, 24), frame_size=(67, 13)):
+def generate_frames(film, /, *,
+                    screen_size=(80, 24),
+                    frame_size=(67, 13)) -> Iterator[tuple[int, str]]:
     duration = operator.methodcaller('group', 1)
     lines = operator.methodcaller('group', *range(2, 15))
     centerframe = get_centerframe_func(screen_size=screen_size,
@@ -249,24 +252,23 @@ def generate_frames(film, /, *, screen_size=(80, 24), frame_size=(67, 13)):
 
 
 def get_centerframe_func(*, screen_size, frame_size):
-    (hmargin, vmargin) = (s - f for s, f in zip(screen_size, frame_size))
+    (hmargin, vmargin) = (s - f for s, f in zip(screen_size, frame_size,
+                                                strict=True))
     screen = '\r\n' * (vmargin // 2) + '%s' + '\r\n' * (vmargin - vmargin // 2)
     content = '%%-%ds' % frame_size[0]
     row = ' ' * (hmargin // 2) + content + ' ' * (hmargin - hmargin // 2)
     screen = f'{HOME}{CLS}{screen}'
 
-    def centerframe_func(lines):
+    def centerframe_func(lines: Sequence[str]) -> str:
         return screen % '\r\n'.join(row % l for l in lines)
 
     return centerframe_func
 
 
-async def serve_forever(*, sock, fps: int):
-    handler = functools.partial(handle_connect, sleep_delay=1.0 / fps)
-
+async def serve_forever(sock, /, *, fps: int):
     logging.debug('asyncio.start_server(..., sock=%r)', sock)
+    handler = functools.partial(handle_connect, sleep_delay=1.0 / fps)
     server = await asyncio.start_server(handler, sock=sock, start_serving=False)
-
     async with server:
         logging.debug('%r.serve_forever()', server)
         await server.serve_forever()
@@ -274,21 +276,20 @@ async def serve_forever(*, sock, fps: int):
 
 async def handle_connect(reader, writer, *, sleep_delay: float,
                          encoding: str = ENCODING):
-    address = writer.get_extra_info('peername')
-    logging.info('client connected from %s port %s', *address)
-
+    (host, port) = writer.get_extra_info('peername')
+    logging.info('client connected from %s port %s', host, port)
     try:
         for duration, frame in iterframes():
             writer.write(frame.encode(encoding))
             await writer.drain()
             await asyncio.sleep(sleep_delay * duration)
-        logging.info('last frame for %s port %s', *address)
+        logging.info('last frame for %s port %s', host, port)
     except ConnectionResetError:
-        logging.info('client from %s port %s disconnected', *address)
+        logging.info('client from %s port %s disconnected', host, port)
         writer.close()
         return
     except (SystemExit, Exception):
-        logging.info('disconnect client from %s port %s', *address)
+        logging.info('disconnect client from %s port %s', host, port)
         writer.close()
         await writer.wait_closed()
         raise

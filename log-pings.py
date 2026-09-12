@@ -2,6 +2,8 @@
 
 """Log incoming ICMP echo request messages to stdout and optionally into file."""
 
+from __future__ import annotations
+
 __title__ = 'log-pings.py'
 __version__ = '0.1.dev0'
 __author__ = 'Sebastian Bank <sebastian.bank@uni-leipzig.de>'
@@ -25,19 +27,19 @@ import signal
 import socket
 import sys
 import time
-from typing import NamedTuple
+from typing import NamedTuple, Self
 
 HOST = '0.0.0.0'
 
 FORMAT = '%(asctime)s%(ip)s%(icmp)s %(message)s'
+
+LOGGING_EXTRA = {'ip': '', 'icmp': ''}
 
 DATEFMT = '%b %d %H:%M:%S'
 
 IP_INFO = ' %(src)s:%(ident)d'
 
 ICMP_INFO = ' %(ident)d:%(seq_num)d'
-
-EX = {'ip': '', 'icmp': ''}
 
 CHROOT = '/tmp'
 
@@ -163,7 +165,7 @@ class Passwd(NamedTuple):
 
 def log_pings(*,
               host: str,
-              file: os.PathLike[str],
+              file: os.PathLike[str] | None,
               format_: str,
               datefmt: str,
               ipfmt: str,
@@ -181,20 +183,20 @@ def log_pings(*,
                       datefmt=datefmt)
 
     @register_signal_handler(signal.SIGINT, signal.SIGTERM)
-    def handle_with_exit(signum, _):
+    def handle_with_exit(signum: int, _):
         sys.exit(f'received signal.{signal.Signals(signum).name}')
 
     cmd = pathlib.Path(sys.argv[0]).name
-    logging.info(f'{cmd} listening on %r', host, extra=EX)
+    logging.info(f'{cmd} listening on %r', host, extra=LOGGING_EXTRA)
 
     s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
     s.bind((host, socket.IPPROTO_ICMP))
 
     if hardening:
-        logging.debug('os.chroot(%r)', chroot, extra=EX)
+        logging.debug('os.chroot(%r)', chroot, extra=LOGGING_EXTRA)
         os.chroot(chroot)
 
-        logging.debug('os.setuid(%r)', setuid.pw_name, extra=EX)
+        logging.debug('os.setuid(%r)', setuid.pw_name, extra=LOGGING_EXTRA)
         os.setgid(setuid.pw_gid)
         os.setgroups([])
         os.setuid(setuid.pw_uid)
@@ -203,40 +205,43 @@ def log_pings(*,
               'icmp_tmpl': icmpfmt,
               'encoding': encoding,
               'max_size': max_size + OVERHEAD}
-
-    logging.debug('serve_forever(%r, **%r)', s, kwargs, extra=EX)
+    logging.debug('serve_forever(%r, **%r)', s, kwargs, extra=LOGGING_EXTRA)
     try:
         serve_forever(s, **kwargs)
     except socket.error:  # pragma: no cover
-        logging.exception('socket.error', extra=EX)
+        logging.exception('socket.error', extra=LOGGING_EXTRA)
         return 'socket error'
     except SystemExit as e:
-        logging.info(f'{cmd} %r exiting', e, extra=EX)
+        logging.info(f'{cmd} %r exiting', e, extra=LOGGING_EXTRA)
     finally:
-        logging.debug('socket.close()', extra=EX)
+        logging.debug('socket.close()', extra=LOGGING_EXTRA)
         s.close()
     return None
 
 
-def configure_logging(filename=None, *,
-                      level, file_level, format_, datefmt):
+def configure_logging(filename: os.PathLike[str] | str | None = None, *,
+                      level: str | int,
+                      file_level: str | int,
+                      format_: str,
+                      datefmt: str) -> None:
     cfg = {'version': 1,
-           'root': {'handlers': ['stdout'], 'level': level},
-           'handlers': {'stdout': {'formatter': 'plain',
+           'root': {'level': level,
+                    'handlers': ['stdout']},
+           'handlers': {'stdout': {'class': 'logging.StreamHandler',
                                    'stream': 'ext://sys.stdout',
-                                   'class': 'logging.StreamHandler'}},
+                                   'formatter': 'plain'}},
            'formatters': {'plain': {'format': format_,
                                     'datefmt': datefmt}}}
     if filename is not None:
         cfg['root']['handlers'].append('file')
-        cfg['handlers']['file'] = {'formatter': 'plain',
-                                   'level': file_level,
+        cfg['handlers']['file'] = {'class': 'logging.FileHandler',
                                    'filename': filename,
-                                   'class': 'logging.FileHandler'}
-    return logging.config.dictConfig(cfg)
+                                   'level': file_level,
+                                   'formatter': 'plain'}
+    logging.config.dictConfig(cfg)
 
 
-def register_signal_handler(*signums):
+def register_signal_handler(*signums: signal.Signals | int):
     assert signums
 
     def decorator(func, /):
@@ -247,49 +252,46 @@ def register_signal_handler(*signums):
     return decorator
 
 
-def serve_forever(s, *, max_size, encoding, ip_tmpl, icmp_tmpl):
-    bufsize = 2**16
-    if max_size > bufsize:
+def serve_forever(s, /, *,
+                  max_size: int,
+                  encoding: str,
+                  ip_tmpl: str,
+                  icmp_tmpl: str) -> None:
+    if max_size > (bufsize := 2**16):
         raise ValueError(f'max_size {max_size} over buffer size {bufsize}')
-
     buf = bytearray(bufsize)
-    view = memoryview(buf)
-
+    buf_bytes = memoryview(buf)
     while True:
         n_bytes = s.recv_into(buf)
-        logging.debug('%d = s.recv_into(<buffer>)', n_bytes, extra=EX)
-
+        logging.debug('%d = s.recv_into(<buffer>)', n_bytes, extra=LOGGING_EXTRA)
         if n_bytes > max_size:
             continue
 
-        ip = IPHeader.from_bytes(view[:20])
-        logging.debug('%s', ip, extra=EX)
-
+        ip = IPHeader.from_bytes(buf_bytes[:20])
+        logging.debug('%s', ip, extra=LOGGING_EXTRA)
         if not ip.is_icmp():
             continue
 
-        icmp = ICMPPacket.from_bytes(view[20:n_bytes])
-        logging.debug('%s', icmp, extra=EX)
+        icmp = ICMPPacket.from_bytes(buf_bytes[20:n_bytes])
+        logging.debug('%s', icmp, extra=LOGGING_EXTRA)
 
         clean = False
         for p in (ip, icmp):
             try:
                 p.validate_checksum()
             except InvalidChecksumError as e:
-                logging.debug('%r: %r', e, p, extra=EX)
+                logging.debug('%r: %r', e, p, extra=LOGGING_EXTRA)
                 break
         else:
             clean = True
-
         if not clean:
             continue
 
         if not icmp.is_echo_request():
             continue
 
-        timeval = icmp.get_timeval()
-        if timeval is not None:
-            logging.debug('%s', timeval, extra=EX)
+        if (timeval := icmp.get_timeval()) is not None:
+            logging.debug('%s', timeval, extra=LOGGING_EXTRA)
 
         try:
             message = icmp.payload.decode(encoding)
@@ -305,7 +307,7 @@ class DataMixin:
     __slots__ = ()
 
     @classmethod
-    def from_bytes(cls, b: bytes, /):
+    def from_bytes(cls, b: bytes, /) -> Self:
         return cls.from_buffer_copy(b)
 
     def __repr__(self) -> str:
@@ -315,7 +317,7 @@ class DataMixin:
     def format(self, template: str) -> str:
         return template % MappingProxy(self)
 
-    def replace(self, **kwargs):
+    def replace(self, **kwargs) -> Self:
         inst = self.__class__.from_buffer_copy(self)
         for k, v in kwargs.items():
             setattr(inst, k, v)
@@ -356,46 +358,48 @@ class IPHeader(DataMixin, ctypes.BigEndianStructure):
                 ('src_addr', L32),
                 ('dst_addr', L32)]
 
-    def validate_checksum(self):
+    def validate_checksum(self) -> None:
         ints = [(self.version << 12) + (self.ihl << 8) + self.tos,
                 self.length,
                 self.ident,
                 self.flags_fragoffset,
                 (self.ttl << 8) + self.proto,
                 self.hdr_checksum,
-                self.src_addr >> 16, self.src_addr & 0xffff,
-                self.dst_addr >> 16, self.dst_addr & 0xffff]
+                self.src_addr >> 16, self.src_addr & 0xff_ff,
+                self.dst_addr >> 16, self.dst_addr & 0xff_ff]
         validate_checksum(ints, index=5)
 
     def is_icmp(self) -> bool:
         return self.proto == self.IPPROTO_ICMP
 
     @property
-    def src(self):
+    def src(self) -> str:
         return socket.inet_ntoa(self.src_addr.to_bytes(4, byteorder='big'))
 
     @src.setter
-    def src(self, s):
+    def src(self, s: str) -> None:
         self.src_addr = int.from_bytes(socket.inet_aton(s), byteorder='big')
 
     @property
-    def dst(self):
+    def dst(self) -> str:
         return socket.inet_ntoa(self.dst_addr.to_bytes(4, byteorder='big'))
 
     @dst.setter
-    def dst(self, s):
+    def dst(self, s: str) -> None:
         self.dst_addr = int.from_bytes(socket.inet_aton(s), byteorder='big')
 
     @property
-    def flags(self):
+    def flags(self) -> IPFlags:
         return IPFlags.from_int(self.flags_fragoffset >> 13)
 
     @property
-    def fragoffset(self):
-        return self.flags_fragoffset & 0b1111111111111
+    def fragoffset(self) -> int:
+        return self.flags_fragoffset & 0b1_1111_1111_1111
 
 
-def validate_checksum(header, *, index=None, bytes=None):
+def validate_checksum(header: Sequence[int], *,
+                      index: int | None = None,
+                      bytes: bytes | None = None) -> int:
     ints = header
     if bytes is not None:
         if len(bytes) % 2:
@@ -419,11 +423,11 @@ def validate_checksum(header, *, index=None, bytes=None):
     return result
 
 
-def rfc1071_checksum(ints, /):
+def rfc1071_checksum(ints: Sequence[int], /) -> int:
     val = sum(ints)
     while val >> 16:
-        val = (val >> 16) + (val & 0xffff)
-    return ~val & 0xffff
+        val = (val >> 16) + (val & 0xff_ff)
+    return ~val & 0xff_ff
 
 
 class InvalidChecksumError(ValueError):
@@ -435,9 +439,9 @@ class IPFlags(collections.namedtuple('_IPFlags', ['res', 'df', 'mf'])):
     __slots__ = ()
 
     @classmethod
-    def from_int(cls, i: int, /):
+    def from_int(cls, i: int, /) -> Self:
 
-        def iterbools(i, mask):
+        def iterbools(i: int, mask: int):
             while mask:
                 yield bool(i & mask)
                 mask >>= 1
@@ -462,19 +466,19 @@ class ICMPPacket(DataMixin, ctypes.BigEndianStructure):
                 ('seq_num', H16)]
 
     @classmethod
-    def from_bytes(cls, b, /):
+    def from_bytes(cls, b, /) -> Self:
         inst = super().from_bytes(b)
         inst.payload = bytes(b[8:])
         return inst
 
-    def validate_checksum(self):
+    def validate_checksum(self) -> None:
         ints = [(self.type << 8) + self.code,
                 self.checksum,
                 self.ident,
                 self.seq_num]
         validate_checksum(ints, index=1, bytes=self.payload)
 
-    def is_echo_request(self):
+    def is_echo_request(self) -> bool:
         return (self.type == self.ICMP_ECHO_REQUEST
                 and self.code == self.ICMP_NO_CODE)
 
@@ -482,20 +486,21 @@ class ICMPPacket(DataMixin, ctypes.BigEndianStructure):
         return bytes(self) + self.payload
 
     @property
-    def timeval(self):
+    def timeval(self) -> Timeval64 | Timeval32 | None:
         return self.get_timeval(min=None, max=None)
 
-    def get_timeval(self, *, min: int = 0, max: int = DATETIME_MAX):
-        payload = self.payload
+    def get_timeval(self, *,
+                    min: int = 0,
+                    max: int = DATETIME_MAX) -> Timeval64 | Timeval32 | None:
+        result = None
         for cls in (Timeval64, Timeval32):
             try:
-                result = cls.from_bytes(payload)
+                result = cls.from_bytes(self.payload)
                 result.get_datetime(min=min, max=max)
             except (ValueError, OverflowError, OSError):
-                result = None
+                pass
             else:
                 break
-
         return result
 
 
@@ -508,14 +513,14 @@ class TimevalMixin:
         return self.format(f'<Timeval %(datetime)s [{int_size * 8}]>')
 
     @property
-    def timestamp(self):
+    def timestamp(self) -> float:
         return self.sec + (self.usec / 1_000_000)
 
     @property
     def datetime(self) -> datetime.datetime:
         return self.get_datetime()
 
-    def get_datetime(self, *, min=None, max=None):
+    def get_datetime(self, *, min=None, max=None) -> datetime.datetime:
         timestamp = self.timestamp
         if (min is not None or max is not None) and not min <= timestamp <= max:
             raise ValueError

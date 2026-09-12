@@ -141,7 +141,7 @@ class Passwd(NamedTuple):
 def log_udp(*,
             host: str,
             port: int,
-            file: pathlib.Path | None,
+            file: os.PathLike[str] | str | None,
             format_: str,
             datefmt: str,
             hardening: bool,
@@ -156,12 +156,12 @@ def log_udp(*,
                       datefmt=datefmt)
 
     @register_signal_handler(signal.SIGINT, signal.SIGTERM)
-    def handle_with_exit(signum, _):
+    def handle_with_exit(signum: int, _):
         sys.exit(f'received signal.{signal.Signals(signum).name}')
 
-    if file is not None and file.stat().st_size:
-        logging.debug('replay tail of lof file: %r', file)
-        with file.open(encoding=ENCODING) as f:
+    if file is not None and (file_path := pathlib.Path(file)).stat().st_size:
+        logging.debug('replay tail of log file: %r', file)
+        with file_path.open(encoding=ENCODING) as f:
             for line in itertail(f, n=40):
                 print(line, end='')
 
@@ -186,9 +186,10 @@ def log_udp(*,
         os.setgroups([])
         os.setuid(setuid.pw_uid)
 
-    logging.debug('serve_forever(%r)', s)
+    kwargs = {'encoding': encoding}
+    logging.debug('serve_forever(%r, **%r)', s, kwargs)
     try:
-        serve_forever(s, encoding=encoding)
+        serve_forever(s, **kwargs)
     except socket.error:  # pragma: no cover
         logging.exception('socket.error')
         return 'socket error'
@@ -200,25 +201,29 @@ def log_udp(*,
     return None
 
 
-def configure_logging(filename=None, *,
-                      level, file_level, format_, datefmt):
+def configure_logging(filename: os.PathLike[str] | str | None = None, *,
+                      level: str | int,
+                      file_level: str | int,
+                      format_: str,
+                      datefmt: str) -> None:
     cfg = {'version': 1,
-           'root': {'handlers': ['stdout'], 'level': level},
-           'handlers': {'stdout': {'formatter': 'plain',
+           'root': {'level': level,
+                    'handlers': ['stdout']},
+           'handlers': {'stdout': {'class': 'logging.StreamHandler',
                                    'stream': 'ext://sys.stdout',
-                                   'class': 'logging.StreamHandler'}},
+                                   'formatter': 'plain'}},
            'formatters': {'plain': {'format': format_,
                                     'datefmt': datefmt}}}
     if filename is not None:
         cfg['root']['handlers'].append('file')
-        cfg['handlers']['file'] = {'formatter': 'plain',
-                                   'level': file_level,
+        cfg['handlers']['file'] = {'class': 'logging.FileHandler',
                                    'filename': filename,
-                                   'class': 'logging.FileHandler'}
-    return logging.config.dictConfig(cfg)
+                                   'level': file_level,
+                                   'formatter': 'plain'}
+    logging.config.dictConfig(cfg)
 
 
-def register_signal_handler(*signums):
+def register_signal_handler(*signums: signal.Signals | int):
     assert signums
 
     def decorator(func):
@@ -235,22 +240,21 @@ def itertail(iterable, /, *, n: int):
     return collections.deque(iterable, maxlen=n)
 
 
-def serve_forever(s, /, *, encoding: str, bufsize: int = 1_024):
+def serve_forever(s, /, *,
+                  encoding: str,
+                  bufsize: int = 1_024) -> None:
     buf = bytearray(bufsize)
-
     while True:
         (n_bytes, (host, port)) = s.recvfrom_into(buf)
-        raw = buf[:n_bytes]
-
-        logging.debug('%d, (%r, %d) = s.recvfrom_into(<buffer>)',
+        logging.debug('(%d, (%r, %d)) = s.recvfrom_into(<buffer>)',
                       n_bytes, host, port)
+        raw = buf[:n_bytes]
 
         try:
             msg = raw.decode(encoding).strip()
         except UnicodeDecodeError as e:
             msg = ascii(bytes(raw))
             logging.debug('%s: %s', e.__class__.__name__, e)
-
         logging.info('%s:%d %s', host, port, msg)
 
 
