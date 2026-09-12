@@ -247,6 +247,59 @@ def register_signal_handler(*signums):
     return decorator
 
 
+def serve_forever(s, *, max_size, encoding, ip_tmpl, icmp_tmpl):
+    bufsize = 2**16
+    if max_size > bufsize:
+        raise ValueError(f'max_size {max_size} over buffer size {bufsize}')
+
+    buf = bytearray(bufsize)
+    view = memoryview(buf)
+
+    while True:
+        n_bytes = s.recv_into(buf)
+        logging.debug('%d = s.recv_into(<buffer>)', n_bytes, extra=EX)
+
+        if n_bytes > max_size:
+            continue
+
+        ip = IPHeader.from_bytes(view[:20])
+        logging.debug('%s', ip, extra=EX)
+
+        if not ip.is_icmp():
+            continue
+
+        icmp = ICMPPacket.from_bytes(view[20:n_bytes])
+        logging.debug('%s', icmp, extra=EX)
+
+        clean = False
+        for p in (ip, icmp):
+            try:
+                p.validate_checksum()
+            except InvalidChecksumError as e:
+                logging.debug('%r: %r', e, p, extra=EX)
+                break
+        else:
+            clean = True
+
+        if not clean:
+            continue
+
+        if not icmp.is_echo_request():
+            continue
+
+        timeval = icmp.get_timeval()
+        if timeval is not None:
+            logging.debug('%s', timeval, extra=EX)
+
+        try:
+            message = icmp.payload.decode(encoding)
+        except UnicodeDecodeError:
+            message = ascii(icmp.payload)
+
+        logging.info(message, extra={'ip': ip.format(ip_tmpl),
+                                     'icmp': icmp.format(icmp_tmpl)})
+
+
 class DataMixin:
 
     __slots__ = ()
@@ -283,41 +336,6 @@ class MappingProxy:
             return get_attr(self._delegate)
         except AttributeError:
             raise KeyError(key)
-
-
-def validate_checksum(header, *, index=None, bytes=None):
-    ints = header
-    if bytes is not None:
-        if len(bytes) % 2:
-            bytes = bytearray(bytes)
-            bytes.append(0)
-        b_ints = array.array('H', bytes)
-        if sys.byteorder != 'big':
-            b_ints.byteswap()
-        ints = array.array('H', ints)
-        ints.extend(b_ints)
-
-    if (result := rfc1071_checksum(ints)):
-        if index is None:
-            msg = f'non-zero result 0x{result:04x}'
-        else:
-            found = header[index]
-            zeroed = header[:index] + [0] + header[index + 1:]
-            expected = rfc1071_checksum(zeroed)
-            msg = f'0x{found:04x} (expected: 0x{expected:04x})'
-        raise InvalidChecksumError(msg)
-    return result
-
-
-def rfc1071_checksum(ints, /):
-    val = sum(ints)
-    while val >> 16:
-        val = (val >> 16) + (val & 0xffff)
-    return ~val & 0xffff
-
-
-class InvalidChecksumError(ValueError):
-    pass
 
 
 (B8, H16, L32) = ctypes.c_uint8, ctypes.c_uint16, ctypes.c_uint32
@@ -375,6 +393,41 @@ class IPHeader(DataMixin, ctypes.BigEndianStructure):
     @property
     def fragoffset(self):
         return self.flags_fragoffset & 0b1111111111111
+
+
+def validate_checksum(header, *, index=None, bytes=None):
+    ints = header
+    if bytes is not None:
+        if len(bytes) % 2:
+            bytes = bytearray(bytes)
+            bytes.append(0)
+        b_ints = array.array('H', bytes)
+        if sys.byteorder != 'big':
+            b_ints.byteswap()
+        ints = array.array('H', ints)
+        ints.extend(b_ints)
+
+    if (result := rfc1071_checksum(ints)):
+        if index is None:
+            msg = f'non-zero result 0x{result:04x}'
+        else:
+            found = header[index]
+            zeroed = header[:index] + [0] + header[index + 1:]
+            expected = rfc1071_checksum(zeroed)
+            msg = f'0x{found:04x} (expected: 0x{expected:04x})'
+        raise InvalidChecksumError(msg)
+    return result
+
+
+def rfc1071_checksum(ints, /):
+    val = sum(ints)
+    while val >> 16:
+        val = (val >> 16) + (val & 0xffff)
+    return ~val & 0xffff
+
+
+class InvalidChecksumError(ValueError):
+    pass
 
 
 class IPFlags(collections.namedtuple('_IPFlags', ['res', 'df', 'mf'])):
@@ -484,59 +537,6 @@ class Timeval64(TimevalMixin, DataMixin, ctypes.LittleEndianStructure):
     __slots__ = ()
 
     _fields_ = [('sec', Q64), ('usec', Q64)]
-
-
-def serve_forever(s, *, max_size, encoding, ip_tmpl, icmp_tmpl):
-    bufsize = 2**16
-    if max_size > bufsize:
-        raise ValueError(f'max_size {max_size} over buffer size {bufsize}')
-
-    buf = bytearray(bufsize)
-    view = memoryview(buf)
-
-    while True:
-        n_bytes = s.recv_into(buf)
-        logging.debug('%d = s.recv_into(<buffer>)', n_bytes, extra=EX)
-
-        if n_bytes > max_size:
-            continue
-
-        ip = IPHeader.from_bytes(view[:20])
-        logging.debug('%s', ip, extra=EX)
-
-        if not ip.is_icmp():
-            continue
-
-        icmp = ICMPPacket.from_bytes(view[20:n_bytes])
-        logging.debug('%s', icmp, extra=EX)
-
-        clean = False
-        for p in (ip, icmp):
-            try:
-                p.validate_checksum()
-            except InvalidChecksumError as e:
-                logging.debug('%r: %r', e, p, extra=EX)
-                break
-        else:
-            clean = True
-
-        if not clean:
-            continue
-
-        if not icmp.is_echo_request():
-            continue
-
-        timeval = icmp.get_timeval()
-        if timeval is not None:
-            logging.debug('%s', timeval, extra=EX)
-
-        try:
-            message = icmp.payload.decode(encoding)
-        except UnicodeDecodeError:
-            message = ascii(icmp.payload)
-
-        logging.info(message, extra={'ip': ip.format(ip_tmpl),
-                                     'icmp': icmp.format(icmp_tmpl)})
 
 
 def main(args: Sequence[str] | None = None) -> str | None:
