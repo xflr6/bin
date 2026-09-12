@@ -24,6 +24,7 @@ import signal
 import socket
 import sys
 import time
+from typing import NamedTuple
 import urllib.request
 
 HOST = '127.0.0.1'
@@ -120,6 +121,76 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             or not args.chroot.is_dir()):
             parser.error(f'not a present --chroot directory: {args.chroot}')
     return args
+
+
+class Passwd(NamedTuple):
+    """Tuple of passwd structure: https://docs.python.org/3/library/pwd.html."""
+
+    pw_name: str
+    pw_passwd: str
+    pw_uid: int
+    pw_gid: int
+    pw_gecos: str
+    pw_dir: str
+    pw_shell: str
+
+
+def serve_asciimation(*,
+                      host: str,
+                      port: int,
+                      fps: int,
+                      hardening: bool,
+                      setuid: Passwd | None,
+                      chroot: os.PathLike[str] | str | None,
+                      verbose: bool) -> str | None:
+    logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO,
+                        format='%(asctime)s %(message)s',
+                        datefmt='%b %d %H:%M:%S')
+
+    @register_signal_handler(signal.SIGINT, signal.SIGTERM)
+    def handle_with_exit(signum, _):
+        sys.exit(f'received signal.{signal.Signals(signum).name}')
+
+    logging.info('start asciimation server on %s port %s', host, port)
+    next(iterframes())  # pre-load FRAMES
+
+    logging.debug('socket.create_server(%r)', (host, port))
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind((host, port))
+    logging.debug('%r', s)
+
+    if hardening:
+        with pathlib.Path('/etc/timezone').open(encoding='utf-8') as f:
+            tz = f.readline().strip()
+        logging.debug('TZ=%r; time.tzset()', tz)
+        os.environ['TZ'] = tz
+        time.tzset()
+
+        logging.debug('os.chroot(%r)', chroot)
+        os.chroot(chroot)
+
+        logging.debug('os.setuid(%r)', setuid)
+        os.setgid(setuid.pw_gid)
+        os.setgroups([])
+        os.setuid(setuid.pw_uid)
+
+    logging.debug('asyncio.run(serve_forever(sock=%r))', s)
+    try:
+        asyncio.run(serve_forever(sock=s, fps=fps))
+    except socket.error:  # pragma: no cover
+        logging.exception('socket.error')
+        return 'socket error'
+    except SystemExit as e:
+        logging.info('%r exiting', e)
+    finally:
+        try:
+            s.shutdown(socket.SHUT_WR)
+        except (socket.error, OSError):
+            pass
+        s.close()
+        logging.info('asciimation server stopped')
+    return None
 
 
 def read_page_bytes(url: str = URL, /, *,
@@ -225,57 +296,13 @@ async def handle_connect(reader, writer, *, sleep_delay,
 
 def main(args: Sequence[str] | None = None) -> str | None:
     args = parse_args(args)
-
-    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
-                        format='%(asctime)s %(message)s',
-                        datefmt='%b %d %H:%M:%S')
-
-    logging.info('start asciimation server on %s port %s', args.host, args.port)
-
-    @register_signal_handler(signal.SIGINT, signal.SIGTERM)
-    def handle_with_exit(signum, _):
-        sys.exit(f'received signal.{signal.Signals(signum).name}')
-
-    next(iterframes())  # pre-load FRAMES
-
-    logging.debug('socket.create_server(%r)', (args.host, args.port))
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind((args.host, args.port))
-    logging.debug('%r', s)
-
-    if args.hardening:
-        with pathlib.Path('/etc/timezone').open(encoding='utf-8') as f:
-            tz = f.readline().strip()
-        logging.debug('TZ=%r; time.tzset()', tz)
-        os.environ['TZ'] = tz
-        time.tzset()
-
-        logging.debug('os.chroot(%r)', args.chroot)
-        os.chroot(args.chroot)
-
-        logging.debug('os.setuid(%r)', args.setuid)
-        os.setgid(args.setuid.pw_gid)
-        os.setgroups([])
-        os.setuid(args.setuid.pw_uid)
-
-    logging.debug('asyncio.run(serve_forever(sock=%r))', s)
-    try:
-        asyncio.run(serve_forever(sock=s, fps=args.fps))
-    except socket.error:  # pragma: no cover
-        logging.exception('socket.error')
-        return 'socket error'
-    except SystemExit as e:
-        logging.info('%r exiting', e)
-    finally:
-        try:
-            s.shutdown(socket.SHUT_WR)
-        except (socket.error, OSError):
-            pass
-        s.close()
-        logging.info('asciimation server stopped')
-
-    return None
+    return serve_asciimation(host=args.host,
+                             port=args.port,
+                             fps=args.fps,
+                             hardening=args.hardening,
+                             setuid=args.setuid,
+                             chroot=args.setuid,
+                             verbose=args.verbose)
 
 
 if __name__ == '__main__':  # pragma: no cover
