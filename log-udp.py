@@ -13,6 +13,7 @@ import codecs
 import collections
 from collections.abc import Sequence
 import logging
+import logging.config
 import os
 import pathlib
 import platform
@@ -20,6 +21,7 @@ import signal
 import socket
 import sys
 import time
+from typing import NamedTuple
 
 HOST = '0.0.0.0'
 
@@ -72,9 +74,9 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
                         help='log time.strftime() format string'
                              f' (default: {DATEFMT.replace("%", "%%")})')
 
-    def user(s: str, /) -> str:
+    def user(s: str, /) -> Passwd | str | None:
         try:
-            import pwd
+            import pwd  # Availability: Unix
         except ImportError:
             return None
         try:
@@ -124,10 +126,82 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     return args
 
 
+class Passwd(NamedTuple):
+    """Tuple of passwd structure: https://docs.python.org/3/library/pwd.html."""
+
+    pw_name: str
+    pw_passwd: str
+    pw_uid: int
+    pw_gid: int
+    pw_gecos: str
+    pw_dir: str
+    pw_shell: str
+
+
+def log_udp(*,
+            host: str,
+            port: int,
+            file: pathlib.Path | None,
+            format_: str,
+            datefmt: str,
+            hardening: bool,
+            setuid: Passwd | None,
+            chroot: os.PathLike[str] | str | None,
+            encoding: str,
+            verbose: bool) -> str | None:
+    configure_logging(file,
+                      level='DEBUG' if verbose else 'INFO',
+                      file_level='INFO',
+                      format_=format_,
+                      datefmt=datefmt)
+
+    @register_signal_handler(signal.SIGINT, signal.SIGTERM)
+    def handle_with_exit(signum, _):
+        sys.exit(f'received signal.{signal.Signals(signum).name}')
+
+    if file is not None and file.stat().st_size:
+        logging.debug('replay tail of lof file: %r', file)
+        with file.open(encoding=ENCODING) as f:
+            for line in itertail(f, n=40):
+                print(line, end='')
+
+    cmd = pathlib.Path(sys.argv[0]).name
+    logging.info(f'{cmd} listening on %r port %d udp', host, port)
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.bind((host, port))
+
+    if hardening:
+        with TIMEZONE.open(encoding=ENCODING) as f:
+            tz = f.readline().strip()
+        logging.debug('TZ=%r; time.tzset()', tz)
+        os.environ['TZ'] = tz
+        time.tzset()
+
+        logging.debug('os.chroot(%r)', chroot)
+        os.chroot(chroot)
+
+        logging.debug('os.setuid(%r)', setuid.pw_name)
+        os.setgid(setuid.pw_gid)
+        os.setgroups([])
+        os.setuid(setuid.pw_uid)
+
+    logging.debug('serve_forever(%r)', s)
+    try:
+        serve_forever(s, encoding=encoding)
+    except socket.error:  # pragma: no cover
+        logging.exception('socket.error')
+        return 'socket error'
+    except SystemExit as e:
+        logging.info(f'{cmd} %r exiting', e)
+    finally:
+        logging.debug('socket.close()')
+        s.close()
+    return None
+
+
 def configure_logging(filename=None, *,
                       level, file_level, format_, datefmt):
-    import logging.config
-
     cfg = {'version': 1,
            'root': {'handlers': ['stdout'], 'level': level},
            'handlers': {'stdout': {'formatter': 'plain',
@@ -135,14 +209,12 @@ def configure_logging(filename=None, *,
                                    'class': 'logging.StreamHandler'}},
            'formatters': {'plain': {'format': format_,
                                     'datefmt': datefmt}}}
-
     if filename is not None:
         cfg['root']['handlers'].append('file')
         cfg['handlers']['file'] = {'formatter': 'plain',
                                    'level': file_level,
                                    'filename': filename,
                                    'class': 'logging.FileHandler'}
-
     return logging.config.dictConfig(cfg)
 
 
@@ -158,16 +230,16 @@ def register_signal_handler(*signums):
 
 
 def itertail(iterable, /, *, n: int):
-    if n is not None:
-        iterable = collections.deque(iterable, n)
-    return iterable
+    if n is None:
+        return iterable
+    return collections.deque(iterable, maxlen=n)
 
 
 def serve_forever(s, /, *, encoding: str, bufsize: int = 1_024):
     buf = bytearray(bufsize)
 
     while True:
-        n_bytes, (host, port) = s.recvfrom_into(buf)
+        (n_bytes, (host, port)) = s.recvfrom_into(buf)
         raw = buf[:n_bytes]
 
         logging.debug('%d, (%r, %d) = s.recvfrom_into(<buffer>)',
@@ -184,56 +256,16 @@ def serve_forever(s, /, *, encoding: str, bufsize: int = 1_024):
 
 def main(args: Sequence[str] | None = None) -> str | None:
     args = parse_args(args)
-
-    configure_logging(args.file,
-                      level='DEBUG' if args.verbose else 'INFO',
-                      file_level='INFO',
-                      format_=args.format, datefmt=args.datefmt)
-
-    @register_signal_handler(signal.SIGINT, signal.SIGTERM)
-    def handle_with_exit(signum, _):
-        sys.exit(f'received signal.{signal.Signals(signum).name}')
-
-    if args.file is not None and args.file.stat().st_size:
-        logging.debug('replay tail of lof file: %r', args.file)
-        with args.file.open(encoding=ENCODING) as f:
-            for line in itertail(f, n=40):
-                print(line, end='')
-
-    cmd = pathlib.Path(sys.argv[0]).name
-    logging.info(f'{cmd} listening on %r port %d udp', args.host, args.port)
-
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.bind((args.host, args.port))
-
-    if args.hardening:
-        with TIMEZONE.open(encoding=ENCODING) as f:
-            tz = f.readline().strip()
-        logging.debug('TZ=%r; time.tzset()', tz)
-        os.environ['TZ'] = tz
-        time.tzset()
-
-        logging.debug('os.chroot(%r)', args.chroot)
-        os.chroot(args.chroot)
-
-        logging.debug('os.setuid(%r)', args.setuid.pw_name)
-        os.setgid(args.setuid.pw_gid)
-        os.setgroups([])
-        os.setuid(args.setuid.pw_uid)
-
-    logging.debug('serve_forever(%r)', s)
-    try:
-        serve_forever(s, encoding=args.encoding)
-    except socket.error:  # pragma: no cover
-        logging.exception('socket.error')
-        return 'socket error'
-    except SystemExit as e:
-        logging.info(f'{cmd} %r exiting', e)
-    finally:
-        logging.debug('socket.close()')
-        s.close()
-
-    return None
+    return log_udp(host=args.host,
+                   port=args.port,
+                   file=args.file,
+                   format_=args.format,
+                   datefmt=args.datefmt,
+                   hardening=args.hardening,
+                   setuid=args.setuid,
+                   chroot=args.chroot,
+                   encoding=args.encoding,
+                   verbose=args.verbose)
 
 
 if __name__ == '__main__':  # pragma: no cover
