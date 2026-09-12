@@ -80,9 +80,9 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('--fps', metavar='N', type=fps, default=FPS,
                         help=f'frames (1-100) per second to generate (default: {FPS})')
 
-    def user(s: str, /) -> str:
+    def user(s: str, /) -> Passwd | str | None:
         try:
-            import pwd
+            import pwd  # Availability: Unix
         except ImportError:
             return None
         try:
@@ -193,6 +193,29 @@ def serve_asciimation(*,
     return None
 
 
+def register_signal_handler(*signums):
+    assert signums
+
+    def decorator(func, /):
+        for s in signums:
+            logging.debug('signal.signal(%s, ...)', s)
+            signal.signal(s, func)
+        return func
+
+    return decorator
+
+
+def iterframes():
+    global FRAMES
+
+    if FRAMES is None:
+        logging.debug('load FRAMES')
+        page = read_page_bytes()
+        film = extract_film(page)
+        FRAMES = list(generate_frames(film))
+    return iter(FRAMES)
+
+
 def read_page_bytes(url: str = URL, /, *,
                     cache_path: pathlib.Path = CACHE) -> bytes:
     if not cache_path.exists():
@@ -238,30 +261,7 @@ def get_centerframe_func(*, screen_size, frame_size):
     return centerframe_func
 
 
-def iterframes():
-    global FRAMES
-
-    if FRAMES is None:
-        logging.debug('load FRAMES')
-        page = read_page_bytes()
-        film = extract_film(page)
-        FRAMES = list(generate_frames(film))
-    return iter(FRAMES)
-
-
-def register_signal_handler(*signums):
-    assert signums
-
-    def decorator(func, /):
-        for s in signums:
-            logging.debug('signal.signal(%s, ...)', s)
-            signal.signal(s, func)
-        return func
-
-    return decorator
-
-
-async def serve_forever(*, sock, fps):
+async def serve_forever(*, sock, fps: int):
     handler = functools.partial(handle_connect, sleep_delay=1.0 / fps)
 
     logging.debug('asyncio.start_server(..., sock=%r)', sock)
@@ -272,7 +272,7 @@ async def serve_forever(*, sock, fps):
         await server.serve_forever()
 
 
-async def handle_connect(reader, writer, *, sleep_delay,
+async def handle_connect(reader, writer, *, sleep_delay: float,
                          encoding: str = ENCODING):
     address = writer.get_extra_info('peername')
     logging.info('client connected from %s port %s', *address)
