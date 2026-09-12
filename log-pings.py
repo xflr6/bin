@@ -297,7 +297,6 @@ def serve_forever(s, /, *,
             message = icmp.payload.decode(encoding)
         except UnicodeDecodeError:
             message = ascii(icmp.payload)
-
         logging.info(message, extra={'ip': ip.format(ip_tmpl),
                                      'icmp': icmp.format(icmp_tmpl)})
 
@@ -347,8 +346,6 @@ class IPHeader(DataMixin, ctypes.BigEndianStructure):
 
     __slots__ = ()
 
-    IPPROTO_ICMP = socket.IPPROTO_ICMP
-
     _fields_ = [('version', B8, 4), ('ihl', B8, 4), ('tos', B8),
                 ('length', H16),
                 ('ident', H16),
@@ -370,7 +367,7 @@ class IPHeader(DataMixin, ctypes.BigEndianStructure):
         validate_checksum(ints, index=5)
 
     def is_icmp(self) -> bool:
-        return self.proto == self.IPPROTO_ICMP
+        return self.proto == socket.IPPROTO_ICMP
 
     @property
     def src(self) -> str:

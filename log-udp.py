@@ -234,7 +234,7 @@ def register_signal_handler(*signums: signal.Signals | int):
     return decorator
 
 
-def itertail(iterable, /, *, n: int):
+def itertail(iterable, /, *, n: int | None):
     if n is None:
         return iterable
     return collections.deque(iterable, maxlen=n)
