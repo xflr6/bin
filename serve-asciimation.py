@@ -232,7 +232,9 @@ def read_page_bytes(url: str = URL, /, *,
 
 
 def extract_film(page_bytes: bytes, /, *, encoding: str = 'unicode_escape') -> str:
-    raw = FILM.search(page_bytes)['film'].removesuffix(b'\\n\xff\\n')
+    raw = (FILM.search(page_bytes)['film']
+           .removesuffix(b'\\n\xff\\n')
+           .removesuffix(b'\xef\xbf\xbd\\n'))
     return raw.decode(encoding)
 
 
