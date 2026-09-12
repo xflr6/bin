@@ -16,6 +16,7 @@ from collections.abc import Sequence
 import ctypes
 import datetime
 import logging
+import logging.config
 import operator
 import os
 import pathlib
@@ -24,6 +25,7 @@ import signal
 import socket
 import sys
 import time
+from typing import NamedTuple
 
 HOST = '0.0.0.0'
 
@@ -81,9 +83,9 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('--icmpfmt', metavar='TMPL', default=ICMP_INFO,
                         help=f'log format (default: {ICMP_INFO.replace("%", "%%")})')
 
-    def user(s: str, /) -> str:
+    def user(s: str, /) -> Passwd | str | None:
         try:
-            import pwd
+            import pwd  # Availability: Unix
         except ImportError:
             return None
         try:
@@ -147,10 +149,77 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     return args
 
 
+class Passwd(NamedTuple):
+    """Tuple of passwd structure: https://docs.python.org/3/library/pwd.html."""
+
+    pw_name: str
+    pw_passwd: str
+    pw_uid: int
+    pw_gid: int
+    pw_gecos: str
+    pw_dir: str
+    pw_shell: str
+
+
+def log_pings(*,
+              host: str,
+              file: os.PathLike[str],
+              format_: str,
+              datefmt: str,
+              ipfmt: str,
+              icmpfmt: str,
+              hardening: bool,
+              setuid: Passwd | None,
+              chroot: os.PathLike[str] | str | None,
+              encoding: str,
+              max_size: int,
+              verbose: bool) -> str | None:
+    configure_logging(file,
+                      level='DEBUG' if verbose else 'INFO',
+                      file_level='INFO',
+                      format_=format_,
+                      datefmt=datefmt)
+
+    @register_signal_handler(signal.SIGINT, signal.SIGTERM)
+    def handle_with_exit(signum, _):
+        sys.exit(f'received signal.{signal.Signals(signum).name}')
+
+    cmd = pathlib.Path(sys.argv[0]).name
+    logging.info(f'{cmd} listening on %r', host, extra=EX)
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
+    s.bind((host, socket.IPPROTO_ICMP))
+
+    if hardening:
+        logging.debug('os.chroot(%r)', chroot, extra=EX)
+        os.chroot(chroot)
+
+        logging.debug('os.setuid(%r)', setuid.pw_name, extra=EX)
+        os.setgid(setuid.pw_gid)
+        os.setgroups([])
+        os.setuid(setuid.pw_uid)
+
+    kwargs = {'ip_tmpl': ipfmt,
+              'icmp_tmpl': icmpfmt,
+              'encoding': encoding,
+              'max_size': max_size + OVERHEAD}
+
+    logging.debug('serve_forever(%r, **%r)', s, kwargs, extra=EX)
+    try:
+        serve_forever(s, **kwargs)
+    except socket.error:  # pragma: no cover
+        logging.exception('socket.error', extra=EX)
+        return 'socket error'
+    except SystemExit as e:
+        logging.info(f'{cmd} %r exiting', e, extra=EX)
+    finally:
+        logging.debug('socket.close()', extra=EX)
+        s.close()
+    return None
+
+
 def configure_logging(filename=None, *,
                       level, file_level, format_, datefmt):
-    import logging.config
-
     cfg = {'version': 1,
            'root': {'handlers': ['stdout'], 'level': level},
            'handlers': {'stdout': {'formatter': 'plain',
@@ -158,14 +227,12 @@ def configure_logging(filename=None, *,
                                    'class': 'logging.StreamHandler'}},
            'formatters': {'plain': {'format': format_,
                                     'datefmt': datefmt}}}
-
     if filename is not None:
         cfg['root']['handlers'].append('file')
         cfg['handlers']['file'] = {'formatter': 'plain',
                                    'level': file_level,
                                    'filename': filename,
                                    'class': 'logging.FileHandler'}
-
     return logging.config.dictConfig(cfg)
 
 
@@ -474,49 +541,18 @@ def serve_forever(s, *, max_size, encoding, ip_tmpl, icmp_tmpl):
 
 def main(args: Sequence[str] | None = None) -> str | None:
     args = parse_args(args)
-
-    configure_logging(args.file,
-                      level='DEBUG' if args.verbose else 'INFO',
-                      file_level='INFO',
-                      format_=args.format, datefmt=args.datefmt)
-
-    @register_signal_handler(signal.SIGINT, signal.SIGTERM)
-    def handle_with_exit(signum, _):
-        sys.exit(f'received signal.{signal.Signals(signum).name}')
-
-    cmd = pathlib.Path(sys.argv[0]).name
-    logging.info(f'{cmd} listening on %r', args.host, extra=EX)
-
-    s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
-    s.bind((args.host, socket.IPPROTO_ICMP))
-
-    if args.hardening:
-        logging.debug('os.chroot(%r)', args.chroot, extra=EX)
-        os.chroot(args.chroot)
-
-        logging.debug('os.setuid(%r)', args.setuid.pw_name, extra=EX)
-        os.setgid(args.setuid.pw_gid)
-        os.setgroups([])
-        os.setuid(args.setuid.pw_uid)
-
-    kwargs = {'ip_tmpl': args.ipfmt,
-              'icmp_tmpl': args.icmpfmt,
-              'encoding': args.encoding,
-              'max_size': args.max_size + OVERHEAD}
-
-    logging.debug('serve_forever(%r, **%r)', s, kwargs, extra=EX)
-    try:
-        serve_forever(s, **kwargs)
-    except socket.error:  # pragma: no cover
-        logging.exception('socket.error', extra=EX)
-        return 'socket error'
-    except SystemExit as e:
-        logging.info(f'{cmd} %r exiting', e, extra=EX)
-    finally:
-        logging.debug('socket.close()', extra=EX)
-        s.close()
-
-    return None
+    return log_pings(host=args.host,
+                     file=args.file,
+                     format_=args.format,
+                     datefmt=args.datefmt,
+                     ipfmt=args.ipfmt,
+                     icmpfmt=args.icmpfmt,
+                     hardening=args.hardening,
+                     setuid=args.setuid,
+                     chroot=args.chroot,
+                     encoding=args.encoding,
+                     max_size=args.max_size,
+                     verbose=args.verbose)
 
 
 if __name__ == '__main__':  # pragma: no cover
