@@ -434,7 +434,7 @@ class IPFlags(NamedTuple):
 
     res: bool
     df: bool
-    mf: bool 
+    mf: bool
 
     @classmethod
     def from_int(cls, i: int, /) -> Self:
