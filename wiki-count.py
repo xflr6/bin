@@ -95,6 +95,67 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     return parser.parse_args(args)
 
 
+def wiki_count(filename: pathlib.Path, /, *,
+               tag: str,
+               simple_stats: bool,
+               most_common_n: int,
+               display: str,
+               display_after: int,
+               stop_after: int) -> str | None:
+    log(f'filename: {filename}', '')
+
+    try:
+        open_module = SUFFIX_OPEN_MODULE[filename.suffix]
+    except KeyError:
+        return ('error: invalid filename suffix'
+                f" (need one of: {', '.join(SUFFIX_OPEN_MODULE)})")
+
+    start = time.monotonic()
+
+    log(f'{open_module.__name__}.open({filename!r})')
+    with open_module.open(filename, mode='rb') as f:
+        pairs = etree.iterparse(f, events=('start', 'end'))
+
+        (_, root) = next(pairs)
+        if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
+            return f'error: invalid xml root tag {root.tag!r}'
+
+        ns = extract_ns(root.tag)
+        log(f'xml: {ns!r}')
+        ns_map = {PREFIX: ns}
+
+        elements = iterelements(pairs,
+                                tag=make_epath(tag, ns_map),
+                                exclude_with=make_epath(REDIRECT_PATH, ns_map))
+
+        display_epath = make_epath(display, ns_map, optional=True)
+
+        kwargs = {'display_after': display_after,
+                  'display_epath': display_epath,
+                  'stop_after': stop_after}
+
+        if simple_stats:
+            n = count_elements(root, elements, **kwargs)
+            counters = ()
+        else:
+            kwargs.update(rev_epath=make_epath(REVISION_PATH, ns_map),
+                          user_epath=make_epath(USER_PATH, ns_map),
+                          text_epath=make_epath(TEXT_PATH, ns_map))
+
+            (n, n_edits, n_lines) = count_edits(root, elements, **kwargs)
+            counters = n_edits, n_lines
+
+    stop = time.monotonic()
+    log(f'duration: {stop - start:.2f} seconds')
+
+    print(n)
+    for c in counters:
+        top_n = c.most_common(most_common_n)
+        lines = (f'{user!s:<16}\t{n:d}' for user, n in top_n)
+        print('', *lines, sep='\n')
+    return None
+
+
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
@@ -201,59 +262,13 @@ def lines_changed(a: str, b: str, /, *,
 
 def main(args: Sequence[str] | None = None) -> str | None:
     args = parse_args(args)
-    log(f'filename: {args.filename}', '')
-
-    try:
-        open_module = SUFFIX_OPEN_MODULE[args.filename.suffix]
-    except KeyError:
-        return ('error: invalid filename suffix'
-                f" (need one of: {', '.join(SUFFIX_OPEN_MODULE)})")
-
-    start = time.monotonic()
-
-    log(f'{open_module.__name__}.open({args.filename!r})')
-    with open_module.open(args.filename, mode='rb') as f:
-        pairs = etree.iterparse(f, events=('start', 'end'))
-
-        (_, root) = next(pairs)
-        if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
-            return f'error: invalid xml root tag {root.tag!r}'
-
-        ns = extract_ns(root.tag)
-        log(f'xml: {ns!r}')
-        ns_map = {PREFIX: ns}
-
-        elements = iterelements(pairs,
-                                tag=make_epath(args.tag, ns_map),
-                                exclude_with=make_epath(REDIRECT_PATH, ns_map))
-
-        display_epath = make_epath(args.display, ns_map, optional=True)
-
-        kwargs = {'display_after': args.display_after,
-                  'display_epath': display_epath,
-                  'stop_after': args.stop_after}
-
-        if args.simple_stats:
-            n = count_elements(root, elements, **kwargs)
-            counters = ()
-        else:
-            kwargs.update(rev_epath=make_epath(REVISION_PATH, ns_map),
-                          user_epath=make_epath(USER_PATH, ns_map),
-                          text_epath=make_epath(TEXT_PATH, ns_map))
-
-            (n, n_edits, n_lines) = count_edits(root, elements, **kwargs)
-            counters = n_edits, n_lines
-
-    stop = time.monotonic()
-    log(f'duration: {stop - start:.2f} seconds')
-
-    print(n)
-    for c in counters:
-        top_n = c.most_common(args.most_common_n)
-        lines = (f'{user!s:<16}\t{n:d}' for user, n in top_n)
-        print('', *lines, sep='\n')
-
-    return None
+    return wiki_count(args.filename,
+                      tag=args.tag,
+                      simple_stats=args.simple_stats,
+                      most_common_n=args.most_common_n,
+                      display=args.display,
+                      display_after=args.display_after,
+                      stop_after=args.stop_after)
 
 
 if __name__ == '__main__':  # pragma: no cover

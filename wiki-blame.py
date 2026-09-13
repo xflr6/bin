@@ -43,6 +43,48 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     return parser.parse_args(args)
 
 
+def wiki_blame(*,
+               page_title: str,
+               search_string: str,
+               export_url: str) -> str | None:
+    log(f'export url: {export_url}', f'title: {page_title}', '')
+
+    req = make_request(export_url, page_title)
+    log(f'urllib.request.urlopen({req})')
+    with urllib.request.urlopen(req) as f:
+        tree = parse_response(f)
+
+    root = tree.getroot()
+    if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
+        return f'error: invalid xml root tag {root.tag!r}'
+
+    ns = extract_ns(root.tag)
+    log(f'xml: {ns!r}')
+    ns = {'namespaces': {'mw': ns}}
+
+    (site,) = tree.findall('mw:siteinfo', **ns)
+    for k, v in elem_findtext(site, 'sitename', 'dbname', 'base', prefix='mw', **ns).items():
+        log(f'siteinfo/{k}: {v}')
+
+    (page,) = tree.findall('mw:page', **ns)
+    page_infos = elem_findtext(page, 'ns', 'title', 'id', prefix='mw', **ns)
+    for k, v in page_infos.items():
+        log(f'page/{k}: {v}')
+
+    if page_infos['ns'] != '0':
+        return 'error: mediawiki:ns mismatch'
+    if page_infos['title'] != page_title:
+        return 'error: mediawiki:title mismatch'
+
+    log(f'search string: {search_string}')
+    for r in page.iterfind('mw:revision', **ns):
+        if search_string in r.findtext('mw:text', '', **ns):
+            log()
+            etree.dump(r)
+            return None
+    return 'not found'
+
+
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
@@ -84,44 +126,9 @@ def elem_findtext(elem, /, *tags, prefix=None, **kwargs):
 
 def main(args: Sequence[str] | None = None) -> str | None:
     args = parse_args(args)
-    log(f'export url: {args.export_url}',
-        f'title: {args.page_title}', '')
-
-    req = make_request(args.export_url, args.page_title)
-    log(f'urllib.request.urlopen({req})')
-    with urllib.request.urlopen(req) as f:
-        tree = parse_response(f)
-
-    root = tree.getroot()
-    if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
-        return f'error: invalid xml root tag {root.tag!r}'
-
-    ns = extract_ns(root.tag)
-    log(f'xml: {ns!r}')
-    ns = {'namespaces': {'mw': ns}}
-
-    (site,) = tree.findall('mw:siteinfo', **ns)
-    for k, v in elem_findtext(site, 'sitename', 'dbname', 'base', prefix='mw', **ns).items():
-        log(f'siteinfo/{k}: {v}')
-
-    (page,) = tree.findall('mw:page', **ns)
-    page_infos = elem_findtext(page, 'ns', 'title', 'id', prefix='mw', **ns)
-    for k, v in page_infos.items():
-        log(f'page/{k}: {v}')
-
-    if page_infos['ns'] != '0':
-        return 'error: mediawiki:ns mismatch'
-    if page_infos['title'] != args.page_title:
-        return 'error: mediawiki:title mismatch'
-
-    log(f'search string: {args.search_string}')
-    for r in page.iterfind('mw:revision', **ns):
-        if args.search_string in r.findtext('mw:text', '', **ns):
-            log()
-            etree.dump(r)
-            return None
-
-    return 'not found'
+    return wiki_blame(page_title=args.page_title,
+                      search_string=args.search_string,
+                      export_url=args.export_url)
 
 
 if __name__ == '__main__':  # pragma: no cover
