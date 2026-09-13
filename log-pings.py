@@ -13,7 +13,6 @@ __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 import array
 import argparse
 import codecs
-import collections
 from collections.abc import Sequence
 import ctypes
 import datetime
@@ -431,19 +430,21 @@ class InvalidChecksumError(ValueError):
     pass
 
 
-class IPFlags(collections.namedtuple('_IPFlags', ['res', 'df', 'mf'])):
+class IPFlags(NamedTuple):
 
-    __slots__ = ()
+    res: bool
+    df: bool
+    mf: bool 
 
     @classmethod
     def from_int(cls, i: int, /) -> Self:
 
-        def iterbools(i: int, mask: int):
+        def iterbools(i: int, /, *, mask: int):
             while mask:
                 yield bool(i & mask)
                 mask >>= 1
 
-        return cls._make(iterbools(i, 0b100))
+        return cls._make(iterbools(i, mask=0b100))
 
     def __str__(self) -> str:
         return ''.join('1' if f else 'x' for f in self)
