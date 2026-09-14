@@ -41,9 +41,7 @@ DISPLAY_AFTER = 1_000
 
 MOST_COMMON_N = 100
 
-_MEDIAWIKI = re.escape('http://www.mediawiki.org')
-
-MEDIAWIKI_EXPORT = r'\{%s/xml/export-\d+(?:\.\d+)*/\}mediawiki' % _MEDIAWIKI
+MEDIAWIKI_EXPORT = r'\{http://www\.mediawiki\.org/xml/export-\d+(?:\.\d+)*/\}mediawiki'
 
 SUFFIX_OPEN_MODULE = {'.bz2': bz2,
                       '.gz': gzip,
