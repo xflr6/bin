@@ -9,7 +9,7 @@ __license__ = 'MIT, see LICENSE.txt'
 __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 import builtins
 import bz2
 import collections
@@ -26,14 +26,6 @@ import xml.etree.ElementTree as etree  # noqa: N813
 PREFIX = 'mediawiki'
 
 PAGE_TAG = f'{PREFIX}:page'
-
-REDIRECT_PATH = f'{PREFIX}:redirect'
-
-REVISION_PATH = f'{PREFIX}:revision'
-
-USER_PATH = f'{PREFIX}:contributor/{PREFIX}:username'
-
-TEXT_PATH = f'{PREFIX}:text'
 
 DISPLAY_PATH = f'{PREFIX}:title'
 
@@ -101,7 +93,6 @@ def wiki_count(filename: pathlib.Path, /, *,
                display_after: int,
                stop_after: int) -> str | None:
     log(f'filename: {filename}', '')
-
     try:
         open_module = SUFFIX_OPEN_MODULE[filename.suffix]
     except KeyError:
@@ -109,7 +100,6 @@ def wiki_count(filename: pathlib.Path, /, *,
                 f" (need one of: {', '.join(SUFFIX_OPEN_MODULE)})")
 
     start = time.monotonic()
-
     log(f'{open_module.__name__}.open({filename!r})')
     with open_module.open(filename, mode='rb') as f:
         pairs = etree.iterparse(f, events=('start', 'end'))
@@ -118,30 +108,26 @@ def wiki_count(filename: pathlib.Path, /, *,
         if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
             return f'error: invalid xml root tag {root.tag!r}'
 
-        ns = extract_ns(root.tag)
-        log(f'xml: {ns!r}')
-        ns_map = {PREFIX: ns}
+        root_namespace = extract_namespace(root.tag)
+        log(f'xml: {root_namespace!r}')
+        ns_map = {PREFIX: root_namespace}
 
         elements = iterelements(pairs,
                                 tag=make_epath(tag, ns_map),
-                                exclude_with=make_epath(REDIRECT_PATH, ns_map))
-
-        display_epath = make_epath(display, ns_map, optional=True)
-
+                                exclude_with=make_epath(f'{PREFIX}:redirect', ns_map))
         kwargs = {'display_after': display_after,
-                  'display_epath': display_epath,
+                  'display_epath': make_epath(display, ns_map, optional=True),
                   'stop_after': stop_after}
-
         if simple_stats:
             n = count_elements(root, elements, **kwargs)
-            counters = ()
+            counters = []
         else:
-            kwargs.update(rev_epath=make_epath(REVISION_PATH, ns_map),
-                          user_epath=make_epath(USER_PATH, ns_map),
-                          text_epath=make_epath(TEXT_PATH, ns_map))
+            kwargs.update(rev_epath=make_epath(f'{PREFIX}:revision', ns_map),
+                          user_epath=make_epath(f'{PREFIX}:contributor/{PREFIX}:username', ns_map),
+                          text_epath=make_epath(f'{PREFIX}:text', ns_map))
 
             (n, n_edits, n_lines) = count_edits(root, elements, **kwargs)
-            counters = n_edits, n_lines
+            counters = [n_edits, n_lines]
 
     stop = time.monotonic()
     log(f'duration: {stop - start:.2f} seconds')
@@ -157,44 +143,40 @@ def wiki_count(filename: pathlib.Path, /, *,
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def extract_ns(tag: str, /) -> str:
-    ns = tag.partition('{')[2].partition('}')[0]
-    assert tag.startswith('{%s}' % ns)
-    return ns
+def extract_namespace(tag: str, /) -> str:
+    namespace = tag.partition('{')[2].partition('}')[0]
+    assert tag.startswith('{%s}' % namespace)
+    return namespace
 
 
-def make_epath(s: str, /, namespace_map, *, optional: bool = False):
+def make_epath(s: str, /, namespace_map: Mapping[str, str], *,
+               optional: bool = False) -> str | None:
     s = s.strip()
     if optional and not s:
         return None
     assert s
 
     def repl(ma):
-        ns = ma['ns']
+        prefix = ma['prefix']
         try:
-            ns = namespace_map[ns]
+            ns = namespace_map[prefix]
         except KeyError:
-            raise ValueError(f'unknown namespace in {s!r}: {ns}')
+            raise ValueError(f'unknown namespace in {s!r}: {prefix}')
         return ma.expand(r'\g<boundary>{%s}' % ns)
 
-    return re.sub(r'(?P<boundary>^|/)(?P<ns>\w+):', repl, s)
+    return re.sub(r'(?P<boundary>^|/)(?P<prefix>\w+):', repl, s)
 
 
-def iterelements(pairs, /, tag, *, exclude_with):
+def iterelements(pairs, /, tag: str, *, exclude_with: str):
     for event, elem in pairs:
         if elem.tag == tag and event == 'end' and elem.find(exclude_with) is None:
             yield elem
 
 
-def make_display_func(display_epath, /):
-    if display_epath is None:
-        return lambda n, _: log(f'{n:,}')
-    else:
-        return lambda n, elem: log(f'{n:,}\t{elem.findtext(display_epath)}')
-
-
 def count_elements(root, /, elements, *,
-                   display_after, display_epath, stop_after) -> int:
+                   display_after: int,
+                   display_epath: str | None,
+                   stop_after: int) -> int:
     if display_after in (None, 0):
         if stop_after is not None:
             raise NotImplementedError
@@ -212,13 +194,23 @@ def count_elements(root, /, elements, *,
     return count
 
 
+def make_display_func(display_epath: str | None, /):
+    if display_epath is not None:
+        return lambda n, elem: log(f'{n:,}\t{elem.findtext(display_epath)}')
+    return lambda n, _: log(f'{n:,}')
+
+
 def count_edits(root, /, pages, *,
-                display_after, display_epath, stop_after,
-                rev_epath, user_epath, text_epath) -> int:
+                display_after: int,
+                display_epath: str | None,
+                stop_after: int,
+                rev_epath: str,
+                user_epath: str,
+                text_epath: str) -> int:
     display_func = make_display_func(display_epath)
 
-    (n_edits, n_lines) = (collections.Counter() for _ in range(2))
-
+    n_edits = collections.Counter()
+    n_lines = collections.Counter()
     count = 0
     for count, p in enumerate(pages, start=1):
         if not count % display_after:
