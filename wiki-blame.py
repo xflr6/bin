@@ -9,7 +9,7 @@ __license__ = 'MIT, see LICENSE.txt'
 __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 import functools
 import gzip
 import re
@@ -20,13 +20,9 @@ import xml.etree.ElementTree as etree  # noqa: N813
 
 EXPORT_URL = 'https://en.wikipedia.org/wiki/Special:Export'
 
-_MEDIAWIKI = re.escape('http://www.mediawiki.org')
-
-MEDIAWIKI_EXPORT = r'\{%s/xml/export-\d+(?:\.\d+)*/\}mediawiki' % _MEDIAWIKI
+MEDIAWIKI_EXPORT = r'\{http://www\.mediawiki\.org/xml/export-\d+(?:\.\d+)*/\}mediawiki'
 
 ENCODING = 'utf-8'
-
-GZIP = 'gzip'
 
 
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
@@ -47,38 +43,36 @@ def wiki_blame(*,
                page_title: str,
                search_string: str,
                export_url: str) -> str | None:
-    log(f'export url: {export_url}', f'title: {page_title}', '')
-
-    req = make_request(export_url, page_title)
-    log(f'urllib.request.urlopen({req})')
-    with urllib.request.urlopen(req) as f:
+    log(f'export url: {export_url}', f'title: {page_title}')
+    request = make_request(export_url, page_title)
+    log(f'urllib.request.urlopen({request})')
+    with urllib.request.urlopen(request) as f:
         tree = parse_response(f)
 
     root = tree.getroot()
     if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
         return f'error: invalid xml root tag {root.tag!r}'
+    root_namespace = extract_namespace(root.tag)
+    log('', f'xml: {root_namespace!r}')
+    etree.register_namespace('', root_namespace)
+    ns = {'namespaces': {'': root_namespace}}
 
-    ns = extract_ns(root.tag)
-    log(f'xml: {ns!r}')
-    ns = {'namespaces': {'mw': ns}}
-
-    (site,) = tree.findall('mw:siteinfo', **ns)
-    for k, v in elem_findtext(site, 'sitename', 'dbname', 'base', prefix='mw', **ns).items():
+    (site,) = tree.findall('siteinfo', **ns)
+    for k, v in elem_findtext(site, 'sitename', 'dbname', 'base', **ns).items():
         log(f'siteinfo/{k}: {v}')
 
-    (page,) = tree.findall('mw:page', **ns)
-    page_infos = elem_findtext(page, 'ns', 'title', 'id', prefix='mw', **ns)
+    (page,) = tree.findall('page', **ns)
+    page_infos = elem_findtext(page, 'ns', 'title', 'id', **ns)
     for k, v in page_infos.items():
         log(f'page/{k}: {v}')
-
     if page_infos['ns'] != '0':
         return 'error: mediawiki:ns mismatch'
     if page_infos['title'] != page_title:
         return 'error: mediawiki:title mismatch'
 
     log(f'search string: {search_string}')
-    for r in page.iterfind('mw:revision', **ns):
-        if search_string in r.findtext('mw:text', '', **ns):
+    for r in page.iterfind('revision', **ns):
+        if search_string in r.findtext('text', '', **ns):
             log()
             etree.dump(r)
             return None
@@ -89,36 +83,42 @@ log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
 def make_request(url: str, /, title: str, *,
+                 accept_encoding: str = 'gzip',
+                 user_agent: str = ('Mozilla/5.0 (X11; U; Linux i686)'
+                                    ' Gecko/20071127 Firefox/2.0.0.11'),
                  encoding: str = ENCODING) -> urllib.request.Request:
     post = {'pages': title, 'wpDownload': 1}
     data = urllib.parse.urlencode(post).encode(encoding)
-    kwargs = {'headers': {'accept-encoding': GZIP}}
-    return urllib.request.Request(url, data=data, **kwargs)
+    headers = {'Accept-encoding': accept_encoding,
+               'User-agent': user_agent}
+    return urllib.request.Request(url, data=data, headers=headers)
 
 
-def parse_response(resp, /, *, encoding: str = ENCODING) -> etree.ElementTree:
-    info = resp.info()
+def parse_response(response, /, *,
+                   encoding: str = ENCODING) -> etree.ElementTree:
+    info = response.info()
     headers = {h: info.get(h) for h in ('content-type',
                                         'content-disposition',
                                         'content-encoding')}
     for key, value in headers.items():
         log(f'{key}: {value}')
-
     assert headers['content-type'] == f'application/xml; charset={encoding}'
     assert headers['content-disposition'].startswith('attachment;filename=')
-    assert headers['content-encoding'] == GZIP
+    assert headers['content-encoding'] == 'gzip'
 
-    with gzip.open(resp) as f:
+    with gzip.open(response) as f:
         return etree.parse(f)
 
 
-def extract_ns(tag: str, /) -> str:
-    ns = tag.partition('{')[2].partition('}')[0]
-    assert tag.startswith('{%s}' % ns)
-    return ns
+def extract_namespace(tag: str, /) -> str:
+    namespace = tag.partition('{')[2].partition('}')[0]
+    assert tag.startswith('{%s}' % namespace)
+    return namespace
 
 
-def elem_findtext(elem, /, *tags, prefix=None, **kwargs):
+def elem_findtext(elem, /, *tags: str,
+                  prefix: str | None = None,
+                  **kwargs) -> Mapping[str, str]:
     prefix = prefix + ':' if prefix is not None else ''
     values = (elem.findtext(prefix + t, **kwargs) for t in tags)
     return dict(zip(tags, values))

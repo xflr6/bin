@@ -53,7 +53,9 @@ def test_main(capsys, mocker, http_resp):
     (req,) = urlopen.call_args.args
     assert req.full_url == export_url
     assert req.data == f'pages={page_title}&wpDownload=1'.encode(ENCODING)
-    assert req.headers == {'Accept-encoding': 'gzip'}
+    assert list(req.headers) == ['Accept-encoding', 'User-agent']
+    assert req.headers['Accept-encoding'] == 'gzip'
+    assert req.headers['User-agent'].startswith('Mozilla')
 
     http_resp.assert_has_calls([mocker.call.__enter__(),
                                 mocker.call.info(),
