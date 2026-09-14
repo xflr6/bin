@@ -25,7 +25,7 @@ import sys
 import time
 import urllib.request
 import urllib.parse
-import xml.etree.ElementTree as etree
+import xml.etree.ElementTree as etree  # noqa: N813
 
 CONFIG_FILE = pathlib.Path('podcasts.ini')
 

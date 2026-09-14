@@ -16,7 +16,7 @@ import re
 import sys
 import urllib.parse
 import urllib.request
-import xml.etree.ElementTree as etree
+import xml.etree.ElementTree as etree  # noqa: N813
 
 EXPORT_URL = 'https://en.wikipedia.org/wiki/Special:Export'
 

@@ -21,7 +21,7 @@ import pathlib
 import re
 import sys
 import time
-import xml.etree.ElementTree as etree
+import xml.etree.ElementTree as etree  # noqa: N813
 
 PREFIX = 'mediawiki'
 
