@@ -103,11 +103,9 @@ def wiki_count(filename: pathlib.Path, /, *,
     log(f'{open_module.__name__}.open({filename!r})')
     with open_module.open(filename, mode='rb') as f:
         pairs = etree.iterparse(f, events=('start', 'end'))
-
         (_, root) = next(pairs)
         if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
             return f'error: invalid xml root tag {root.tag!r}'
-
         root_namespace = extract_namespace(root.tag)
         log(f'xml: {root_namespace!r}')
         ns_map = {PREFIX: root_namespace}
@@ -122,13 +120,13 @@ def wiki_count(filename: pathlib.Path, /, *,
             n = count_elements(root, elements, **kwargs)
             counters = []
         else:
-            kwargs.update(rev_epath=make_epath(f'{PREFIX}:revision', ns_map),
-                          user_epath=make_epath(f'{PREFIX}:contributor/{PREFIX}:username', ns_map),
-                          text_epath=make_epath(f'{PREFIX}:text', ns_map))
-
-            (n, n_edits, n_lines) = count_edits(root, elements, **kwargs)
+            (n, n_edits, n_lines) = count_edits(
+                root, elements,
+                rev_epath=make_epath(f'{PREFIX}:revision', ns_map),
+                user_epath=make_epath(f'{PREFIX}:contributor/{PREFIX}:username', ns_map),
+                text_epath=make_epath(f'{PREFIX}:text', ns_map),
+                **kwargs)
             counters = [n_edits, n_lines]
-
     stop = time.monotonic()
     log(f'duration: {stop - start:.2f} seconds')
 
