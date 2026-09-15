@@ -118,10 +118,10 @@ def wiki_count(filename: pathlib.Path, /, *,
         if simple_stats or most_common_n is None:
             n = count_elements(elements, **kwargs)
             counters = []
-        else:
-            if tag != 'page':
-                raise NotImplementedError(f"{simple_stats=} requires 'page', got {tag=}")
+        elif tag == 'page':
             (n, *counters) = count_page_edits(elements, **kwargs)
+        else:
+            raise NotImplementedError(f"{simple_stats=} requires 'page', got {tag=}")
     stop = time.monotonic()
     log(f'duration: {stop - start:.2f} seconds')
 
