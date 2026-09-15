@@ -218,10 +218,13 @@ def iterframes() -> Iterator[tuple[int, str]]:
 
 
 def read_page_bytes(url: str = URL, /, *,
+                    user_agent: str = ('Mozilla/5.0 (X11; U; Linux i686)'
+                                       ' Gecko/20071127 Firefox/2.0.0.11'),
                     cache_path: pathlib.Path = CACHE) -> bytes:
     if not cache_path.exists():
         logging.info('download %r into %r', url, cache_path)
-        with (urllib.request.urlopen(url) as src,
+        request = urllib.request.Request(url, headers={'User-agent': user_agent})
+        with (urllib.request.urlopen(request) as src,
               gzip.open(cache_path, mode='wb') as dst):
             shutil.copyfileobj(src, dst)
 
@@ -231,11 +234,9 @@ def read_page_bytes(url: str = URL, /, *,
     return result
 
 
-def extract_film(page_bytes: bytes, /, *, encoding: str = 'unicode_escape') -> str:
-    raw = (FILM.search(page_bytes)['film']
-           .removesuffix(b'\\n\xff\\n')
-           .removesuffix(b'\xef\xbf\xbd\\n'))
-    return raw.decode(encoding)
+def extract_film(page_bytes: bytes, /) -> str:
+    raw = FILM.search(page_bytes)['film'].removesuffix(b'\xff\\n')
+    return raw.decode('unicode_escape')
 
 
 def generate_frames(film, /, *,
