@@ -20,7 +20,7 @@ import xml.etree.ElementTree as etree  # noqa: N813
 
 EXPORT_URL = 'https://en.wikipedia.org/wiki/Special:Export'
 
-MEDIAWIKI_EXPORT = r'\{http://www\.mediawiki\.org/xml/export-\d+(?:\.\d+)*/\}mediawiki'
+MEDIAWIKI_EXPORT = r'\{(?P<ns>http://www\.mediawiki\.org/xml/export-\d+(?:\.\d+)*/)\}mediawiki'
 
 ENCODING = 'utf-8'
 
@@ -50,9 +50,9 @@ def wiki_blame(*,
         tree = parse_response(f)
 
     root = tree.getroot()
-    if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
+    if (ma := re.fullmatch(MEDIAWIKI_EXPORT, root.tag)) is None:
         return f'error: invalid xml root tag {root.tag!r}'
-    root_namespace = extract_namespace(root.tag)
+    root_namespace = ma['ns']
     log('', f'xml: {root_namespace!r}')
     etree.register_namespace('', root_namespace)
     ns = {'namespaces': {'': root_namespace}}
@@ -108,12 +108,6 @@ def parse_response(response, /, *,
 
     with gzip.open(response) as f:
         return etree.parse(f)
-
-
-def extract_namespace(tag: str, /) -> str:
-    namespace = tag.partition('{')[2].partition('}')[0]
-    assert tag.startswith('{%s}' % namespace)
-    return namespace
 
 
 def elem_findtext(elem, /, *tags: str,
