@@ -106,21 +106,18 @@ def wiki_count(filename: pathlib.Path, /, *,
             return f'error: invalid xml root tag {root.tag!r}'
         root_namespace = extract_namespace(root.tag)
         log(f'xml: {root_namespace!r}')
-        ns_map = {'': root_namespace}
+        namespaces = {'': root_namespace}
 
-        elements = iterelements(pairs,
-                                tag=make_epath(tag, ns_map),
-                                exclude_with=make_epath('redirect', ns_map))
-        kwargs = {'display_after': display_after,
-                  'display_epath': make_epath(display, ns_map, optional=True),
-                  'stop_after': stop_after}
+        elements = iterelements(pairs, tag=tag, exclude_with='redirect',
+                                namespaces=namespaces)
+        kwargs = {'display': display,
+                  'display_after': display_after,
+                  'stop_after': stop_after,
+                  'namespaces': namespaces}
         if simple_stats:
             n = count_elements(root, elements, **kwargs)
             counters = []
         else:
-            kwargs.update(rev_epath=make_epath('revision', ns_map),
-                          user_epath=make_epath('contributor/username', ns_map),
-                          text_epath=make_epath('text', ns_map))
             (n, n_edits, n_lines) = count_edits(root, elements, **kwargs)
             counters = [n_edits, n_lines]
     stop = time.monotonic()
@@ -143,16 +140,12 @@ def extract_namespace(tag: str, /) -> str:
     return namespace
 
 
-def make_epath(s: str, /, namespace_map: Mapping[str, str], *,
-               optional: bool = False) -> str | None:
-    if optional and not s:
-        return None
+def make_epath(s: str, /, namespaces: Mapping[str, str]) -> str:
     assert s.strip(), 'must be non-empty'
 
     def repl(ma):
-        prefix = ma['prefix'] or ''
         try:
-            ns = namespace_map[prefix]
+            ns = namespaces[prefix := ma['prefix'] or '']
         except KeyError:
             if ma['prefix'] is None:
                 return ma['boundary']
@@ -162,22 +155,25 @@ def make_epath(s: str, /, namespace_map: Mapping[str, str], *,
     return re.sub(r'(?P<boundary>^|/)(?:(?P<prefix>\w+):)?', repl, s)
 
 
-def iterelements(pairs, /, tag: str, *, exclude_with: str):
+def iterelements(pairs, /, tag: str, *, exclude_with: str, namespaces: Mapping[str, str]):
+    tag = make_epath(tag, namespaces)
+    exclude_with = make_epath(exclude_with, namespaces)
     for event, elem in pairs:
         if elem.tag == tag and event == 'end' and elem.find(exclude_with) is None:
             yield elem
 
 
 def count_elements(root, /, elements, *,
+                   display: str | None,
                    display_after: int,
-                   display_epath: str | None,
-                   stop_after: int) -> int:
+                   stop_after: int,
+                   namespaces: Mapping[str, str]) -> int:
     if display_after in (None, 0):
         if stop_after is not None:
             raise NotImplementedError
         return sum(root.clear() is None for _ in elements)
 
-    display_func = make_display_func(display_epath)
+    display_func = make_display_func(display, namespaces)
 
     count = 0
     for count, elem in enumerate(elements, start=1):
@@ -189,20 +185,23 @@ def count_elements(root, /, elements, *,
     return count
 
 
-def make_display_func(display_epath: str | None, /):
-    if display_epath is not None:
+def make_display_func(display: str | None, /, namespaces: Mapping[str, str]):
+    if display is not None:
+        display_epath = make_epath(display, namespaces)
         return lambda n, elem: log(f'{n:,}\t{elem.findtext(display_epath)}')
     return lambda n, _: log(f'{n:,}')
 
 
 def count_edits(root, /, pages, *,
+                display: str | None,
                 display_after: int,
-                display_epath: str | None,
                 stop_after: int,
-                rev_epath: str,
-                user_epath: str,
-                text_epath: str) -> int:
-    display_func = make_display_func(display_epath)
+                namespaces: Mapping[str, str]) -> int:
+    display_func = make_display_func(display, namespaces)
+
+    rev_epath = make_epath('revision', namespaces)
+    user_epath = make_epath('contributor/username', namespaces)
+    text_epath = make_epath('text', namespaces)
 
     n_edits = collections.Counter()
     n_lines = collections.Counter()
@@ -210,17 +209,14 @@ def count_edits(root, /, pages, *,
     for count, p in enumerate(pages, start=1):
         if not count % display_after:
             display_func(count, p)
-
         old_text = ''
         for rev in p.iterfind(rev_epath):
             user = rev.findtext(user_epath)
-
             n_edits[user] += 1
 
             new_text = rev.findtext(text_epath)
             if new_text is not None:
                 n_lines[user] += lines_changed(old_text, new_text)
-
                 old_text = new_text
 
         root.clear()  # free memory
