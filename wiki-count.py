@@ -51,19 +51,19 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('--stats', dest='simple_stats', action='store_false',
                         help='also compute and display page edit statistics')
 
-    def positive_int(s: str, /) -> int | None:
+    def non_negative_int(s: str, /) -> int | None:
         if s is None or not s.strip():
             return None
         try:
             result = int(s)
         except ValueError:
             result = None
-        if result is None or not result > 0:
-            raise argparse.ArgumentTypeError(f'need positive int: {s}')
+        if result is None or not result >= 0:
+            raise argparse.ArgumentTypeError(f'need non-negative int: {s}')
         return result
 
     parser.add_argument('--stats-top', dest='most_common_n',
-                        metavar='N', type=positive_int, default=MOST_COMMON_N,
+                        metavar='N', type=non_negative_int, default=MOST_COMMON_N,
                         help='show top N users edits and lines'
                              f' (default: {MOST_COMMON_N})')
 
@@ -71,12 +71,12 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
                         help='ElementPath to log in sub-total'
                              f' (default: {DISPLAY_PATH})')
 
-    parser.add_argument('--display-after', metavar='N', type=positive_int,
+    parser.add_argument('--display-after', metavar='N', type=non_negative_int,
                         default=DISPLAY_AFTER,
                         help='log sub-total after N tags'
                              f' (default: {DISPLAY_AFTER})')
 
-    parser.add_argument('--stop-after', metavar='N', type=positive_int,
+    parser.add_argument('--stop-after', metavar='N', type=non_negative_int,
                         help='stop after N tags')
 
     parser.add_argument('--version', action='version', version=__version__)
@@ -115,7 +115,7 @@ def wiki_count(filename: pathlib.Path, /, *,
                   'stop_after': stop_after,
                   'namespaces': namespaces,
                   'root': root}
-        if simple_stats or most_common_n is None:
+        if simple_stats or most_common_n in (0, None):
             n = count_elements(elements, **kwargs)
             counters = []
         elif tag == 'page':
@@ -167,7 +167,7 @@ def count_elements(elements: Iterable[etree.Element], /, *,
                    namespaces: Mapping[str, str],
                    root: etree.Element) -> int:
     if display_after in (0, None):
-        if stop_after is not None:
+        if stop_after in (0, None):
             raise NotImplementedError
         return sum(root.clear() is None for _ in elements)
 
@@ -198,7 +198,7 @@ def count_page_edits(pages: Iterable[etree.Element], /, *,
                      root: etree.Element) -> tuple[int,
                                                    collections.Counter[str],
                                                    collections.Counter[str]]:
-    if display_after is not None:
+    if display_after is not None and display_after > 0:
         display_func = make_display_func(display, namespaces)
     else:
         display_func = None
