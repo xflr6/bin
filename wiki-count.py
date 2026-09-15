@@ -106,15 +106,13 @@ def wiki_count(filename: pathlib.Path, /, *,
             return f'error: invalid xml root tag {root.tag!r}'
         root_namespace = ma['ns']
         log(f'xml: {root_namespace!r}')
-        namespaces = {'': root_namespace}
-
+        kwargs = {'namespaces': {'': root_namespace}}
         elements = iterelements(pairs, tag=tag, exclude_with='redirect',
-                                namespaces=namespaces)
-        kwargs = {'display': display,
-                  'display_after': display_after,
-                  'stop_after': stop_after,
-                  'namespaces': namespaces,
-                  'root': root}
+                                **kwargs)
+        kwargs |= {'display': display,
+                   'display_after': display_after,
+                   'stop_after': stop_after,
+                   'root': root}
         if simple_stats or most_common_n in (0, None):
             n = count_elements(elements, **kwargs)
             counters = []
