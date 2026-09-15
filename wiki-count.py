@@ -104,7 +104,8 @@ def wiki_count(filename: pathlib.Path, /, *,
         (_, root) = next(pairs)
         if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
             return f'error: invalid xml root tag {root.tag!r}'
-        root_namespace = extract_namespace(root.tag)
+        root_namespace = root.tag.partition('{')[2].partition('}')[0]
+        assert root.tag.startswith('{%s}' % root_namespace)
         log(f'xml: {root_namespace!r}')
         namespaces = {'': root_namespace}
 
@@ -134,10 +135,12 @@ def wiki_count(filename: pathlib.Path, /, *,
 log = functools.partial(print, file=sys.stderr, sep='\n')
 
 
-def extract_namespace(tag: str, /) -> str:
-    namespace = tag.partition('{')[2].partition('}')[0]
-    assert tag.startswith('{%s}' % namespace)
-    return namespace
+def iterelements(pairs, /, tag: str, *, exclude_with: str, namespaces: Mapping[str, str]):
+    tag = make_epath(tag, namespaces)
+    exclude_with = make_epath(exclude_with, namespaces)
+    for event, elem in pairs:
+        if elem.tag == tag and event == 'end' and elem.find(exclude_with) is None:
+            yield elem
 
 
 def make_epath(s: str, /, namespaces: Mapping[str, str]) -> str:
@@ -153,14 +156,6 @@ def make_epath(s: str, /, namespaces: Mapping[str, str]) -> str:
         return ma.expand(r'\g<boundary>{%s}' % ns)
 
     return re.sub(r'(?P<boundary>^|/)(?:(?P<prefix>\w+):)?', repl, s)
-
-
-def iterelements(pairs, /, tag: str, *, exclude_with: str, namespaces: Mapping[str, str]):
-    tag = make_epath(tag, namespaces)
-    exclude_with = make_epath(exclude_with, namespaces)
-    for event, elem in pairs:
-        if elem.tag == tag and event == 'end' and elem.find(exclude_with) is None:
-            yield elem
 
 
 def count_elements(root, /, elements, *,
