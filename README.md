@@ -381,11 +381,10 @@ positional arguments:
 
 options:
   -h, --help         show this help message and exit
-  --tag TAG          end tag to count (default: mediawiki:page)
+  --tag TAG          end tag to count (default: page)
   --stats            also compute and display page edit statistics
   --stats-top N      show top N users edits and lines (default: 100)
-  --display PATH     ElementPath to log in sub-total (default:
-                     mediawiki:title)
+  --display PATH     ElementPath to log in sub-total (default: title)
   --display-after N  log sub-total after N tags (default: 1000)
   --stop-after N     stop after N tags
   --version          show program's version number and exit

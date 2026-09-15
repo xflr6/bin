@@ -51,8 +51,8 @@ def test_main(capsys, tmp_path):
         f.write(EXPORT)
 
     assert wiki_count.main([str(export),
-                            '--tag', 'mediawiki:page',
-                            '--display', 'mediawiki:title',
+                            '--tag', 'page',
+                            '--display', 'title',
                             '--display-after', '100',
                             '--stop-after', '1000']) is None
 

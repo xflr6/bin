@@ -23,11 +23,9 @@ import sys
 import time
 import xml.etree.ElementTree as etree  # noqa: N813
 
-PREFIX = 'mediawiki'
+PAGE_TAG = 'page'
 
-PAGE_TAG = f'{PREFIX}:page'
-
-DISPLAY_PATH = f'{PREFIX}:title'
+DISPLAY_PATH = 'title'
 
 DISPLAY_AFTER = 1_000
 
@@ -108,11 +106,11 @@ def wiki_count(filename: pathlib.Path, /, *,
             return f'error: invalid xml root tag {root.tag!r}'
         root_namespace = extract_namespace(root.tag)
         log(f'xml: {root_namespace!r}')
-        ns_map = {PREFIX: root_namespace}
+        ns_map = {'': root_namespace}
 
         elements = iterelements(pairs,
                                 tag=make_epath(tag, ns_map),
-                                exclude_with=make_epath(f'{PREFIX}:redirect', ns_map))
+                                exclude_with=make_epath('redirect', ns_map))
         kwargs = {'display_after': display_after,
                   'display_epath': make_epath(display, ns_map, optional=True),
                   'stop_after': stop_after}
@@ -120,12 +118,10 @@ def wiki_count(filename: pathlib.Path, /, *,
             n = count_elements(root, elements, **kwargs)
             counters = []
         else:
-            (n, n_edits, n_lines) = count_edits(
-                root, elements,
-                rev_epath=make_epath(f'{PREFIX}:revision', ns_map),
-                user_epath=make_epath(f'{PREFIX}:contributor/{PREFIX}:username', ns_map),
-                text_epath=make_epath(f'{PREFIX}:text', ns_map),
-                **kwargs)
+            kwargs.update(rev_epath=make_epath('revision', ns_map),
+                          user_epath=make_epath('contributor/username', ns_map),
+                          text_epath=make_epath('text', ns_map))
+            (n, n_edits, n_lines) = count_edits(root, elements, **kwargs)
             counters = [n_edits, n_lines]
     stop = time.monotonic()
     log(f'duration: {stop - start:.2f} seconds')
@@ -149,20 +145,21 @@ def extract_namespace(tag: str, /) -> str:
 
 def make_epath(s: str, /, namespace_map: Mapping[str, str], *,
                optional: bool = False) -> str | None:
-    s = s.strip()
     if optional and not s:
         return None
-    assert s
+    assert s.strip(), 'must be non-empty'
 
     def repl(ma):
-        prefix = ma['prefix']
+        prefix = ma['prefix'] or ''
         try:
             ns = namespace_map[prefix]
         except KeyError:
-            raise ValueError(f'unknown namespace in {s!r}: {prefix}')
+            if ma['prefix'] is None:
+                return ma['boundary']
+            raise ValueError(f'unknown namespace prefix in {s!r}: {prefix!r}')
         return ma.expand(r'\g<boundary>{%s}' % ns)
 
-    return re.sub(r'(?P<boundary>^|/)(?P<prefix>\w+):', repl, s)
+    return re.sub(r'(?P<boundary>^|/)(?:(?P<prefix>\w+):)?', repl, s)
 
 
 def iterelements(pairs, /, tag: str, *, exclude_with: str):
