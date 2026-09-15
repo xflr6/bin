@@ -9,7 +9,7 @@ __license__ = 'MIT, see LICENSE.txt'
 __copyright__ = 'Copyright (c) 2020 Sebastian Bank'
 
 import argparse
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 import builtins
 import bz2
 import collections
@@ -86,9 +86,9 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
 def wiki_count(filename: pathlib.Path, /, *,
                tag: str,
                simple_stats: bool,
-               most_common_n: int,
-               display: str,
-               display_after: int,
+               most_common_n: int | None,
+               display: str | None,
+               display_after: int | None,
                stop_after: int) -> str | None:
     log(f'filename: {filename}', '')
     try:
@@ -113,18 +113,21 @@ def wiki_count(filename: pathlib.Path, /, *,
         kwargs = {'display': display,
                   'display_after': display_after,
                   'stop_after': stop_after,
-                  'namespaces': namespaces}
-        if simple_stats:
-            n = count_elements(root, elements, **kwargs)
+                  'namespaces': namespaces,
+                  'root': root}
+        if simple_stats or most_common_n is None:
+            n = count_elements(elements, **kwargs)
             counters = []
         else:
-            (n, n_edits, n_lines) = count_edits(root, elements, **kwargs)
-            counters = [n_edits, n_lines]
+            if tag != 'page':
+                raise NotImplementedError(f"{simple_stats=} requires 'page', got {tag=}")
+            (n, *counters) = count_page_edits(elements, **kwargs)
     stop = time.monotonic()
     log(f'duration: {stop - start:.2f} seconds')
 
     print(n)
     for c in counters:
+        assert most_common_n is not None, 'must be guaranteed for nonempty counters'
         top_n = c.most_common(most_common_n)
         lines = (f'{user!s:<16}\t{n:d}' for user, n in top_n)
         print('', *lines, sep='\n')
@@ -152,17 +155,18 @@ def make_epath(s: str, /, namespaces: Mapping[str, str]) -> str:
             if ma['prefix'] is None:
                 return ma['boundary']
             raise ValueError(f'unknown namespace prefix in {s!r}: {prefix!r}')
-        return ma.expand(r'\g<boundary>{%s}' % ns)
+        return f"{ma['boundary']}{{{ns}}}"
 
     return re.sub(r'(?P<boundary>^|/)(?:(?P<prefix>\w+):)?', repl, s)
 
 
-def count_elements(root, /, elements, *,
+def count_elements(elements: Iterable[etree.Element], /, *,
                    display: str | None,
-                   display_after: int,
-                   stop_after: int,
-                   namespaces: Mapping[str, str]) -> int:
-    if display_after in (None, 0):
+                   display_after: int | None,
+                   stop_after: int | None,
+                   namespaces: Mapping[str, str],
+                   root: etree.Element) -> int:
+    if display_after in (0, None):
         if stop_after is not None:
             raise NotImplementedError
         return sum(root.clear() is None for _ in elements)
@@ -182,16 +186,22 @@ def count_elements(root, /, elements, *,
 def make_display_func(display: str | None, /, namespaces: Mapping[str, str]):
     if display is not None:
         display_epath = make_epath(display, namespaces)
-        return lambda n, elem: log(f'{n:,}\t{elem.findtext(display_epath)}')
-    return lambda n, _: log(f'{n:,}')
+        return lambda n, elem: log(f'{n:_d}\t{elem.findtext(display_epath)}')
+    return lambda n, _: log(f'{n:_d}')
 
 
-def count_edits(root, /, pages, *,
-                display: str | None,
-                display_after: int,
-                stop_after: int,
-                namespaces: Mapping[str, str]) -> int:
-    display_func = make_display_func(display, namespaces)
+def count_page_edits(pages: Iterable[etree.Element], /, *,
+                     display: str | None,
+                     display_after: int | None,
+                     stop_after: int | None,
+                     namespaces: Mapping[str, str],
+                     root: etree.Element) -> tuple[int,
+                                                   collections.Counter[str],
+                                                   collections.Counter[str]]:
+    if display_after is not None:
+        display_func = make_display_func(display, namespaces)
+    else:
+        display_func = None
 
     rev_epath = make_epath('revision', namespaces)
     user_epath = make_epath('contributor/username', namespaces)
@@ -201,7 +211,7 @@ def count_edits(root, /, pages, *,
     n_lines = collections.Counter()
     count = 0
     for count, p in enumerate(pages, start=1):
-        if not count % display_after:
+        if not count % display_after and display_func is not None:
             display_func(count, p)
         old_text = ''
         for rev in p.iterfind(rev_epath):
@@ -214,7 +224,7 @@ def count_edits(root, /, pages, *,
                 old_text = new_text
 
         root.clear()  # free memory
-        if count == stop_after:
+        if stop_after is not None and count == stop_after:
             break
     return count, n_edits, n_lines
 
