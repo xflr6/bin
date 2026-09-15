@@ -6,7 +6,7 @@ import textwrap
 wiki_count = importlib.import_module('wiki-count')
 
 EXPORT = '''
-<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/">
+<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.11/">
   <page>
     <title>Main Page</title>
     <redirect title="Spam" />

@@ -4,7 +4,7 @@ import importlib
 wiki_blame = importlib.import_module('wiki-blame')
 
 EXPORT = '''
-<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/">
+<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.11/">
   <siteinfo>
     <sitename>Wikispam</sitename>
     <dbname>spamwiki</dbname>
