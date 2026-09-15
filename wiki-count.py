@@ -31,7 +31,7 @@ DISPLAY_AFTER = 1_000
 
 MOST_COMMON_N = 100
 
-MEDIAWIKI_EXPORT = r'\{http://www\.mediawiki\.org/xml/export-\d+(?:\.\d+)*/\}mediawiki'
+MEDIAWIKI_EXPORT = r'\{(?P<ns>http://www\.mediawiki\.org/xml/export-\d+(?:\.\d+)*/)\}mediawiki'
 
 SUFFIX_OPEN_MODULE = {'.bz2': bz2,
                       '.gz': gzip,
@@ -102,10 +102,9 @@ def wiki_count(filename: pathlib.Path, /, *,
     with open_module.open(filename, mode='rb') as f:
         pairs = etree.iterparse(f, events=('start', 'end'))
         (_, root) = next(pairs)
-        if not re.fullmatch(MEDIAWIKI_EXPORT, root.tag):
+        if (ma := re.fullmatch(MEDIAWIKI_EXPORT, root.tag)) is None:
             return f'error: invalid xml root tag {root.tag!r}'
-        root_namespace = root.tag.partition('{')[2].partition('}')[0]
-        assert root.tag.startswith('{%s}' % root_namespace)
+        root_namespace = ma['ns']
         log(f'xml: {root_namespace!r}')
         namespaces = {'': root_namespace}
 
