@@ -177,9 +177,9 @@ options:
   --pages RANGE     pages option for \includepdfmerge (default: -)
   --orient {l,p,a}  l(andscape), p(ortrait), a(uto) (default: a)
   --scale FACTOR    scale option for \includepdfmerge (default: 1.01)
-  --no-frame        don't pass frame option to \includepdfmerge
-  --no-openright    don't pass openright option to \includepdfmerge
-  --keep            don't delete intermediate files (*.tex, *.log, etc.)
+  --no-frame        don't pass frame to \includepdfmerge (default: False)
+  --no-openright    don't pass openright to \includepdfmerge (default: False)
+  --keep            don't delete *.tex|log|... files written (default: False)
   --version         show program's version number and exit
 ```
 

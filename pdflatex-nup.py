@@ -19,18 +19,6 @@ import string
 import subprocess
 import sys
 
-NAME_TEMPLATE = '{stem}_2up.pdf'
-
-PAPER = 'a4'
-
-ORIENT = 'a'
-
-NUP = '2x1'
-
-PAGES = '-'
-
-SCALE = '1.01'
-
 LANDSCAPE = {'l': True, 'p': False, 'a': None}
 
 TEMPLATE = string.Template(r'''
@@ -46,7 +34,8 @@ OPEN_KWARGS = {'encoding': 'utf-8', 'newline': '\n'}
 
 
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     def present_pdf_file(s: str, /) -> pathlib.Path:
         try:
@@ -60,7 +49,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         return result
 
     parser.add_argument('pdf_file', type=present_pdf_file,
-                        help='name of the source PDF file for \\includepdfmerge')
+                        help=r'name of the source PDF file for \includepdfmerge')
 
     def template(s: str, /) -> str:
         try:
@@ -74,11 +63,12 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         return s
 
     parser.add_argument('--name', metavar='TMPL', type=template,
-                        default=NAME_TEMPLATE,
-                        help=f'template for nup PDF file (default: {NAME_TEMPLATE})')
+                        help='template for nup PDF file',
+                        default='{stem}_2up.pdf')
 
-    parser.add_argument('--paper', metavar='SIZE', default=PAPER,
-                        help=f'output LaTeX paper size (default: {PAPER})')
+    parser.add_argument('--paper', metavar='SIZE',
+                        help='output LaTeX paper size',
+                        default='a4')
 
     def nup(s: str, /) -> tuple[int, int]:
         nups = None, None
@@ -93,14 +83,17 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         (x, y) = nups
         return argparse.Namespace(x=x, y=y)
 
-    parser.add_argument('--nup', metavar='XxY', type=nup, default=NUP,
-                        help=f'nup option for \\includepdfmerge (default: {NUP})')
+    parser.add_argument('--nup', metavar='XxY', type=nup,
+                        help=r'nup option for \includepdfmerge',
+                        default='2x1')
 
-    parser.add_argument('--pages', metavar='RANGE', default=PAGES,
-                        help=f'pages option for \\includepdfmerge (default: {PAGES})')
+    parser.add_argument('--pages', metavar='RANGE',
+                        help=r'pages option for \includepdfmerge',
+                        default='-')
 
-    parser.add_argument('--orient', choices=list(LANDSCAPE), default=ORIENT,
-                        help=f'l(andscape), p(ortrait), a(uto) (default: {ORIENT})')
+    parser.add_argument('--orient', choices=list(LANDSCAPE),
+                        help='l(andscape), p(ortrait), a(uto)',
+                        default='a')
 
     def factor(s: str, /) -> str:
         try:
@@ -111,17 +104,18 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             raise argparse.ArgumentTypeError(f'invalid or zero factor: {s}')
         return s.strip()
 
-    parser.add_argument('--scale', metavar='FACTOR', type=factor, default=SCALE,
-                        help=f'scale option for \\includepdfmerge (default: {SCALE})')
+    parser.add_argument('--scale', metavar='FACTOR', type=factor,
+                        help=r'scale option for \includepdfmerge',
+                        default=1.01)
 
-    parser.add_argument('--no-frame', dest='frame', action='store_false',
-                        help="don't pass frame option to \\includepdfmerge")
+    parser.add_argument('--no-frame', action='store_true',
+                        help=r"don't pass frame to \includepdfmerge")
 
-    parser.add_argument('--no-openright', dest='openright', action='store_false',
-                        help="don't pass openright option to \\includepdfmerge")
+    parser.add_argument('--no-openright', action='store_true',
+                        help=r"don't pass openright to \includepdfmerge")
 
-    parser.add_argument('--keep', dest='clean_up', action='store_false',
-                        help="don't delete intermediate files (*.tex, *.log, etc.)")
+    parser.add_argument('--keep', dest='skip_clean_up', action='store_true',
+                        help="don't delete *.tex|log|... files written")
 
     parser.add_argument('--version', action='version', version=__version__)
     return parser.parse_args(args)
@@ -133,9 +127,9 @@ def pdflatex_nup(pdf_file: pathlib.Path, /, *, name: str,
                  pages: str,
                  orient_landscape: bool | None,
                  scale: str,
-                 frame: bool,
-                 openright: bool,
-                 clean_up: bool) -> str | None:
+                 no_frame: bool,
+                 no_openright: bool,
+                 skip_clean_up: bool) -> str | None:
     dest_path = pdf_file.with_name(name.format(stem=pdf_file.stem))
     doc_path = dest_path.with_suffix('.tex')
     log(f'source: {pdf_file}',
@@ -147,9 +141,9 @@ def pdflatex_nup(pdf_file: pathlib.Path, /, *, name: str,
                           landscape=orient_landscape,
                           filename=pdf_file.name,
                           pages=pages,
-                          openright=openright,
+                          openright=not no_openright,
                           scale=scale,
-                          frame=frame)
+                          frame=not no_frame)
 
     log(f'{doc_path!r}.write_text(..., **{OPEN_KWARGS})')
     with doc_path.open(mode='wt', **OPEN_KWARGS) as f:
@@ -166,7 +160,7 @@ def pdflatex_nup(pdf_file: pathlib.Path, /, *, name: str,
     if not dest_path.exists():
         return 'error: result file not found'
 
-    if clean_up:
+    if not skip_clean_up:
         delete_glob = dest_path.with_suffix('.*').name
         delete_paths = set(dest_path.parent.glob(delete_glob)) - {dest_path}
         for p in sorted(delete_paths):
@@ -202,9 +196,9 @@ def main(args: Sequence[str] | None = None) -> str | None:
                         pages=args.pages,
                         orient_landscape=LANDSCAPE[args.orient],
                         scale=args.scale,
-                        frame=args.frame,
-                        openright=args.openright,
-                        clean_up=args.clean_up)
+                        no_frame=args.no_frame,
+                        no_openright=args.no_openright,
+                        skip_clean_up=args.skip_clean_up)
 
 
 if __name__ == '__main__':  # pragma: no cover
