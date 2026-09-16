@@ -238,10 +238,10 @@ positional arguments:
 
 options:
   -h, --help          show this help message and exit
-  --target TEXT_FILE  path to the text file to be updated
+  --target TEXT_FILE  path to the text file to be updated (default: None)
   --encoding NAME     target text file read/write encoding (default: utf-8)
-  --pattern REGEX     re.sub() pattern with file and checksum group
-  --confirm           prompt for confirmation before exit when updated
+  --pattern REGEX     re.sub() pattern w/ name and hash group (default: None)
+  --confirm           if updated, ask to confirm before exit (default: False)
   --version           show program's version number and exit
 ```
 

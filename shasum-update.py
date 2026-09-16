@@ -19,11 +19,10 @@ import pathlib
 import re
 import sys
 
-ENCODING = 'utf-8'
-
 
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     def present_file_glob(s: str, /) -> list[pathlib.Path]:
         paths = list(pathlib.Path().glob(s))
@@ -57,9 +56,8 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             raise argparse.ArgumentTypeError(f'unknown encoding: {s}')
 
     parser.add_argument('--encoding', metavar='NAME', type=encoding,
-                        default=ENCODING,
-                        help='target text file read/write encoding'
-                             f' (default: {ENCODING})')
+                        help='target text file read/write encoding',
+                        default='utf-8')
 
     def file_checksum_pattern(s: str, /):
         try:
@@ -71,10 +69,10 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         return result
 
     parser.add_argument('--pattern', metavar='REGEX', type=file_checksum_pattern,
-                        help='re.sub() pattern with file and checksum group')
+                        help='re.sub() pattern w/ name and hash group')
 
     parser.add_argument('--confirm', action='store_true',
-                        help='prompt for confirmation before exit when updated')
+                        help='if updated, ask to confirm before exit')
 
     parser.add_argument('--version', action='version', version=__version__)
     return parser.parse_args(args)
