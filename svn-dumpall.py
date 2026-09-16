@@ -29,13 +29,9 @@ COMPRESS = {'.bz2': ['bzip2'],
             '.xz': ['xz'],
             '.zst': ['zstd']}
 
-MODE_MASK = 0o777
-assert stat.filemode(MODE_MASK) == '?rwxrwxrwx'
-assert MODE_MASK == stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
+MODE_MASK = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO  # 0o777
 
-CHMOD = 0o400
-assert stat.filemode(CHMOD) == '?r--------'
-assert CHMOD == stat.S_IRUSR
+CHMOD = stat.S_IRUSR  # 0o400
 
 SUBPROCESS_PATH = '/usr/bin:/bin'
 
@@ -87,6 +83,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             result = int(s, base=8)
         except ValueError:
             result = None
+        assert stat.filemode(MODE_MASK) == '?rwxrwxrwx'
         if result is None or not 0 <= result <= MODE_MASK:
             raise argparse.ArgumentTypeError(f'need octal int between {oct(0)}'
                                              f' and {oct(MODE_MASK)}: {s}')
@@ -94,6 +91,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
 
     parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
                         help=f'dump file(s) chmod (default: {CHMOD:03o})')
+    assert stat.filemode(parser.get_default('chmod')) == '?r--------'
 
     parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
                         help=f'PATH for subprocess(es) (default: {SUBPROCESS_PATH})')

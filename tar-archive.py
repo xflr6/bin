@@ -23,17 +23,11 @@ import time
 
 NAME_TEMPLATE = '%Y%m%d-%H%M.tar.gz'
 
-MODE_MASK = 0o777
-assert stat.filemode(MODE_MASK) == '?rwxrwxrwx'
-assert MODE_MASK == stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
+MODE_MASK = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO  # 0o777
 
-SET_UMASK = 0o177
-assert stat.filemode(SET_UMASK) == '?--xrwxrwx'
-assert SET_UMASK == stat.S_IXUSR | stat.S_IRWXG | stat.S_IRWXO
+SET_UMASK = stat.S_IXUSR | stat.S_IRWXG | stat.S_IRWXO  # 0o177
 
-CHMOD = 0o400
-assert stat.filemode(CHMOD) == '?r--------'
-assert CHMOD == stat.S_IRUSR
+CHMOD = stat.S_IRUSR  # 0o400
 
 SUBPROCESS_PATH = '/usr/bin:/bin'
 
@@ -114,6 +108,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             result = int(s, base=8)
         except ValueError:
             result = None
+        assert stat.filemode(MODE_MASK) == '?rwxrwxrwx'
         if result is None or not 0 <= result <= MODE_MASK:
             raise argparse.ArgumentTypeError(f'need octal int between {oct(0)}'
                                              f' and {oct(MODE_MASK)}: {s}')
@@ -121,12 +116,14 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
 
     parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
                         help=f'archive file chmod (default: {CHMOD:03o})')
+    assert stat.filemode(parser.get_default('chmod')) == '?r--------'
 
     parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
                         help=f'PATH for tar subprocess (default: {SUBPROCESS_PATH})')
 
     parser.add_argument('--set-umask', metavar='MASK', type=mode, default=SET_UMASK,
                         help=f'umask for tar subprocess (default: {SET_UMASK:03o})')
+    assert stat.filemode(parser.get_default('set_umask')) == '?--xrwxrwx'
 
     parser.add_argument('--ask-for-deletion', action='store_true',
                         help='prompt for archive file deletion before exit')
