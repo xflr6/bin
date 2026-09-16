@@ -18,22 +18,22 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as etree  # noqa: N813
 
-EXPORT_URL = 'https://en.wikipedia.org/wiki/Special:Export'
-
 MEDIAWIKI_EXPORT = r'\{(?P<ns>http://www\.mediawiki\.org/xml/export-\d+(?:\.\d+)*/)\}mediawiki'
 
 ENCODING = 'utf-8'
 
 
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('page_title', help='title of the page on MediaWiki')
 
     parser.add_argument('search_string', help='string to match page wikitext')
 
-    parser.add_argument('--export-url', metavar='URL', default=EXPORT_URL,
-                        help=f'MediaWiki instance export url (default: {EXPORT_URL})')
+    parser.add_argument('--export-url', metavar='URL',
+                        default='https://en.wikipedia.org/wiki/Special:Export',
+                        help='MediaWiki instance export url')
 
     parser.add_argument('--version', action='version', version=__version__)
     return parser.parse_args(args)

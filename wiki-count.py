@@ -23,14 +23,6 @@ import sys
 import time
 import xml.etree.ElementTree as etree  # noqa: N813
 
-PAGE_TAG = 'page'
-
-DISPLAY_PATH = 'title'
-
-DISPLAY_AFTER = 1_000
-
-MOST_COMMON_N = 100
-
 MEDIAWIKI_EXPORT = r'\{(?P<ns>http://www\.mediawiki\.org/xml/export-\d+(?:\.\d+)*/)\}mediawiki'
 
 SUFFIX_OPEN_MODULE = {'.bz2': bz2,
@@ -40,16 +32,16 @@ SUFFIX_OPEN_MODULE = {'.bz2': bz2,
 
 
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('filename', type=pathlib.Path,
                         help='path to MediaWiki XML export (format: .xml.bz2)')
 
-    parser.add_argument('--tag', default=PAGE_TAG,
-                        help=f'end tag to count (default: {PAGE_TAG})')
+    parser.add_argument('--tag', default='page', help='end tag to count')
 
-    parser.add_argument('--stats', dest='simple_stats', action='store_false',
-                        help='also compute and display page edit statistics')
+    parser.add_argument('--stats', dest='full_stats', action='store_true',
+                        help='also show page edit statistics')
 
     def non_negative_int(s: str, /) -> int | None:
         if s is None or not s.strip():
@@ -63,18 +55,15 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         return result
 
     parser.add_argument('--stats-top', dest='most_common_n',
-                        metavar='N', type=non_negative_int, default=MOST_COMMON_N,
-                        help='show top N users edits and lines'
-                             f' (default: {MOST_COMMON_N})')
+                        metavar='N', type=non_negative_int, default=100,
+                        help='show top N users edits and lines')
 
-    parser.add_argument('--display', metavar='PATH', default=DISPLAY_PATH,
-                        help='ElementPath to log in sub-total'
-                             f' (default: {DISPLAY_PATH})')
+    parser.add_argument('--display', metavar='PATH', default='title',
+                        help='ElementPath to log in sub-total')
 
     parser.add_argument('--display-after', metavar='N', type=non_negative_int,
-                        default=DISPLAY_AFTER,
-                        help='log sub-total after N tags'
-                             f' (default: {DISPLAY_AFTER})')
+                        default=1_000,
+                        help='log sub-total after N tags')
 
     parser.add_argument('--stop-after', metavar='N', type=non_negative_int,
                         help='stop after N tags')
@@ -85,7 +74,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
 
 def wiki_count(filename: pathlib.Path, /, *,
                tag: str,
-               simple_stats: bool,
+               full_stats: bool,
                most_common_n: int | None,
                display: str | None,
                display_after: int | None,
@@ -113,13 +102,13 @@ def wiki_count(filename: pathlib.Path, /, *,
                    'display_after': display_after,
                    'stop_after': stop_after,
                    'root': root}
-        if simple_stats or most_common_n in (0, None):
+        if not full_stats or most_common_n in (0, None):
             n = count_elements(elements, **kwargs)
             counters = []
         elif tag == 'page':
             (n, *counters) = count_page_edits(elements, **kwargs)
         else:
-            raise NotImplementedError(f"{simple_stats=} requires 'page', got {tag=}")
+            raise NotImplementedError(f"{full_stats=} requires 'page', got {tag=}")
     stop = time.monotonic()
     log(f'duration: {stop - start:.2f} seconds')
 
@@ -247,7 +236,7 @@ def main(args: Sequence[str] | None = None) -> str | None:
     args = parse_args(args)
     return wiki_count(args.filename,
                       tag=args.tag,
-                      simple_stats=args.simple_stats,
+                      full_stats=args.full_stats,
                       most_common_n=args.most_common_n,
                       display=args.display,
                       display_after=args.display_after,
