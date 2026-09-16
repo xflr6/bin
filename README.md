@@ -112,17 +112,17 @@ Log incoming ICMP echo request messages to stdout and optionally into file.
 options:
   -h, --help       show this help message and exit
   --host IP        address to listen on (default: 0.0.0.0)
-  --file LOGFILE   file to write log to (log only to stdout by default)
+  --file LOGFILE   file to write log to additionally to stdout (default: None)
   --format TMPL    log format (default: %(asctime)s%(ip)s%(icmp)s %(message)s)
   --datefmt TMPL   log time.strftime() format (default: %b %d %H:%M:%S)
   --ipfmt TMPL     log format (default: %(src)s:%(ident)d)
   --icmpfmt TMPL   log format (default: %(ident)d:%(seq_num)d)
   --setuid USER    user to setuid to after binding (default: nobody)
   --chroot DIR     directory to chroot into after binding (default: /tmp)
-  --no-hardening   don't give up privileges (ignore --setuid and --chroot)
+  --no-hardening   ignore --setuid and --chroot (default: False)
   --encoding NAME  try to decode data with this encoding (default: utf-8)
   --max-size N     payload byte limit for packages to process (default: 1472)
-  --verbose        increase stdout logging level to DEBUG
+  --verbose        increase stdout logging level to DEBUG (default: False)
   --version        show program's version number and exit
 ```
 
@@ -142,14 +142,14 @@ options:
   -h, --help       show this help message and exit
   --host IP        address to listen on (default: 0.0.0.0)
   --port SERVICE   UDP port number or name to listen on (default: discard)
-  --file LOGFILE   file to write log to (log only to stdout by default)
+  --file LOGFILE   file to write log to additionally to stdout (default: None)
   --format TMPL    log format string (default: %(asctime)s %(message)s)
   --datefmt TMPL   log time.strftime() format string (default: %b %d %H:%M:%S)
   --setuid USER    user to setuid to after binding (default: nobody)
   --chroot DIR     directory to chroot into after binding (default: /tmp)
-  --no-hardening   don't give up privileges (ignore --setuid and --chroot)
+  --no-hardening   ignore --setuid and --chroot (default: False)
   --encoding NAME  encoding of UDP messages (default: utf-8)
-  --verbose        increase stdout logging level to DEBUG
+  --verbose        increase stdout logging level to DEBUG (default: False)
   --version        show program's version number and exit
 ```
 

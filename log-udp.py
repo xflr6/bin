@@ -23,28 +23,18 @@ import sys
 import time
 from typing import NamedTuple
 
-HOST = '0.0.0.0'
-
-PORT = 'discard'
-
-FORMAT = '%(asctime)s %(message)s'
-
-DATEFMT = '%b %d %H:%M:%S'
-
-CHROOT = '/tmp'
-
-SETUID = 'nobody'
-
 ENCODING = 'utf-8'
 
 TIMEZONE = pathlib.Path('/etc/timezone')
 
 
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('--host', metavar='IP', default=HOST,
-                        help=f'address to listen on (default: {HOST})')
+    parser.add_argument('--host', metavar='IP',
+                        help='address to listen on',
+                        default='0.0.0.0')
 
     def port(s: str, /) -> int:
         port = int(s) if s.isdigit() else socket.getservbyname(s)
@@ -52,16 +42,16 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             raise argparse.ArgumentTypeError(f'invalid port: {s}')
         return port
 
-    parser.add_argument('--port', metavar='SERVICE', type=port, default=PORT,
-                        help='UDP port number or name to listen on'
-                             f' (default: {PORT})')
+    parser.add_argument('--port', metavar='SERVICE', type=port,
+                        help='UDP port number or name to listen on',
+                        default='discard')
 
     parser.add_argument('--file', metavar='LOGFILE', type=pathlib.Path,
-                        help='file to write log to (log only to stdout by default)')
+                        help='file to write log to additionally to stdout')
 
-    parser.add_argument('--format', metavar='TMPL', default=FORMAT,
-                        help='log format string'
-                             f' (default: {FORMAT.replace("%", "%%")})')
+    parser.add_argument('--format', metavar='TMPL',
+                        help='log format string',
+                        default='%(asctime)s %(message)s')
 
     def datefmt(s: str, /) -> str:
         try:
@@ -70,9 +60,9 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             raise argparse.ArgumentTypeError(f'invalid datefmt: {s}')
         return s
 
-    parser.add_argument('--datefmt', metavar='TMPL', type=datefmt, default=DATEFMT,
-                        help='log time.strftime() format string'
-                             f' (default: {DATEFMT.replace("%", "%%")})')
+    parser.add_argument('--datefmt', metavar='TMPL', type=datefmt,
+                        help='log time.strftime() format string',
+                        default='%b %d %H:%M:%S')
 
     def user(s: str, /) -> Passwd | str | None:
         try:
@@ -84,9 +74,9 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         except KeyError:
             return s
 
-    parser.add_argument('--setuid', metavar='USER', type=user, default=SETUID,
-                        help='user to setuid to after binding'
-                             f' (default: {SETUID})')
+    parser.add_argument('--setuid', metavar='USER', type=user,
+                        help='user to setuid to after binding',
+                        default='nobody')
 
     def directory(s: str, /):
         try:
@@ -94,12 +84,12 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         except ValueError:
             return s
 
-    parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
-                        help='directory to chroot into after binding'
-                             f' (default: {CHROOT})')
+    parser.add_argument('--chroot', metavar='DIR', type=directory,
+                        help='directory to chroot into after binding',
+                        default='/tmp')
 
-    parser.add_argument('--no-hardening', dest='hardening', action='store_false',
-                        help="don't give up privileges (ignore --setuid and --chroot)")
+    parser.add_argument('--no-hardening', dest='skip_hardening', action='store_true',
+                        help='ignore --setuid and --chroot')
 
     def encoding(s: str, /) -> str:
         try:
@@ -107,15 +97,16 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         except LookupError:
             raise argparse.ArgumentTypeError(f'unknown encoding: {s}')
 
-    parser.add_argument('--encoding', metavar='NAME', type=encoding, default=ENCODING,
-                        help=f'encoding of UDP messages (default: {ENCODING})')
+    parser.add_argument('--encoding', metavar='NAME', type=encoding,
+                        help='encoding of UDP messages',
+                        default=ENCODING)
 
     parser.add_argument('--verbose', action='store_true',
                         help='increase stdout logging level to DEBUG')
 
     parser.add_argument('--version', action='version', version=__version__)
     args = parser.parse_args(args)
-    if args.hardening:
+    if not args.skip_hardening:
         if platform.system() == 'Windows':  # pragma: no cover
             raise NotImplementedError('require --no-hardening under Windows')
         if args.setuid is None or isinstance(args.setuid, str):
@@ -144,7 +135,7 @@ def log_udp(*,
             file: os.PathLike[str] | str | None,
             format_: str,
             datefmt: str,
-            hardening: bool,
+            skip_hardening: bool,
             setuid: Passwd | None,
             chroot: os.PathLike[str] | str | None,
             encoding: str,
@@ -171,7 +162,7 @@ def log_udp(*,
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.bind((host, port))
 
-    if hardening:
+    if not skip_hardening:
         with TIMEZONE.open(encoding=ENCODING) as f:
             tz = f.readline().strip()
         logging.debug('TZ=%r; time.tzset()', tz)
@@ -265,7 +256,7 @@ def main(args: Sequence[str] | None = None) -> str | None:
                    file=args.file,
                    format_=args.format,
                    datefmt=args.datefmt,
-                   hardening=args.hardening,
+                   skip_hardening=args.skip_hardening,
                    setuid=args.setuid,
                    chroot=args.chroot,
                    encoding=args.encoding,
