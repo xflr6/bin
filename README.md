@@ -217,8 +217,8 @@ options:
   --fps N         frames (1-100) per second to generate (default: 15)
   --setuid USER   user to setuid to after binding (default: nobody)
   --chroot DIR    directory to chroot into after binding (default: /tmp)
-  --no-hardening  don't give up privileges (ignore --setuid and --chroot)
-  --verbose       increase stdout logging level to DEBUG
+  --no-hardening  ignore --setuid and --chroot (default: False)
+  --verbose       increase stdout logging level to DEBUG (default: False)
   --version       show program's version number and exit
 ```
 

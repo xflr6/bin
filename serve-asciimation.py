@@ -27,16 +27,6 @@ import time
 from typing import NamedTuple
 import urllib.request
 
-HOST = '127.0.0.1'
-
-PORT = 'telnet'
-
-FPS = 15
-
-CHROOT = '/tmp'
-
-SETUID = 'nobody'
-
 URL = 'https://www.asciimation.co.nz'
 
 CACHE = (pathlib.Path(__file__).parent / 'asciimation.html.gz').resolve()
@@ -53,10 +43,11 @@ ENCODING = 'utf-8'
 
 
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('--host', metavar='IP', default=HOST,
-                        help=f'address to listen on (default: {HOST})')
+    parser.add_argument('--host', metavar='IP', default='127.0.0.1',
+                        help='address to listen on')
 
     def port(s: str, /) -> int:
         port = int(s) if s.isdigit() else socket.getservbyname(s)
@@ -64,9 +55,8 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             raise argparse.ArgumentTypeError(f'invalid port: {s}')
         return port
 
-    parser.add_argument('--port', metavar='SERVICE', type=port, default=PORT,
-                        help='TCP port number or name to listen on'
-                             f' (default: {PORT})')
+    parser.add_argument('--port', metavar='SERVICE', type=port, default='telnet',
+                        help='TCP port number or name to listen on')
 
     def fps(s: str, /) -> int:
         try:
@@ -77,8 +67,8 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             raise argparse.ArgumentTypeError(f'invalid fps: {s}')
         return fps
 
-    parser.add_argument('--fps', metavar='N', type=fps, default=FPS,
-                        help=f'frames (1-100) per second to generate (default: {FPS})')
+    parser.add_argument('--fps', metavar='N', type=fps, default=15,
+                        help='frames (1-100) per second to generate')
 
     def user(s: str, /) -> Passwd | str | None:
         try:
@@ -90,9 +80,8 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         except KeyError:
             return s
 
-    parser.add_argument('--setuid', metavar='USER', type=user, default=SETUID,
-                        help='user to setuid to after binding'
-                             f' (default: {SETUID})')
+    parser.add_argument('--setuid', metavar='USER', type=user, default='nobody',
+                        help='user to setuid to after binding')
 
     def directory(s: str, /):
         try:
@@ -100,19 +89,18 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         except ValueError:
             return s
 
-    parser.add_argument('--chroot', metavar='DIR', type=directory, default=CHROOT,
-                        help='directory to chroot into after binding'
-                             f' (default: {CHROOT})')
+    parser.add_argument('--chroot', metavar='DIR', type=directory, default='/tmp',
+                        help='directory to chroot into after binding')
 
-    parser.add_argument('--no-hardening', dest='hardening', action='store_false',
-                        help="don't give up privileges (ignore --setuid and --chroot)")
+    parser.add_argument('--no-hardening', dest='skip_hardening', action='store_true',
+                        help='ignore --setuid and --chroot')
 
     parser.add_argument('--verbose', action='store_true',
                         help='increase stdout logging level to DEBUG')
 
     parser.add_argument('--version', action='version', version=__version__)
     args = parser.parse_args(args)
-    if args.hardening:
+    if not args.skip_hardening:
         if platform.system() == 'Windows':  # pragma: no cover
             raise NotImplementedError('require --no-hardening under Windows')
         if args.setuid is None or isinstance(args.setuid, str):
@@ -139,7 +127,7 @@ def serve_asciimation(*,
                       host: str,
                       port: int,
                       fps: int,
-                      hardening: bool,
+                      skip_hardening: bool,
                       setuid: Passwd | None,
                       chroot: os.PathLike[str] | str | None,
                       verbose: bool) -> str | None:
@@ -160,7 +148,7 @@ def serve_asciimation(*,
     s.bind((host, port))
     logging.debug('%r', s)
 
-    if hardening:
+    if not skip_hardening:
         with pathlib.Path('/etc/timezone').open(encoding='utf-8') as f:
             tz = f.readline().strip()
         logging.debug('TZ=%r; time.tzset()', tz)
@@ -303,7 +291,7 @@ def main(args: Sequence[str] | None = None) -> str | None:
     return serve_asciimation(host=args.host,
                              port=args.port,
                              fps=args.fps,
-                             hardening=args.hardening,
+                             skip_hardening=args.skip_hardening,
                              setuid=args.setuid,
                              chroot=args.setuid,
                              verbose=args.verbose)
