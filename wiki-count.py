@@ -165,7 +165,7 @@ def count_elements(elements: Iterable[etree.Element], /, *,
                    namespaces: Mapping[str, str],
                    root: etree.Element) -> int:
     if display_after in (0, None):
-        if stop_after in (0, None):
+        if stop_after not in (0, None):
             raise NotImplementedError
         return sum(root.clear() is None for _ in elements)
 
@@ -196,7 +196,7 @@ def count_page_edits(pages: Iterable[etree.Element], /, *,
                      root: etree.Element) -> tuple[int,
                                                    collections.Counter[str],
                                                    collections.Counter[str]]:
-    if display_after is not None and display_after > 0:
+    if display_after not in (0, None):
         display_func = make_display_func(display, namespaces)
     else:
         display_func = None
@@ -222,7 +222,7 @@ def count_page_edits(pages: Iterable[etree.Element], /, *,
                 old_text = new_text
 
         root.clear()  # free memory
-        if stop_after is not None and count == stop_after:
+        if count == stop_after:
             break
     return count, n_edits, n_lines
 
