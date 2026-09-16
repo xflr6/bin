@@ -73,7 +73,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
                         help='override mksquashfs compression choice')
 
     def user(s: str, /) -> str:
-        import pwd  # not on Windows
+        import pwd  # Availability: Unix
         try:
             pwd.getpwnam(s)
         except KeyError:
@@ -84,7 +84,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
                         help='image file owner')
 
     def group(s: str, /) -> str:
-        import grp  # not on Windows
+        import grp  # Availability: Unix
         try:
             grp.getgrnam(s)
         except KeyError:
@@ -212,8 +212,8 @@ def run_args_kwargs(source_dir: pathlib.Path, dest_path: pathlib.Path, *,
 
 
 def format_permissions(stat_result, /) -> str:
-    import grp  # not on Windows
-    import pwd
+    import grp  # Availability: Unix
+    import pwd  # Availability: Unix
 
     return (f'file permissions: {stat.filemode(stat_result.st_mode)}'
             f' (owner={pwd.getpwuid(stat_result.st_uid).pw_name},'

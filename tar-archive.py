@@ -76,7 +76,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
                         help="don't pass --auto-compress to tar")
 
     def user(s: str, /) -> str:
-        import pwd
+        import pwd  # Availability: Unix 
         try:
             pwd.getpwnam(s)
         except KeyError:
@@ -87,7 +87,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
                         help='archive file owner')
 
     def group(s: str, /) -> str:
-        import grp
+        import grp  # Availability: Unix
         try:
             grp.getgrnam(s)
         except KeyError:
@@ -297,8 +297,8 @@ def run_args_kwargs(source_dir, dest_path, *,
 
 
 def format_permissions(stat_result, /) -> str:
-    import grp  # not on Windows
-    import pwd
+    import grp  # Availability: Unix
+    import pwd  # Availability: Unix
 
     return (f'file permissions: {stat.filemode(stat_result.st_mode)}'
             f' (owner={pwd.getpwuid(stat_result.st_uid).pw_name},'
