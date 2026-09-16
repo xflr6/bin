@@ -46,8 +46,9 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('--host', metavar='IP', default='127.0.0.1',
-                        help='address to listen on')
+    parser.add_argument('--host', metavar='IP',
+                        help='address to listen on',
+                        default='127.0.0.1')
 
     def port(s: str, /) -> int:
         port = int(s) if s.isdigit() else socket.getservbyname(s)
@@ -55,8 +56,9 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             raise argparse.ArgumentTypeError(f'invalid port: {s}')
         return port
 
-    parser.add_argument('--port', metavar='SERVICE', type=port, default='telnet',
-                        help='TCP port number or name to listen on')
+    parser.add_argument('--port', metavar='SERVICE', type=port,
+                        help='TCP port number or name to listen on',
+                        default='telnet')
 
     def fps(s: str, /) -> int:
         try:
@@ -67,8 +69,9 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             raise argparse.ArgumentTypeError(f'invalid fps: {s}')
         return fps
 
-    parser.add_argument('--fps', metavar='N', type=fps, default=15,
-                        help='frames (1-100) per second to generate')
+    parser.add_argument('--fps', metavar='N', type=fps,
+                        help='frames (1-100) per second to generate',
+                        default=15)
 
     def user(s: str, /) -> Passwd | str | None:
         try:
@@ -80,8 +83,9 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         except KeyError:
             return s
 
-    parser.add_argument('--setuid', metavar='USER', type=user, default='nobody',
-                        help='user to setuid to after binding')
+    parser.add_argument('--setuid', metavar='USER', type=user,
+                        help='user to setuid to after binding',
+                        default='nobody')
 
     def directory(s: str, /):
         try:
@@ -89,8 +93,9 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         except ValueError:
             return s
 
-    parser.add_argument('--chroot', metavar='DIR', type=directory, default='/tmp',
-                        help='directory to chroot into after binding')
+    parser.add_argument('--chroot', metavar='DIR', type=directory,
+                        help='directory to chroot into after binding',
+                        default='/tmp')
 
     parser.add_argument('--no-hardening', dest='skip_hardening', action='store_true',
                         help='ignore --setuid and --chroot')

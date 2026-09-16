@@ -27,13 +27,15 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('page_title', help='title of the page on MediaWiki')
+    parser.add_argument('page_title',
+                        help='title of the page on MediaWiki')
 
-    parser.add_argument('search_string', help='string to match page wikitext')
+    parser.add_argument('search_string',
+                        help='string to match page wikitext')
 
     parser.add_argument('--export-url', metavar='URL',
-                        default='https://en.wikipedia.org/wiki/Special:Export',
-                        help='MediaWiki instance export url')
+                        help='MediaWiki instance export url',
+                        default='https://en.wikipedia.org/wiki/Special:Export')
 
     parser.add_argument('--version', action='version', version=__version__)
     return parser.parse_args(args)

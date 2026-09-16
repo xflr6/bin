@@ -38,7 +38,9 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('filename', type=pathlib.Path,
                         help='path to MediaWiki XML export (format: .xml.bz2)')
 
-    parser.add_argument('--tag', default='page', help='end tag to count')
+    parser.add_argument('--tag',
+                        help='end tag to count',
+                        default='page')
 
     parser.add_argument('--stats', dest='full_stats', action='store_true',
                         help='also show page edit statistics')
@@ -55,15 +57,17 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         return result
 
     parser.add_argument('--stats-top', dest='most_common_n',
-                        metavar='N', type=non_negative_int, default=100,
-                        help='show top N users edits and lines')
+                        metavar='N', type=non_negative_int,
+                        help='show top N users edits and lines',
+                        default=100)
 
-    parser.add_argument('--display', metavar='PATH', default='title',
-                        help='ElementPath to log in sub-total')
+    parser.add_argument('--display', metavar='PATH',
+                        help='ElementPath to log in sub-total',
+                        default='title')
 
     parser.add_argument('--display-after', metavar='N', type=non_negative_int,
-                        default=1_000,
-                        help='log sub-total after N tags')
+                        help='log sub-total after N tags',
+                        default=1_000)
 
     parser.add_argument('--stop-after', metavar='N', type=non_negative_int,
                         help='stop after N tags')
