@@ -267,16 +267,16 @@ options:
   -h, --help            show this help message and exit
   --name TEMPLATE       image file name time.strftime() format string template
                         (default: %Y%m%d-%H%M.sfs)
-  --exclude-file PATH   path to file with one line per excluded dir/file
+  --exclude-file PATH   file with lines of excluded dirs/files (default: None)
   --comp {gzip,lz4,lzo,xz,zstd}
-                        compression (use mksquashfs default if omitted)
-  --owner OWNER         image file owner
-  --group GROUP         image file group
+                        override mksquashfs compression choice (default: None)
+  --owner OWNER         image file owner (default: None)
+  --group GROUP         image file group (default: None)
   --chmod MODE          image file chmod (default: 400)
   --set-path LINE       PATH for mksquashfs subprocess (default: /usr/bin)
   --set-umask MASK      umask for mksquashfs subprocess (default: 177)
-  --quiet               suppress stdout and stderr of mksquashfs subprocess
-  --ask-for-deletion    prompt for image file deletion before exit
+  --quiet               suppress stdout/stderr of mksquashfs (default: False)
+  --ask-for-deletion    ask for image deletion before exit (default: False)
   --version             show program's version number and exit
 ```
 
@@ -300,14 +300,13 @@ options:
   -h, --help          show this help message and exit
   --name TEMPLATE     dump file name time.strftime() format string template
                       (default: {name}.svndump.gz)
-  --no-auto-compress  never compress dump file(s) (default: auto-compress if
-                      --name ends with any of: .bz2, .gz, .lz4, .lzo, .xz,
-                      .zst)
-  --no-deltas         don't pass --deltas to svnadmin dump
+  --no-auto-compress  never compress dump file(s) if --name ends with any of:
+                      .bz2, .gz, .lz4, .lzo, .xz, .zst (default: False)
+  --no-deltas         don't pass --deltas to svnadmin dump (default: False)
   --chmod MODE        dump file(s) chmod (default: 400)
   --set-path LINE     PATH for subprocess(es) (default: /usr/bin:/bin)
-  --detail            include detail infos for each repository
-  --verbose           don't pass --quiet to svnadmin dump
+  --detail            include detail for each repository (default: False)
+  --verbose           don't pass --quiet to svnadmin dump (default: False)
   --version           show program's version number and exit
 ```
 
@@ -332,14 +331,14 @@ options:
   -h, --help           show this help message and exit
   --name TEMPLATE      archive file name time.strftime() format string
                        template (default: %Y%m%d-%H%M.tar.gz)
-  --exclude-file PATH  path to file with one line per excluded dir/file
-  --no-auto-compress   don't pass --auto-compress to tar
-  --owner OWNER        archive file owner
-  --group GROUP        archive file group
+  --exclude-file PATH  file with lines of excluded dirs/files (default: None)
+  --no-auto-compress   don't pass --auto-compress to tar (default: False)
+  --owner OWNER        archive file owner (default: None)
+  --group GROUP        archive file group (default: None)
   --chmod MODE         archive file chmod (default: 400)
   --set-path LINE      PATH for tar subprocess (default: /usr/bin:/bin)
   --set-umask MASK     umask for tar subprocess (default: 177)
-  --ask-for-deletion   prompt for archive file deletion before exit
+  --ask-for-deletion   ask for archive deletion before exit (default: False)
   --version            show program's version number and exit
 ```
 

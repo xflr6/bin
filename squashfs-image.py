@@ -20,19 +20,12 @@ import subprocess
 import sys
 import time
 
-NAME_TEMPLATE = '%Y%m%d-%H%M.sfs'
-
-MODE_MASK = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO  # 0o777
-
-SET_UMASK = stat.S_IXUSR | stat.S_IRWXG | stat.S_IRWXO  # 0o177
-
-CHMOD = stat.S_IRUSR  # 0o400
-
-SUBPROCESS_PATH = '/usr/bin'
+MODE_MASK = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
 
 
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     def directory(s: str, /) -> pathlib.Path:
         try:
@@ -59,9 +52,8 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         return result
 
     parser.add_argument('--name', metavar='TEMPLATE', type=template,
-                        default=NAME_TEMPLATE,
-                        help='image file name time.strftime() format string template'
-                             f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
+                        help='image file name time.strftime() format string template',
+                        default='%Y%m%d-%H%M.sfs')
 
     def present_file(s: str, /) -> pathlib.Path:
         if not s:
@@ -75,10 +67,10 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         return result
 
     parser.add_argument('--exclude-file', metavar='PATH', type=present_file,
-                        help='path to file with one line per excluded dir/file')
+                        help='file with lines of excluded dirs/files')
 
     parser.add_argument('--comp', choices=('gzip', 'lz4', 'lzo', 'xz', 'zstd'),
-                        help='compression (use mksquashfs default if omitted)')
+                        help='override mksquashfs compression choice')
 
     def user(s: str, /) -> str:
         import pwd  # not on Windows
@@ -88,7 +80,8 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             raise argparse.ArgumentTypeError(f'unknown user: {s}')
         return s
 
-    parser.add_argument('--owner', type=user, help='image file owner')
+    parser.add_argument('--owner', type=user,
+                        help='image file owner')
 
     def group(s: str, /) -> str:
         import grp  # not on Windows
@@ -98,38 +91,39 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             raise argparse.ArgumentTypeError(f'unknown group: {s}')
         return s
 
-    parser.add_argument('--group', type=group, help='image file group')
+    parser.add_argument('--group', type=group,
+                        help='image file group')
 
     def mode(s: str, /) -> int:
         try:
             result = int(s, base=8)
         except ValueError:
             result = None
-        assert stat.filemode(MODE_MASK) == '?rwxrwxrwx'
+        assert stat.filemode(MODE_MASK) == '?rwxrwxrwx'  # 0o777
         if result is None or not 0 <= result <= MODE_MASK:
             raise argparse.ArgumentTypeError(f'need octal int between {oct(0)}'
                                              f' and {oct(MODE_MASK)}: {s}')
         return stat.S_IMODE(result)
 
-    parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
-                        help=f'image file chmod (default: {CHMOD:03o})')
-    assert stat.filemode(parser.get_default('chmod')) == '?r--------'
+    parser.add_argument('--chmod', metavar='MODE', type=mode,
+                        help='image file chmod',
+                        default=f'{stat.S_IRUSR:3o}')
+    assert stat.filemode(mode(parser.get_default('chmod'))) == '?r--------'  # 0o400
 
-    parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
-                        help='PATH for mksquashfs subprocess'
-                             f' (default: {SUBPROCESS_PATH})')
+    parser.add_argument('--set-path', metavar='LINE',
+                        help='PATH for mksquashfs subprocess',
+                        default='/usr/bin')
 
     parser.add_argument('--set-umask', metavar='MASK', type=mode,
-                        default=SET_UMASK,
-                        help='umask for mksquashfs subprocess'
-                             f' (default: {SET_UMASK:03o})')
-    assert stat.filemode(parser.get_default('set_umask')) == '?--xrwxrwx'
+                        help='umask for mksquashfs subprocess',
+                        default=f'{stat.S_IXUSR | stat.S_IRWXG | stat.S_IRWXO:3o}')
+    assert stat.filemode(mode(parser.get_default('set_umask'))) == '?--xrwxrwx'  # 0o177
 
     parser.add_argument('--quiet', action='store_true',
-                        help='suppress stdout and stderr of mksquashfs subprocess')
+                        help='suppress stdout/stderr of mksquashfs')
 
     parser.add_argument('--ask-for-deletion', action='store_true',
-                        help='prompt for image file deletion before exit')
+                        help='ask for image deletion before exit')
 
     parser.add_argument('--version', action='version', version=__version__)
     return parser.parse_args(args)

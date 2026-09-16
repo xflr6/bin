@@ -20,8 +20,6 @@ import subprocess
 import sys
 import time
 
-NAME_TEMPLATE = '{name}.svndump.gz'
-
 COMPRESS = {'.bz2': ['bzip2'],
             '.gz': ['gzip'],
             '.lz4': ['lz4'],
@@ -29,15 +27,12 @@ COMPRESS = {'.bz2': ['bzip2'],
             '.xz': ['xz'],
             '.zst': ['zstd']}
 
-MODE_MASK = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO  # 0o777
-
-CHMOD = stat.S_IRUSR  # 0o400
-
-SUBPROCESS_PATH = '/usr/bin:/bin'
+MODE_MASK = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
 
 
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     def directory(s: str, /) -> pathlib.Path:
         try:
@@ -66,16 +61,14 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         return result
 
     parser.add_argument('--name', metavar='TEMPLATE', type=template,
-                        default=NAME_TEMPLATE,
-                        help=f'dump file name time.strftime() format string template'
-                             f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
+                        help='dump file name time.strftime() format string template',
+                        default='{name}.svndump.gz')
 
-    parser.add_argument('--no-auto-compress', dest='auto_compress', action='store_false',
+    parser.add_argument('--no-auto-compress', action='store_true',
                         help='never compress dump file(s)'
-                             ' (default: auto-compress if --name ends with any of:'
-                             f" {', '.join(COMPRESS)})")
+                             f" if --name ends with any of: {', '.join(COMPRESS)}")
 
-    parser.add_argument('--no-deltas', dest='deltas', action='store_false',
+    parser.add_argument('--no-deltas', action='store_true',
                         help="don't pass --deltas to svnadmin dump")
 
     def mode(s: str, /) -> int:
@@ -83,23 +76,25 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             result = int(s, base=8)
         except ValueError:
             result = None
-        assert stat.filemode(MODE_MASK) == '?rwxrwxrwx'
+        assert stat.filemode(MODE_MASK) == '?rwxrwxrwx'  # 0o777
         if result is None or not 0 <= result <= MODE_MASK:
             raise argparse.ArgumentTypeError(f'need octal int between {oct(0)}'
                                              f' and {oct(MODE_MASK)}: {s}')
         return stat.S_IMODE(result)
 
-    parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
-                        help=f'dump file(s) chmod (default: {CHMOD:03o})')
-    assert stat.filemode(parser.get_default('chmod')) == '?r--------'
+    parser.add_argument('--chmod', metavar='MODE', type=mode,
+                        help='dump file(s) chmod',
+                        default=f'{stat.S_IRUSR:3o}')
+    assert stat.filemode(mode(parser.get_default('chmod'))) == '?r--------'  # 0o400
 
-    parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
-                        help=f'PATH for subprocess(es) (default: {SUBPROCESS_PATH})')
+    parser.add_argument('--set-path', metavar='LINE',
+                        help='PATH for subprocess(es)',
+                        default='/usr/bin:/bin')
 
     parser.add_argument('--detail', action='store_true',
-                        help='include detail infos for each repository')
+                        help='include detail for each repository')
 
-    parser.add_argument('--verbose', dest='quiet', action='store_false',
+    parser.add_argument('--verbose', action='store_true',
                         help="don't pass --quiet to svnadmin dump")
 
     parser.add_argument('--version', action='version', version=__version__)
@@ -107,19 +102,19 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
 
 
 def svn_dumpall(target_dir: pathlib.Path, *repo_dirs: pathlib.Path, name: str,
-                auto_compress: bool,
-                deltas: bool,
+                no_auto_compress: bool,
+                no_deltas: bool,
                 chmod: int,
                 set_path: str,
-                quiet: bool) -> str | None:
+                verbose: bool) -> str | None:
     start = time.monotonic()
     print(f'svnadmin dump {len(repo_dirs)} repo(s) into: {target_dir}/')
     log(f'file name template: {name}')
 
     (cmd, filter_cmds, kwargs) = pipe_args_kwargs(name,
-                                                  deltas=deltas,
-                                                  auto_compress=auto_compress,
-                                                  quiet=quiet,
+                                                  deltas=not no_deltas,
+                                                  auto_compress=not no_auto_compress,
+                                                  quiet=not verbose,
                                                   set_path=set_path)
 
     caption = ' | '.join(c for c, *_ in ([cmd] + filter_cmds))
@@ -223,11 +218,11 @@ def main(args: Sequence[str] | None = None) -> str | None:
         global log
         log = lambda *args, **kwargs: None
     return svn_dumpall(args.target_dir, *args.repo_dir, name=args.name,
-                       auto_compress=args.auto_compress,
-                       deltas=args.deltas,
+                       no_auto_compress=args.no_auto_compress,
+                       no_deltas=args.no_deltas,
                        chmod=args.chmod,
                        set_path=args.set_path,
-                       quiet=args.quiet)
+                       verbose=args.verbose)
 
 
 if __name__ == '__main__':  # pragma: no cover

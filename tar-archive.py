@@ -21,21 +21,14 @@ import subprocess
 import sys
 import time
 
-NAME_TEMPLATE = '%Y%m%d-%H%M.tar.gz'
-
-MODE_MASK = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO  # 0o777
-
-SET_UMASK = stat.S_IXUSR | stat.S_IRWXG | stat.S_IRWXO  # 0o177
-
-CHMOD = stat.S_IRUSR  # 0o400
-
-SUBPROCESS_PATH = '/usr/bin:/bin'
+MODE_MASK = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
 
 ENCODING = 'utf-8'
 
 
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     def directory(s: str, /) -> pathlib.Path:
         try:
@@ -62,9 +55,8 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         return result
 
     parser.add_argument('--name', metavar='TEMPLATE', type=template,
-                        default=NAME_TEMPLATE,
-                        help='archive file name time.strftime() format string template'
-                             f' (default: {NAME_TEMPLATE.replace("%", "%%")})')
+                        help='archive file name time.strftime() format string template',
+                        default='%Y%m%d-%H%M.tar.gz')
 
     def exclude_file(s: str, /) -> pathlib.Path | None:
         if not s:
@@ -78,9 +70,9 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         return path
 
     parser.add_argument('--exclude-file', metavar='PATH', type=exclude_file,
-                        help='path to file with one line per excluded dir/file')
+                        help='file with lines of excluded dirs/files')
 
-    parser.add_argument('--no-auto-compress', dest='auto_compress', action='store_false',
+    parser.add_argument('--no-auto-compress', action='store_true',
                         help="don't pass --auto-compress to tar")
 
     def user(s: str, /) -> str:
@@ -91,7 +83,8 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             raise argparse.ArgumentTypeError(f'unknown user: {s}')
         return s
 
-    parser.add_argument('--owner', type=user, help='archive file owner')
+    parser.add_argument('--owner', type=user,
+                        help='archive file owner')
 
     def group(s: str, /) -> str:
         import grp
@@ -101,32 +94,36 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             raise argparse.ArgumentTypeError(f'unknown group: {s}')
         return s
 
-    parser.add_argument('--group', type=group, help='archive file group')
+    parser.add_argument('--group', type=group,
+                        help='archive file group')
 
     def mode(s: str, /) -> int:
         try:
             result = int(s, base=8)
         except ValueError:
             result = None
-        assert stat.filemode(MODE_MASK) == '?rwxrwxrwx'
+        assert stat.filemode(MODE_MASK) == '?rwxrwxrwx'  # 0o777
         if result is None or not 0 <= result <= MODE_MASK:
             raise argparse.ArgumentTypeError(f'need octal int between {oct(0)}'
                                              f' and {oct(MODE_MASK)}: {s}')
         return stat.S_IMODE(result)
 
-    parser.add_argument('--chmod', metavar='MODE', type=mode, default=CHMOD,
-                        help=f'archive file chmod (default: {CHMOD:03o})')
-    assert stat.filemode(parser.get_default('chmod')) == '?r--------'
+    parser.add_argument('--chmod', metavar='MODE', type=mode,
+                        help='archive file chmod',
+                        default=f'{stat.S_IRUSR:3o}')
+    assert stat.filemode(mode(parser.get_default('chmod'))) == '?r--------'  # 0o400
 
-    parser.add_argument('--set-path', metavar='LINE', default=SUBPROCESS_PATH,
-                        help=f'PATH for tar subprocess (default: {SUBPROCESS_PATH})')
+    parser.add_argument('--set-path', metavar='LINE',
+                        help='PATH for tar subprocess',
+                        default='/usr/bin:/bin')
 
-    parser.add_argument('--set-umask', metavar='MASK', type=mode, default=SET_UMASK,
-                        help=f'umask for tar subprocess (default: {SET_UMASK:03o})')
-    assert stat.filemode(parser.get_default('set_umask')) == '?--xrwxrwx'
+    parser.add_argument('--set-umask', metavar='MASK', type=mode,
+                        help='umask for tar subprocess',
+                        default=f'{stat.S_IXUSR | stat.S_IRWXG | stat.S_IRWXO:3o}')
+    assert stat.filemode(mode(parser.get_default('set_umask'))) == '?--xrwxrwx'  # 0o177
 
     parser.add_argument('--ask-for-deletion', action='store_true',
-                        help='prompt for archive file deletion before exit')
+                        help='ask for archive deletion before exit')
 
     parser.add_argument('--version', action='version', version=__version__)
     return parser.parse_args(args)
@@ -134,7 +131,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
 
 def tar_archive(source_dir: pathlib.Path, dest_dir: pathlib.Path, *, name: str,
                 exclude_file: pathlib.Path | None,
-                auto_compress: bool,
+                no_auto_compress: bool,
                 owner: str | None, group: str | None, chmod: int,
                 set_path: str, set_umask: int,
                 ask_for_deletion: bool) -> str | None:
@@ -156,7 +153,7 @@ def tar_archive(source_dir: pathlib.Path, dest_dir: pathlib.Path, *, name: str,
     log(f"file size sum: {infos['n_bytes']:_d} bytes")
 
     (cmd, kwargs) = run_args_kwargs(source_dir, dest_path,
-                                    auto_compress=auto_compress,
+                                    auto_compress=not no_auto_compress,
                                     set_path=set_path)
 
     log(f'subprocess.Popen({cmd}, **{kwargs})')
@@ -319,7 +316,7 @@ def main(args: Sequence[str] | None = None) -> str | None:
     args = parse_args(args)
     return tar_archive(args.source_dir, args.dest_dir, name=args.name,
                        exclude_file=args.exclude_file,
-                       auto_compress=args.auto_compress,
+                       no_auto_compress=args.no_auto_compress,
                        owner=args.owner,
                        group=args.group,
                        chmod=args.chmod,
