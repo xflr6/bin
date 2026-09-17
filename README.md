@@ -27,16 +27,16 @@ usage: download-podcasts.py [-h] [--config PATH] [--encoding NAME] [--limit N]
 Download podcast episodes from subscriptions in config file sections.
 
 positional arguments:
-  section          config section name of podcast to download
+  section          config section name of podcast to download (default: None)
 
 options:
   -h, --help       show this help message and exit
   --config PATH    INI file with one section per podcast subscription, result
                    paths relative to its directory (default: podcasts.ini)
   --encoding NAME  config file encoding (default: utf-8)
-  --limit N        number of episodes to download (overrides --config file)
-  --serial         don't parallelize downloads from different sections
-  --verbose        log skipping of downloads that match present files
+  --limit N        number of episodes to download (default: None)
+  --serial         don't parallelize downloads (default: False)
+  --verbose        log skipping of downloads (default: False)
   --version        show program's version number and exit
 ```
 

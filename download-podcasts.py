@@ -27,10 +27,6 @@ import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as etree  # noqa: N813
 
-CONFIG_FILE = pathlib.Path('podcasts.ini')
-
-ENCODING = 'utf-8'
-
 _UNSET = object()
 
 _NS = {'atom': 'http://www.w3.org/2005/Atom',
@@ -38,7 +34,8 @@ _NS = {'atom': 'http://www.w3.org/2005/Atom',
 
 
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('podcasts', metavar='section', nargs='*',
                         help='config section name of podcast to download')
@@ -52,11 +49,10 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
             raise argparse.ArgumentTypeError(f'not a present file: {s}')
         return result
 
-    parser.add_argument('--config', metavar='PATH',
-                        type=present_file, default=str(CONFIG_FILE),
+    parser.add_argument('--config', metavar='PATH', type=present_file,
                         help='INI file with one section per podcast subscription,'
-                             ' result paths relative to its directory'
-                             f' (default: {CONFIG_FILE})')
+                             ' result paths relative to its directory',
+                        default='podcasts.ini')
 
     def encoding(s: str, /) -> str:
         try:
@@ -64,19 +60,18 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
         except LookupError:
             raise argparse.ArgumentTypeError(f'unknown encoding: {s}')
 
-    parser.add_argument('--encoding', metavar='NAME',
-                        type=encoding, default=ENCODING,
-                        help=f'config file encoding (default: {ENCODING})')
+    parser.add_argument('--encoding', metavar='NAME', type=encoding,
+                        help='config file encoding',
+                        default='utf-8')
 
-    parser.add_argument('--limit', metavar='N', type=int, default=None,
-                        help='number of episodes to download'
-                             ' (overrides --config file)')
+    parser.add_argument('--limit', metavar='N', type=int,
+                        help='number of episodes to download')
 
-    parser.add_argument('--serial', dest='parallel', action='store_false',
-                        help="don't parallelize downloads from different sections")
+    parser.add_argument('--serial', action='store_true',
+                        help="don't parallelize downloads")
 
     parser.add_argument('--verbose', action='store_true',
-                        help='log skipping of downloads that match present files')
+                        help='log skipping of downloads')
 
     parser.add_argument('--version', action='version', version=__version__)
     return parser.parse_args(args)
@@ -126,8 +121,7 @@ class ConfigParser(configparser.ConfigParser):
     DEFAULTSECT: str = configparser.DEFAULTSECT
 
     @classmethod
-    def from_path(cls, path: pathlib.Path, /, *,
-                  encoding: str = ENCODING) -> ConfigParser:
+    def from_path(cls, path: pathlib.Path, /, *, encoding: str) -> ConfigParser:
         inst = cls()
         with path.open(encoding=encoding) as f:
             inst.read_file(f)
@@ -142,10 +136,9 @@ class Subscriptions:
 
     _limit = 'limit'
 
-    def __init__(self, config_path: pathlib.Path = CONFIG_FILE, /, *,
-                 encoding: str = ENCODING) -> None:
+    def __init__(self, config_path: pathlib.Path, /, *, encoding: str) -> None:
         self._config_path = config_path
-        self._config = ConfigParser.from_path(config_path)
+        self._config = ConfigParser.from_path(config_path, encoding=encoding)
 
     def __repr__(self) -> str:
         return (f'<{self.__class__.__name__} from {str(self._config_path)!r}:'
@@ -442,7 +435,7 @@ def main(args: Sequence[str] | None = None) -> None:
                                    podcasts=args.podcasts,
                                    encoding=args.encoding,
                                    limit=args.limit,
-                                   parallel=args.parallel,
+                                   parallel=not args.serial,
                                    verbose=args.verbose)
     for p, e in downloaded:
         print(f'{p.title} -- {e.title}')
