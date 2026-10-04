@@ -189,8 +189,8 @@ options:
 ```shell
 $ pip-upgrade-all.py --help
 usage: pip-upgrade-all.py [-h] [--exclude PKG [PKG ...]]
-                          [--assume-yes {MAJOR,MINOR,PATCH}]
-                          [--suggest-yes {MAJOR,MINOR,PATCH}] [--version]
+                          [--assume-yes {PATCH,MINOR}]
+                          [--suggest-yes {MINOR,MAJOR}] [--version]
 
 Run pip list --outdated, ask for confirmation, and run pip install --upgrade.
 
@@ -198,10 +198,10 @@ options:
   -h, --help            show this help message and exit
   --exclude PKG [PKG ...]
                         package name(s) to exclude from upgrade.
-  --assume-yes {MAJOR,MINOR,PATCH}
+  --assume-yes {PATCH,MINOR}
                         skip asking for individual confirmation for package
                         upgrades of this level and below (default: always ask)
-  --suggest-yes {MAJOR,MINOR,PATCH}
+  --suggest-yes {MINOR,MAJOR}
                         ask '[yes]/no' instead of 'yes/[no]' for all package
                         upgrades of this level and below (default: PATCH)
   --version             show program's version number and exit

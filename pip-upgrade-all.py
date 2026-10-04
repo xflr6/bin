@@ -39,11 +39,11 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('--exclude', nargs='+', metavar='PKG',
                         help='package name(s) to exclude from upgrade.')
 
-    parser.add_argument('--assume-yes', choices=['MAJOR', 'MINOR', 'PATCH'],
+    parser.add_argument('--assume-yes', choices=[Update.PATCH.name, Update.MINOR.name],
                         help='skip asking for individual confirmation for package'
                              ' upgrades of this level and below (default: always ask)')
 
-    parser.add_argument('--suggest-yes', choices=['MAJOR', 'MINOR', 'PATCH'],
+    parser.add_argument('--suggest-yes', choices=[Update.MINOR.name, Update.MAJOR.name],
                         help="ask '[yes]/no' instead of 'yes/[no]' for all package"
                              ' upgrades of this level and below (default: PATCH)')
 
