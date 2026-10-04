@@ -20,8 +20,6 @@ import subprocess
 import sys
 import time
 
-MODE_MASK = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
-
 
 def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__,
@@ -94,20 +92,22 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('--group', type=group,
                         help='image file group')
 
+    mode_mask = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
+    assert stat.filemode(mode_mask) == '?rwxrwxrwx'  # 0o777
+
     def mode(s: str, /) -> int:
         try:
             result = int(s, base=8)
         except ValueError:
             result = None
-        assert stat.filemode(MODE_MASK) == '?rwxrwxrwx'  # 0o777
-        if result is None or not 0 <= result <= MODE_MASK:
-            raise argparse.ArgumentTypeError(f'need octal int between {oct(0)}'
-                                             f' and {oct(MODE_MASK)}: {s}')
+        if result is None or not 0 <= result <= mode_mask:
+            raise argparse.ArgumentTypeError(f'need octal int between {0:o}'
+                                             f' and {mode_mask:o}: {s}')
         return stat.S_IMODE(result)
 
     parser.add_argument('--chmod', metavar='MODE', type=mode,
                         help='image file chmod',
-                        default=f'{stat.S_IRUSR:3o}')
+                        default=f'{stat.S_IRUSR:o}')
     assert stat.filemode(mode(parser.get_default('chmod'))) == '?r--------'  # 0o400
 
     parser.add_argument('--set-path', metavar='LINE',
@@ -116,7 +116,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
 
     parser.add_argument('--set-umask', metavar='MASK', type=mode,
                         help='umask for mksquashfs subprocess',
-                        default=f'{stat.S_IXUSR | stat.S_IRWXG | stat.S_IRWXO:3o}')
+                        default=f'{stat.S_IXUSR | stat.S_IRWXG | stat.S_IRWXO:o}')
     assert stat.filemode(mode(parser.get_default('set_umask'))) == '?--xrwxrwx'  # 0o177
 
     parser.add_argument('--quiet', action='store_true',

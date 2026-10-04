@@ -21,8 +21,6 @@ import subprocess
 import sys
 import time
 
-MODE_MASK = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
-
 ENCODING = 'utf-8'
 
 
@@ -97,20 +95,22 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('--group', type=group,
                         help='archive file group')
 
+    mode_mask = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
+    assert stat.filemode(mode_mask) == '?rwxrwxrwx'  # 0o777
+
     def mode(s: str, /) -> int:
         try:
             result = int(s, base=8)
         except ValueError:
             result = None
-        assert stat.filemode(MODE_MASK) == '?rwxrwxrwx'  # 0o777
-        if result is None or not 0 <= result <= MODE_MASK:
-            raise argparse.ArgumentTypeError(f'need octal int between {oct(0)}'
-                                             f' and {oct(MODE_MASK)}: {s}')
+        if result is None or not 0 <= result <= mode_mask:
+            raise argparse.ArgumentTypeError(f'need octal int between {0:o}'
+                                             f' and {mode_mask:o}: {s}')
         return stat.S_IMODE(result)
 
     parser.add_argument('--chmod', metavar='MODE', type=mode,
                         help='archive file chmod',
-                        default=f'{stat.S_IRUSR:3o}')
+                        default=f'{stat.S_IRUSR:o}')
     assert stat.filemode(mode(parser.get_default('chmod'))) == '?r--------'  # 0o400
 
     parser.add_argument('--set-path', metavar='LINE',
@@ -119,7 +119,7 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
 
     parser.add_argument('--set-umask', metavar='MASK', type=mode,
                         help='umask for tar subprocess',
-                        default=f'{stat.S_IXUSR | stat.S_IRWXG | stat.S_IRWXO:3o}')
+                        default=f'{stat.S_IXUSR | stat.S_IRWXG | stat.S_IRWXO:o}')
     assert stat.filemode(mode(parser.get_default('set_umask'))) == '?--xrwxrwx'  # 0o177
 
     parser.add_argument('--ask-for-deletion', action='store_true',
@@ -140,7 +140,7 @@ def tar_archive(source_dir: pathlib.Path, dest_dir: pathlib.Path, *, name: str,
     if dest_path.exists():
         return f'error: result file {dest_path} already exists'
 
-    log('', f'os.umask(0o{set_umask:03o})')
+    log('', f'os.umask({oct(set_umask)})')
     os.umask(set_umask)
 
     infos = {}
@@ -174,7 +174,7 @@ def tar_archive(source_dir: pathlib.Path, dest_dir: pathlib.Path, *, name: str,
         return 'error: result file is empty'
     log(format_permissions(dest_stat))
 
-    log('', f'os.chmod(..., 0o{chmod:03o})')
+    log('', f'os.chmod(..., {oct(chmod)})')
     dest_path.chmod(chmod)
 
     if owner or group:
