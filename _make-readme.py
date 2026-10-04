@@ -41,7 +41,7 @@ def iterhelp(directory: pathlib.Path = ROOT, /, *,
 usage = '\n\n\n'.join(TEMPLATE.format(name=name, cmd=cmd, output=stdout.rstrip())
                       for name, cmd, stdout in iterhelp() if stdout)
 
-old = PATH.read_text(encoding=ENCODING)
+old = PATH.read_text(encoding=ENCODING).strip()
 
 (head, sep_start, rest) = old.partition(REPLACE_AFTER)
 assert head and sep_start and rest
