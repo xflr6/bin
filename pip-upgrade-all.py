@@ -39,17 +39,33 @@ def parse_args(args: Sequence[str] | None, /) -> argparse.Namespace:
     parser.add_argument('--exclude', nargs='+', metavar='PKG',
                         help='package name(s) to exclude from upgrade.')
 
+    parser.add_argument('--assume-yes', choices=['MAJOR', 'MINOR', 'PATCH'],
+                        help='skip asking for individual confirmation for package'
+                             ' upgrades of this level and below (default: always ask)')
+
+    parser.add_argument('--suggest-yes', choices=['MAJOR', 'MINOR', 'PATCH'],
+                        help="ask '[yes]/no' instead of 'yes/[no]' for all package"
+                             ' upgrades of this level and below (default: PATCH)')
+
     parser.add_argument('--version', action='version', version=__version__)
-    return parser.parse_args(args)
+    args = parser.parse_args(args)
+    args.assume_yes = Update[args.assume_yes] if args.assume_yes is not None else None
+    args.suggest_yes = (Update[args.suggest_yes] if args.suggest_yes is not None
+                        else Update.PATCH)
+    return args
 
 
-def pip_upgrade_all(*, exclude: Sequence[str] | None) -> str | None:
+def pip_upgrade_all(*,
+                    exclude: Sequence[str] | None,
+                    assume_yes: Update | None,
+                    suggest_yes: Update | None) -> str | None:
     print('Fetch pip list --outdated packages eligible for pip install --upgrade...')
     candidates = outdated_packages()
     if exclude:
         exclude = set(exclude)
         candidates = (p for p in candidates if p.name not in exclude)
-    packages = [p for p in candidates if p.ask_for_confirmation()]
+    kwargs = {'assume_yes': assume_yes, 'suggest_yes': suggest_yes}
+    packages = [p for p in candidates if p.ask_for_confirmation(**kwargs)]
     if not packages:
         print('', 'No packages to pip install --upgrade, exiting.', sep='\n')
         return None
@@ -128,8 +144,15 @@ class OutdatedPackage:
                 f' from {self.version} to {self.latest}'
                 f' ({self.type})')
 
-    def ask_for_confirmation(self) -> bool:
-        return user_confirmed(self.message, default=self.update is Update.PATCH)
+    def ask_for_confirmation(self, *,
+                             assume_yes: Update | None,
+                             suggest_yes: Update | None) -> bool:
+        if assume_yes is not None and self.update.value >= assume_yes.value:
+            print(f'{self.message}: --assume-yes')
+            return True
+        return user_confirmed(self.message,
+                              default=(self.update.value >= suggest_yes.value
+                                       if suggest_yes is not None else False))
 
 
 class Update(enum.Enum):
@@ -170,7 +193,9 @@ def user_confirmed(message: str, /, *, default: bool | None = None) -> bool:
 def main(args: Sequence[str] | None = None) -> str | None:
     args = parse_args(args)
     try:
-        return pip_upgrade_all(exclude=args.exclude)
+        return pip_upgrade_all(exclude=args.exclude,
+                               assume_yes=args.assume_yes,
+                               suggest_yes=args.suggest_yes,)
     except KeyboardInterrupt:
         return 'Aborted with CTRL-C.'
 
