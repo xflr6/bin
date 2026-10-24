@@ -38,7 +38,7 @@ def proc(mocker, name='subprocess.Popen()'):
                                     stdout=mocker.NonCallableMock(),
                                     stderr=mocker.NonCallableMock(),
                                     encoding=None, errors=None)
-
+    # enable support for the context manager protocol
     result.attach_mock(mocker.Mock(return_value=result), '__enter__')
     result.attach_mock(mocker.Mock(), '__exit__')
 

@@ -2,6 +2,7 @@ import functools
 import importlib
 import os
 import subprocess
+import sys
 
 import pytest
 
@@ -54,12 +55,13 @@ def test_main(tmp_path, mocker, proc):
 
     assert Popen.call_args_list == [dump, compress]
 
-    proc.assert_has_calls([mocker.call.__enter__(proc),
-                           mocker.call.__enter__(proc),
+    proc_args = [proc] if sys.version_info < (3, 15) else []
+    proc.assert_has_calls([mocker.call.__enter__(*proc_args),
+                           mocker.call.__enter__(*proc_args),
                            mocker.call.communicate(),
                            mocker.call.communicate(),
-                           mocker.call.__exit__(proc, None, None, None),
-                           mocker.call.__exit__(proc, None, None, None)])
+                           mocker.call.__exit__(*proc_args + [None, None, None]),
+                           mocker.call.__exit__(*proc_args + [None, None, None])])
 
 
 def test_no_auto_compress_raises_with_compress_suffix(tmp_path):
